@@ -11,9 +11,12 @@ import { isUniqueViolation } from './hierarchy.repository';
 import { CreateSubjectDto, UpdateSubjectDto } from './dto/subject.dto';
 
 /**
- * Subject + SubjectAssignment authoring (Phase 2.2A-1). Subject CREATE and assignment management are the
- * `content.subject.manage` plane; Subject reads/metadata edits are the `content.author` + scope plane. Every
- * mutation writes its StaffAudit inside the SAME transaction (§18/19). No role-name bypass anywhere.
+ * Subject + SubjectAssignment authoring (Phase 2.2A-1). Final permission semantics:
+ *  - Subject discovery/detail (GET/list) → `content.author` + SubjectAssignment scope;
+ *  - Subject CREATE → `content.subject.manage`;
+ *  - Subject metadata PATCH → `content.subject.manage` (a GLOBAL top-level capability — no per-subject assignment);
+ *  - SubjectAssignment management → `content.subject.manage`.
+ * Every mutation writes its StaffAudit inside the SAME transaction (§18/19). No role-name bypass anywhere.
  */
 @Injectable()
 export class SubjectService {
