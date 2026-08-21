@@ -1,0 +1,290 @@
+// Izlan — Core / Auth / Authorization / Media / Staff audit
+// Domenlar: Identity (TD-15/16/31/32), Authorization (TD-26), Auth (TD-08..13),
+// StaffAudit (TD-81), MediaAsset+ActivityMedia (TD-25/82).
+
+// ============================================================================
+// IDENTITY
+// ============================================================================
+
+model User {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  phone       String     @unique // canonical E.164 (+998...) — TD-16
+  status      UserStatus @default(ACTIVE)
+  lastLoginAt DateTime?  @map("last_login_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  profile            UserProfile?
+  roles              UserRole[]
+  subjectAssignments SubjectAssignment[] @relation("AssignmentMethodist")
+  assignmentsGranted SubjectAssignment[] @relation("AssignmentGrantedBy")
+  rolesGranted       UserRole[]          @relation("RoleGrantedBy")
+  authSessions       AuthSession[]
+  securityEvents     SecurityEvent[]
+  staffAuditsActed   StaffAudit[]        @relation("StaffAuditActor")
+  uploadedMedia      MediaAsset[]        @relation("MediaUploader")
+
+  // Content authorship (content.prisma)
+  createdSubjects       Subject[]                     @relation("SubjectCreatedBy")
+  createdTracks         Track[]                       @relation("TrackCreatedBy")
+  createdLevels         Level[]                       @relation("LevelCreatedBy")
+  createdModules        Module[]                      @relation("ModuleCreatedBy")
+  createdTopics         Topic[]                       @relation("TopicCreatedBy")
+  createdLessons        Lesson[]                      @relation("LessonCreatedBy")
+  createdRevisions      LessonRevision[]              @relation("RevisionCreatedBy")
+  updatedRevisions      LessonRevision[]              @relation("RevisionUpdatedBy")
+  reviewedRevisions     LessonRevision[]              @relation("RevisionReviewedBy")
+  publishedRevisions    LessonRevision[]              @relation("RevisionPublishedBy")
+  createdAssessmentDefs AssessmentDefinition[]        @relation("AssessmentDefCreatedBy")
+  createdAssessmentVers AssessmentDefinitionVersion[] @relation("AssessmentVerCreatedBy")
+
+  // Learning (learning.prisma)
+  assessmentAttempts AssessmentAttempt[]
+  skillStates        LearnerSkillState[]
+  skillMeasurements  SkillMeasurement[]
+  learningSessions   LearningSession[]
+  activityAttempts   ActivityAttempt[]
+  lessonProgress     LearnerLessonProgress[]
+  lessonCompletions  LearnerLessonCompletion[]
+  roadmaps           LearnerRoadmap[]
+  recommendations    LearnerRecommendation[]
+  signals            LearnerSignal[]
+  reviewSessions     LearnerReviewSession[]
+  dailyPlans         DailyPlan[]
+  missionCompletions DailyMissionCompletion[]
+  schedulePreference LearningSchedulePreference?
+  weeklyProgress     WeeklyProgress[]
+  learningIntents    LearnerLearningIntent[]
+
+  // Finance (finance.prisma)
+  xpBalance             XpBalance?
+  xpGrants              XpGrant[]
+  izlWallet             IZLWallet?
+  ledgerEntries         IZLLedgerEntry[]
+  ledgerAdjustments     IZLLedgerEntry[]      @relation("LedgerAdjustmentActor")
+  rewardGrants          RewardGrant[]
+  redemptions           IZLRedemption[]
+  izlReservations       IZLReservation[] // Phase 2.1B: internal spendability holds (distinct from IZLRedemption)
+  createdPolicyVersions RewardPolicyVersion[] @relation("PolicyVersionCreatedBy")
+  createdRateVersions   IzlRateVersion[]      @relation("RateVersionCreatedBy")
+  createdPlanPrices     PlanPrice[]           @relation("PlanPriceCreatedBy")
+  subscriptions         Subscription[]
+  paymentOrders         PaymentOrder[]
+
+  // Community (community.prisma)
+  communityPosts       CommunityPost[]
+  communityReplies     CommunityReply[]
+  communityReactions   CommunityReaction[]
+  communityReports     CommunityReport[]       @relation("ReportReporter")
+  reportsResolved      CommunityReport[]       @relation("ReportResolvedBy")
+  moderationActions    ModerationAction[]      @relation("ModerationActor")
+  moderationTargeted   ModerationAction[]      @relation("ModerationTargetUser")
+  restrictions         CommunityRestriction[]  @relation("RestrictionUser")
+  restrictionsCreated  CommunityRestriction[]  @relation("RestrictionCreatedBy")
+  restrictionsRevoked  CommunityRestriction[]  @relation("RestrictionRevokedBy")
+  reputationBalance    ReputationBalance?
+  reputationEvents     ReputationEvent[]
+  createdAnnouncements Announcement[]          @relation("AnnouncementCreatedBy")
+  announcementStates   AnnouncementUserState[]
+  notifications        Notification[]
+
+  @@index([status])
+  @@map("app_user")
+}
+
+model UserProfile {
+  userId                String    @id @map("user_id") @db.Uuid
+  displayName           String?   @map("display_name")
+  dateOfBirth           DateTime? @map("date_of_birth") @db.Date // age hech qachon saqlanmaydi — TD/D-32
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  preferredLanguage     String?   @map("preferred_language") // UI tili product OPEN — optional
+  timezone              String?   @map("timezone") // IANA; TD-91 (core learning oldidan resolved bo'lishi shart — app guard)
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("user_profile")
+}
+
+// ============================================================================
+// AUTHORIZATION (TD-26) — Role seeded jadval; permission — kod registry (Permission jadvali YO'Q)
+// ============================================================================
+
+model Role {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  code      String   @unique // LEARNER / METHODIST / MODERATOR / ADMIN
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("role")
+}
+
+model UserRole {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  grantedAt DateTime @default(now()) @map("granted_at")
+  grantedBy String?  @map("granted_by") @db.Uuid
+
+  user          User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role          Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  grantedByUser User? @relation("RoleGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@map("user_role")
+}
+
+model RolePermission {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  roleId         String   @map("role_id") @db.Uuid
+  permissionCode String   @map("permission_code") // application registry'da validatsiya (TD-26/90)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionCode])
+  @@map("role_permission")
+}
+
+model SubjectAssignment {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid // METHODIST
+  subjectId  String   @map("subject_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedBy String?  @map("assigned_by") @db.Uuid // ADMIN — audit (D-35)
+
+  user           User    @relation("AssignmentMethodist", fields: [userId], references: [id], onDelete: Restrict)
+  subject        Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  assignedByUser User?   @relation("AssignmentGrantedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, subjectId])
+  @@index([subjectId])
+  @@map("subject_assignment")
+}
+
+// ============================================================================
+// AUTH (Phase 1.1) — TD-08..13. Sensitive secretlar faqat hash sifatida.
+// ============================================================================
+
+model AuthSession {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  platform      String // web / android / ios
+  clientInfo    String?   @map("client_info") // qo'pol user-agent/app version
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastActivity  DateTime  @default(now()) @map("last_activity")
+  expiresAt     DateTime  @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+  @@map("auth_session")
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  sessionId    String    @map("session_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash") // faqat HASH — plaintext token YO'Q (TD-10)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  expiresAt    DateTime  @map("expires_at")
+  usedAt       DateTime? @map("used_at")
+  revokedAt    DateTime? @map("revoked_at")
+  replacedById String?   @map("replaced_by_id") @db.Uuid // rotation zanjiri (auth §5 note)
+
+  session AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("refresh_token")
+}
+
+model OtpChallenge {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  phone         String // canonical E.164 (account'dan oldin ham mavjud — FK YO'Q)
+  purpose       String // login / phone_change
+  codeHash      String    @map("code_hash") // faqat HASH (peppered) — plaintext YO'Q (TD-10)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  expiresAt     DateTime  @map("expires_at")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  consumedAt    DateTime? @map("consumed_at")
+  invalidatedAt DateTime? @map("invalidated_at")
+  requestIp     String?   @map("request_ip")
+
+  @@index([phone, createdAt])
+  @@map("otp_challenge")
+}
+
+model SecurityEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  type       String // otp_requested / login_success / refresh_token_reuse_detected ... (registry)
+  userId     String?  @map("user_id") @db.Uuid
+  sessionId  String?  @map("session_id") @db.Uuid
+  ip         String?
+  clientInfo String?  @map("client_info")
+  metadata   Json?    @db.JsonB // minimal — OTP/token HECH QACHON yozilmaydi (TD-18)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("security_event")
+}
+
+// ============================================================================
+// STAFF AUDIT (TD-81) — append-only; target lightweight polymorphic (FK YO'Q); actor real FK.
+// ============================================================================
+
+model StaffAudit {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  actionCode  String   @map("action_code") // application registry (TD-90)
+  targetType  String   @map("target_type") // polymorphic — DB FK YO'Q (TD-81)
+  targetId    String?  @map("target_id") @db.Uuid
+  reason      String?
+  metadata    Json?    @db.JsonB // TD-92
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User @relation("StaffAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([actionCode, createdAt])
+  @@map("staff_audit")
+}
+
+// ============================================================================
+// MEDIA (TD-25/74/82) — provider-neutral; associations junctionlarda (raw URL YO'Q).
+// ============================================================================
+
+model MediaAsset {
+  id               String                @id @default(uuid(7)) @db.Uuid
+  storageKey       String                @unique @map("storage_key") // provider-neutral object key (URL EMAS)
+  mimeType         String                @map("mime_type")
+  sizeBytes        Int                   @map("size_bytes")
+  durationSeconds  Int?                  @map("duration_seconds")
+  width            Int?
+  height           Int?
+  uploadedBy       String                @map("uploaded_by") @db.Uuid
+  processingStatus MediaProcessingStatus @default(PENDING) @map("processing_status") // TD-74
+  moderationStatus MediaModerationStatus @default(UNREVIEWED) @map("moderation_status") // TD-74
+  moderationMeta   Json?                 @map("moderation_metadata") @db.JsonB // provider-neutral (TD-74/92)
+  createdAt        DateTime              @default(now()) @map("created_at")
+
+  uploader             User                  @relation("MediaUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  activityMedia        ActivityMedia[]
+  assessmentItemMedia  AssessmentItemMedia[]
+  communityPostMedia   CommunityPostMedia[]
+  activityAttemptMedia ActivityAttempt[]     @relation("AttemptResponseMedia")
+  assessmentRespMedia  AssessmentResponse[]  @relation("ResponseMedia")
+
+  @@index([uploadedBy])
+  @@map("media_asset")
+}

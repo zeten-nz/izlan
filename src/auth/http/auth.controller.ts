@@ -1,0 +1,154 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Post,
+  Req,
+  Res,
+  ServiceUnavailableException,
+  HttpException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { AuthConfig } from '../../config/env.validation';
+import { OtpService } from '../otp/otp.service';
+import { OtpPurpose } from '../otp/otp-purpose';
+import { SessionsService } from '../sessions/sessions.service';
+import { AccessTokenService } from '../access-token/access-token.service';
+import { UsersService } from '../../users/users.service';
+import { SecurityEventsService, SecurityEventType } from '../../security/security-events.service';
+import { InMemoryAuthRateLimiter } from '../rate-limit/auth-rate-limiter';
+import { SMS_PORT, SmsPort } from '../../sms/sms.port';
+import { OtpRateLimitError } from '../../common/errors';
+import { RequestOtpDto, VerifyOtpDto } from './dto';
+import { Public, CurrentPrincipal } from './decorators';
+import type { AuthPrincipal } from './principal';
+import { setRefreshCookie, clearRefreshCookie, readRefreshCookie } from './cookie.util';
+import { enforceRefreshCsrf } from './csrf';
+
+const HOUR_MS = 3_600_000;
+
+@Controller('auth')
+export class AuthController {
+  private readonly auth: AuthConfig;
+  private readonly corsOrigins: readonly string[];
+  private readonly cookieMaxAge: number; // refresh cookie umri = session absolute ttl (soniya)
+
+  constructor(
+    config: ConfigService,
+    private readonly otp: OtpService,
+    private readonly sessions: SessionsService,
+    private readonly accessToken: AccessTokenService,
+    private readonly users: UsersService,
+    private readonly securityEvents: SecurityEventsService,
+    private readonly rateLimiter: InMemoryAuthRateLimiter,
+    @Inject(SMS_PORT) private readonly sms: SmsPort,
+  ) {
+    this.auth = config.getOrThrow<AuthConfig>('auth');
+    this.corsOrigins = config.getOrThrow<string[]>('corsOrigins');
+    this.cookieMaxAge = this.auth.sessionAbsoluteTtlDays * 86_400;
+  }
+
+  // ── POST /api/auth/otp/request (LOGIN only) ──
+  @Public()
+  @Post('otp/request')
+  @HttpCode(202)
+  async requestOtp(@Body() dto: RequestOtpDto, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const ip = req.ip;
+    // Per-IP hourly limit (§43). request.ip — trustProxy policy 1.4A authority.
+    if (!this.rateLimiter.tryConsume(`otp:${ip}`, this.auth.otpIpHourlyLimit, HOUR_MS)) {
+      await this.securityEvents.record({ type: SecurityEventType.RATE_LIMIT_TRIGGERED, ip, metadata: { scope: 'otp_ip' } });
+      throw new OtpRateLimitError('otp ip limit reached');
+    }
+
+    // Enumeration-safe: account lookup YO'Q (§22).
+    const issued = await this.otp.issueChallenge({ phone: dto.phone, purpose: OtpPurpose.LOGIN, ip });
+
+    // SMS yuborish. Fail → challenge invalidate (§21).
+    const result = await this.sms.sendOtp({ canonicalPhone: issued.canonicalPhone, code: issued.code, purpose: OtpPurpose.LOGIN });
+    if (result !== 'SENT') {
+      await this.otp.invalidateChallenge(issued.challengeId);
+      throw new ServiceUnavailableException({ statusCode: 503, code: 'AUTH_SMS_UNAVAILABLE', message: 'could not send verification code' });
+    }
+
+    void reply.header('Cache-Control', 'no-store');
+    return { challengeId: issued.challengeId, expiresIn: this.auth.otpTtlSeconds, resendAfter: this.auth.otpResendCooldownSeconds };
+  }
+
+  // ── POST /api/auth/otp/verify ──
+  @Public()
+  @Post('otp/verify')
+  @HttpCode(200)
+  async verifyOtp(@Body() dto: VerifyOtpDto, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { canonicalPhone } = await this.otp.verifyChallenge({ challengeId: dto.challengeId, purpose: OtpPurpose.LOGIN, code: dto.code });
+
+    // Account lookup/create (verified phone'dan keyin). Concurrent create race → existing (§24).
+    let user = await this.users.findByPhone(canonicalPhone);
+    if (!user) {
+      try {
+        user = await this.users.createLearnerAfterVerifiedPhone(canonicalPhone);
+      } catch {
+        user = await this.users.findByPhone(canonicalPhone);
+      }
+    }
+    if (!user) throw new HttpException({ statusCode: 500, code: 'INTERNAL', message: 'user resolution failed' }, 500);
+
+    await this.users.assertAuthAllowed(user.id); // SUSPENDED/DEACTIVATED → AccountUnavailableError
+
+    const session = await this.sessions.createSession({ userId: user.id, platform: 'web' });
+    const access = this.accessToken.issueAccessToken(user.id, session.sessionId);
+
+    setRefreshCookie(reply, session.refreshToken, this.auth.cookieSecure, this.cookieMaxAge);
+    await this.securityEvents.record({ type: SecurityEventType.LOGIN_SUCCESS, userId: user.id, sessionId: session.sessionId });
+    void reply.header('Cache-Control', 'no-store');
+
+    const bootstrap = await this.users.getAuthBootstrap(user.id);
+    return { accessToken: access.token, tokenType: 'Bearer', expiresIn: access.expiresIn, user: bootstrap };
+  }
+
+  // ── POST /api/auth/refresh (cookie + CSRF; access JWT talab qilinmaydi) ──
+  @Public()
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    enforceRefreshCsrf(req.headers, this.corsOrigins); // CsrfRejectedError → 403
+
+    const token = readRefreshCookie(req.headers.cookie);
+    if (!token) throw new HttpException({ statusCode: 401, code: 'AUTH_UNAUTHORIZED', message: 'unauthorized' }, 401);
+
+    const rotated = await this.sessions.rotateRefreshToken(token); // reuse/invalid → domain error → 401
+    const access = this.accessToken.issueAccessToken(rotated.userId, rotated.sessionId);
+
+    setRefreshCookie(reply, rotated.refreshToken, this.auth.cookieSecure, this.cookieMaxAge);
+    void reply.header('Cache-Control', 'no-store');
+    return { accessToken: access.token, tokenType: 'Bearer', expiresIn: access.expiresIn };
+  }
+
+  // ── POST /api/auth/logout (Bearer required) ──
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@CurrentPrincipal() principal: AuthPrincipal, @Res({ passthrough: true }) reply: FastifyReply) {
+    await this.sessions.revokeSession(principal.sessionId, 'logout'); // idempotent
+    clearRefreshCookie(reply, this.auth.cookieSecure);
+    void reply.header('Cache-Control', 'no-store');
+  }
+
+  // ── POST /api/auth/logout-all (Bearer required) ──
+  @Post('logout-all')
+  @HttpCode(204)
+  async logoutAll(@CurrentPrincipal() principal: AuthPrincipal, @Res({ passthrough: true }) reply: FastifyReply) {
+    await this.sessions.revokeAllUserSessions(principal.userId, 'logout_all');
+    clearRefreshCookie(reply, this.auth.cookieSecure);
+    void reply.header('Cache-Control', 'no-store');
+  }
+
+  // ── GET /api/auth/me (Bearer + live-check, §12/39) ──
+  @Get('me')
+  async me(@CurrentPrincipal() principal: AuthPrincipal) {
+    await this.sessions.assertSessionActive(principal.sessionId); // revoked/expired → 401
+    await this.users.assertAuthAllowed(principal.userId); // SUSPENDED/DEACTIVATED → 403
+    return this.users.getAuthBootstrap(principal.userId);
+  }
+}

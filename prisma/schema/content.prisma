@@ -1,0 +1,286 @@
+// Izlan — Content domain (TD-06/07/08/09/20/21/22/24/27/28/82)
+// Explicit hierarchy: Subject → Track → Level → Module → Topic → Lesson → LessonRevision → Activity
+// + Skill, LessonSkill, ActivitySkill, LessonPrerequisite, ActivityMedia.
+
+model Subject {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  slug        String          @unique
+  title       String
+  description String?
+  status      ContainerStatus @default(DRAFT)
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdBy   String          @map("created_by") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  createdByUser         User                    @relation("SubjectCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  tracks                Track[]
+  skills                Skill[]
+  assignments           SubjectAssignment[]
+  assessmentDefinitions AssessmentDefinition[]
+  checkpoints           Checkpoint[]
+  roadmaps              LearnerRoadmap[]
+  communityPosts        CommunityPost[]
+  signals               LearnerSignal[]
+  learningIntents       LearnerLearningIntent[]
+
+  @@map("subject")
+}
+
+model Track {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  subjectId   String          @map("subject_id") @db.Uuid
+  slug        String
+  title       String
+  description String?
+  status      ContainerStatus @default(DRAFT)
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdBy   String          @map("created_by") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  subject         Subject                 @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  createdByUser   User                    @relation("TrackCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  levels          Level[]
+  roadmaps        LearnerRoadmap[]
+  learningIntents LearnerLearningIntent[]
+
+  @@unique([subjectId, slug])
+  @@index([subjectId])
+  @@map("track")
+}
+
+model Level {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  trackId   String          @map("track_id") @db.Uuid
+  code      String // display code ("B1"); enum EMAS — data (TD-27)
+  title     String
+  sortOrder Int             @map("sort_order")
+  status    ContainerStatus @default(DRAFT)
+  createdBy String          @map("created_by") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  track         Track    @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  createdByUser User     @relation("LevelCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  modules       Module[]
+
+  @@unique([trackId, code])
+  @@unique([trackId, sortOrder])
+  @@index([trackId])
+  @@map("level")
+}
+
+model Module {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  levelId     String          @map("level_id") @db.Uuid
+  title       String
+  description String?
+  sortOrder   Int             @map("sort_order")
+  status      ContainerStatus @default(DRAFT)
+  createdBy   String          @map("created_by") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  level         Level       @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  createdByUser User        @relation("ModuleCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  topics        Topic[]
+  checkpoint    Checkpoint? // Module 1:0..1 Checkpoint (TD-41)
+
+  @@unique([levelId, sortOrder])
+  @@index([levelId])
+  @@map("module")
+}
+
+model Topic {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  moduleId    String          @map("module_id") @db.Uuid
+  title       String
+  description String?
+  sortOrder   Int             @map("sort_order")
+  status      ContainerStatus @default(DRAFT)
+  createdBy   String          @map("created_by") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  module         Module          @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  createdByUser  User            @relation("TopicCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  lessons        Lesson[]
+  communityPosts CommunityPost[]
+
+  @@unique([moduleId, sortOrder])
+  @@index([moduleId])
+  @@map("topic")
+}
+
+// Lesson = logical identity (TD-24); publishedRevisionId — circular pointer (§14).
+model Lesson {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  topicId             String       @map("topic_id") @db.Uuid
+  slug                String?
+  sortOrder           Int          @map("sort_order")
+  status              LessonStatus @default(DRAFT)
+  publishedRevisionId String?      @unique @map("published_revision_id") @db.Uuid
+  createdBy           String       @map("created_by") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  topic             Topic                     @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  createdByUser     User                      @relation("LessonCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  // Circular: pointer joriy learner-visible revisionga (invariant C6: shu lesson'ning revisioni — app/DB enforce)
+  publishedRevision LessonRevision?           @relation("LessonPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict)
+  revisions         LessonRevision[]          @relation("LessonRevisions")
+  skills            LessonSkill[]
+  prerequisites     LessonPrerequisite[]      @relation("PrereqLesson")
+  requiredBy        LessonPrerequisite[]      @relation("PrereqRequiredLesson")
+  progress          LearnerLessonProgress[]
+  completions       LearnerLessonCompletion[]
+  reviewSessions    LearnerReviewSession[]
+
+  @@index([topicId, status])
+  @@map("lesson")
+}
+
+// LessonRevision = immutable content versiyasi (TD-24). REVIEW state shu yerda (TD-28).
+model LessonRevision {
+  id                   String         @id @default(uuid(7)) @db.Uuid
+  lessonId             String         @map("lesson_id") @db.Uuid
+  version              Int
+  title                String
+  description          String?
+  estimatedDurationMin Int?           @map("estimated_duration_min") // activity durationlardan cache
+  status               RevisionStatus @default(DRAFT)
+  createdBy            String         @map("created_by") @db.Uuid
+  updatedBy            String?        @map("updated_by") @db.Uuid
+  reviewedBy           String?        @map("reviewed_by") @db.Uuid
+  publishedBy          String?        @map("published_by") @db.Uuid
+  publishedAt          DateTime?      @map("published_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  lesson             Lesson                    @relation("LessonRevisions", fields: [lessonId], references: [id], onDelete: Restrict)
+  createdByUser      User                      @relation("RevisionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updatedByUser      User?                     @relation("RevisionUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  reviewedByUser     User?                     @relation("RevisionReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  publishedByUser    User?                     @relation("RevisionPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+  activities         Activity[]
+  publishedForLesson Lesson?                   @relation("LessonPublishedRevision")
+  activityAttempts   ActivityAttempt[]
+  lessonProgress     LearnerLessonProgress[]
+  lessonCompletions  LearnerLessonCompletion[]
+  reviewSessions     LearnerReviewSession[]
+
+  @@unique([lessonId, version])
+  @@index([lessonId, status])
+  @@map("lesson_revision")
+}
+
+// Activity = single table + type + JSONB payload (TD-21/22). Media — junctionda (TD-82).
+model Activity {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  lessonRevisionId     String        @map("lesson_revision_id") @db.Uuid
+  type                 ActivityType
+  position             Int
+  estimatedDurationMin Int?          @map("estimated_duration_min")
+  payload              Json          @db.JsonB // TD-21/22/92 — media_asset_id YO'Q (role/config only)
+  source               ContentSource @default(HUMAN) // TD-20
+  aiMetadata           Json?         @map("ai_metadata") @db.JsonB // TD-24/92
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  revision LessonRevision    @relation(fields: [lessonRevisionId], references: [id], onDelete: Cascade) // draft revision cascade; published — app immutable
+  media    ActivityMedia[]
+  skills   ActivitySkill[]
+  attempts ActivityAttempt[]
+  reviewSessionActivities LearnerReviewSessionActivity[]
+
+  @@unique([lessonRevisionId, position])
+  @@index([lessonRevisionId])
+  @@map("activity")
+}
+
+// ActivityMedia (TD-82) — asset association relational truth
+model ActivityMedia {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  activityId   String   @map("activity_id") @db.Uuid
+  mediaAssetId String   @map("media_asset_id") @db.Uuid
+  roleCode     String?  @map("role_code") // closed registry (kerak bo'lsa)
+  position     Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  activity Activity   @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  media    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict) // referenced → RESTRICT (I-15)
+
+  @@unique([activityId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@map("activity_media")
+}
+
+// Skill — Subject 1:N Skill (TD-07)
+model Skill {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  subjectId   String      @map("subject_id") @db.Uuid
+  name        String
+  code        String? // recommended barqaror identifikator
+  description String?
+  sortOrder   Int         @default(0) @map("sort_order")
+  status      SkillStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  subject           Subject             @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  lessons           LessonSkill[]
+  activities        ActivitySkill[]
+  assessmentItems   AssessmentItem[]
+  skillStates       LearnerSkillState[]
+  skillMeasurements SkillMeasurement[]
+  roadmapItems      RoadmapItem[]
+  signals           LearnerSignal[]
+  reviewSessions    LearnerReviewSession[]
+
+  @@unique([subjectId, name])
+  @@unique([subjectId, code])
+  @@index([subjectId])
+  @@map("skill")
+}
+
+model LessonSkill {
+  id       String @id @default(uuid(7)) @db.Uuid
+  lessonId String @map("lesson_id") @db.Uuid
+  skillId  String @map("skill_id") @db.Uuid
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([lessonId, skillId])
+  @@index([skillId])
+  @@map("lesson_skill")
+}
+
+model ActivitySkill {
+  id         String @id @default(uuid(7)) @db.Uuid
+  activityId String @map("activity_id") @db.Uuid
+  skillId    String @map("skill_id") @db.Uuid
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([activityId, skillId])
+  @@index([skillId])
+  @@map("activity_skill")
+}
+
+// LessonPrerequisite — explicit DAG (TD-29). Self-ref taqiqi + cycle prevention: app + CHECK.
+model LessonPrerequisite {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  lessonId             String   @map("lesson_id") @db.Uuid
+  prerequisiteLessonId String   @map("prerequisite_lesson_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  lesson             Lesson @relation("PrereqLesson", fields: [lessonId], references: [id], onDelete: Cascade)
+  prerequisiteLesson Lesson @relation("PrereqRequiredLesson", fields: [prerequisiteLessonId], references: [id], onDelete: Restrict)
+
+  @@unique([lessonId, prerequisiteLessonId])
+  @@index([prerequisiteLessonId])
+  @@map("lesson_prerequisite")
+}

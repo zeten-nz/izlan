@@ -1,0 +1,673 @@
+// Izlan — Learning domain (TD-31..44, TD-82/83/84/88/89/91, TD-93)
+// Evidence (append-only) + current state (engine-written). Score = basis points (TD-89).
+
+// ============================================================================
+// LEARNER LEARNING INTENT (TD-93) — learnerning Subject bo'yicha hozirgi learning direction'i.
+// NOT: enrollment / roadmap / assessment / staff assignment / subscription.
+// Multi-subject: bir user bir nechta Subject bo'yicha parallel intent (unique per user+subject).
+// Current preference (mutable) — historical assessment truth assessment modellarida (§28).
+// ============================================================================
+model LearnerLearningIntent {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  subjectId String   @map("subject_id") @db.Uuid
+  trackId   String?  @map("track_id") @db.Uuid // nullable — onboarding resumable (subject-only saqlanadi, §5)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict) // archive-first, cascade emas (§8/13)
+  track   Track?  @relation(fields: [trackId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, subjectId]) // bir user + bir subject → bitta current intent (LI-01)
+  @@index([subjectId])
+  @@index([trackId])
+  @@map("learner_learning_intent")
+}
+
+// ============================================================================
+// ASSESSMENT (TD-32/33/83) — Definition (logical) + Version (immutable) + VersionItem (pool)
+// ============================================================================
+
+model AssessmentDefinition {
+  id               String                 @id @default(uuid(7)) @db.Uuid
+  subjectId        String                 @map("subject_id") @db.Uuid
+  purposeScope     AssessmentPurposeScope @map("purpose_scope")
+  title            String
+  description      String?
+  status           ContainerStatus        @default(DRAFT)
+  currentVersionId String?                @unique @map("current_version_id") @db.Uuid // circular pointer (§20)
+  createdBy        String                 @map("created_by") @db.Uuid
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  subject        Subject                       @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  createdByUser  User                          @relation("AssessmentDefCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  currentVersion AssessmentDefinitionVersion?  @relation("DefinitionCurrentVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)
+  versions       AssessmentDefinitionVersion[] @relation("DefinitionVersions")
+  items          AssessmentItem[]
+  checkpoints    Checkpoint[]
+
+  @@index([subjectId])
+  @@map("assessment_definition")
+}
+
+model AssessmentDefinitionVersion {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  definitionId String         @map("assessment_definition_id") @db.Uuid
+  versionNo    Int            @map("version_no")
+  config       Json           @db.JsonB // immutable after publish (TD-83/92)
+  status       RevisionStatus @default(DRAFT)
+  createdBy    String         @map("created_by") @db.Uuid
+  publishedAt  DateTime?      @map("published_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  definition    AssessmentDefinition    @relation("DefinitionVersions", fields: [definitionId], references: [id], onDelete: Restrict)
+  createdByUser User                    @relation("AssessmentVerCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  currentForDef AssessmentDefinition?   @relation("DefinitionCurrentVersion")
+  versionItems  AssessmentVersionItem[]
+  attempts      AssessmentAttempt[]
+
+  @@unique([definitionId, versionNo])
+  @@index([definitionId, status])
+  @@map("assessment_definition_version")
+}
+
+model AssessmentItem {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  definitionId String         @map("assessment_definition_id") @db.Uuid
+  type         ActivityType // assessment'ga mos subset (app-validated)
+  payload      Json           @db.JsonB // TD-22/92
+  skillId      String         @map("skill_id") @db.Uuid
+  difficulty   Int // fan-neytral ichki shkala
+  status       RevisionStatus @default(DRAFT)
+  source       ContentSource  @default(HUMAN)
+  aiMetadata   Json?          @map("ai_metadata") @db.JsonB
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  definition   AssessmentDefinition    @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+  skill        Skill                   @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  versionItems AssessmentVersionItem[]
+  responses    AssessmentResponse[]
+  media        AssessmentItemMedia[]
+
+  @@index([definitionId])
+  @@index([skillId])
+  @@map("assessment_item")
+}
+
+// AssessmentVersionItem (TD-83) — item pool membership snapshot per version
+model AssessmentVersionItem {
+  id                 String @id @default(uuid(7)) @db.Uuid
+  versionId          String @map("assessment_definition_version_id") @db.Uuid
+  itemId             String @map("assessment_item_id") @db.Uuid
+  orderingOverride   Int?   @map("ordering_override") // faqat version-specific bo'lsa
+  difficultyOverride Int?   @map("difficulty_override")
+
+  version AssessmentDefinitionVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  item    AssessmentItem              @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([versionId, itemId])
+  @@index([itemId])
+  @@map("assessment_version_item")
+}
+
+// AssessmentItemMedia (TD-82)
+model AssessmentItemMedia {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  itemId       String   @map("assessment_item_id") @db.Uuid
+  mediaAssetId String   @map("media_asset_id") @db.Uuid
+  roleCode     String?  @map("role_code")
+  position     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  item  AssessmentItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  media MediaAsset     @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([itemId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@map("assessment_item_media")
+}
+
+model AssessmentAttempt {
+  id                  String                   @id @default(uuid(7)) @db.Uuid
+  userId              String                   @map("user_id") @db.Uuid
+  definitionId        String                   @map("assessment_definition_id") @db.Uuid
+  definitionVersionId String                   @map("assessment_definition_version_id") @db.Uuid // reproducibility (TD-83)
+  subjectId           String                   @map("subject_id") @db.Uuid
+  trackId             String?                  @map("track_id") @db.Uuid
+  checkpointId        String?                  @map("checkpoint_id") @db.Uuid
+  purpose             AssessmentAttemptPurpose
+  status              AssessmentAttemptStatus  @default(IN_PROGRESS)
+  engineState         Json?                    @map("engine_state") @db.JsonB // resume snapshot (TD-92)
+  engineVersion       String?                  @map("engine_version")
+  resultSummary       Json?                    @map("result_summary") @db.JsonB // display cache
+  startedAt           DateTime                 @default(now()) @map("started_at")
+  completedAt         DateTime?                @map("completed_at")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  version    AssessmentDefinitionVersion @relation(fields: [definitionVersionId], references: [id], onDelete: Restrict)
+  checkpoint Checkpoint?                 @relation(fields: [checkpointId], references: [id], onDelete: Restrict)
+  responses  AssessmentResponse[]
+
+  @@index([userId, startedAt])
+  @@index([definitionVersionId])
+  @@index([checkpointId])
+  @@map("assessment_attempt")
+}
+
+model AssessmentResponse {
+  id                   String                   @id @default(uuid(7)) @db.Uuid
+  attemptId            String                   @map("attempt_id") @db.Uuid
+  itemId               String                   @map("item_id") @db.Uuid
+  sequenceNo           Int                      @map("sequence_no")
+  answer               Json?                    @db.JsonB // TD-22/92 (submit'dan keyin immutable — app)
+  responseMediaAssetId String?                  @map("response_media_asset_id") @db.Uuid // TD-82
+  status               AssessmentResponseStatus @default(PRESENTED)
+  isCorrect            Boolean?                 @map("is_correct")
+  deterministicScore   Int?                     @map("deterministic_score")
+  responseTimeMs       Int?                     @map("response_time_ms")
+  presentedAt          DateTime                 @default(now()) @map("presented_at")
+  submittedAt          DateTime?                @map("submitted_at")
+
+  attempt       AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  item          AssessmentItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  responseMedia MediaAsset?       @relation("ResponseMedia", fields: [responseMediaAssetId], references: [id], onDelete: Restrict)
+  aiEvaluations AiEvaluation[]
+
+  @@unique([attemptId, sequenceNo])
+  @@index([itemId])
+  @@map("assessment_response")
+}
+
+// AiEvaluation (TD-34) — XOR: response XOR attempt (CHECK custom SQL, L1)
+model AiEvaluation {
+  id                   String             @id @default(uuid(7)) @db.Uuid
+  assessmentResponseId String?            @map("assessment_response_id") @db.Uuid
+  activityAttemptId    String?            @map("activity_attempt_id") @db.Uuid
+  status               AiEvaluationStatus @default(PENDING)
+  score                Int? // basis points (bounded) yoki rubric ichida — TD-89
+  rubric               Json?              @db.JsonB // TD-92
+  feedback             String?
+  providerMetadata     Json?              @map("provider_metadata") @db.JsonB
+  evaluationVersion    String?            @map("evaluation_version")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  completedAt          DateTime?          @map("completed_at")
+
+  assessmentResponse AssessmentResponse? @relation(fields: [assessmentResponseId], references: [id], onDelete: Restrict)
+  activityAttempt    ActivityAttempt?    @relation(fields: [activityAttemptId], references: [id], onDelete: Restrict)
+
+  @@index([assessmentResponseId])
+  @@index([activityAttemptId])
+  @@map("ai_evaluation")
+}
+
+// ============================================================================
+// SKILL STATE (TD-35/89) — current (engine) + append-only measurement history
+// ============================================================================
+
+model LearnerSkillState {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  skillId           String    @map("skill_id") @db.Uuid
+  masteryScoreBp    Int       @map("mastery_score_bp") // 0..10000 (TD-89; CHECK)
+  confidenceBp      Int?      @map("confidence_bp") // 0..10000
+  evidenceCount     Int       @default(0) @map("evidence_count")
+  displayLevel      String?   @map("display_level") // derived cache; content Level'ga FK YO'Q (TD-35)
+  lastMeasurementAt DateTime? @map("last_measurement_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, skillId])
+  @@map("learner_skill_state")
+}
+
+model SkillMeasurement {
+  id           String                 @id @default(uuid(7)) @db.Uuid
+  userId       String                 @map("user_id") @db.Uuid
+  skillId      String                 @map("skill_id") @db.Uuid
+  source       SkillMeasurementSource
+  attemptId    String?                @map("assessment_attempt_id") @db.Uuid
+  lessonId     String?                @map("lesson_id") @db.Uuid
+  reviewSessionId String?             @map("review_session_id") @db.Uuid // Phase 1.9C (TD-130) — REVIEW_MASTERY provenance; other sources NULL
+  scoreBp      Int                    @map("score_bp") // 0..10000
+  displayLevel String?                @map("display_level")
+  confidenceBp Int?                   @map("confidence_bp")
+  evidenceCount Int                   @map("evidence_count") // >0 (CHECK chk_sm_evidence_count_positive, LP-01) — evidence units this milestone represents (TD-113); merge does not reinterpret raw evidence
+  observedAt   DateTime               @map("observed_at") // logical evidence-observation time (TD-113) — DIAGNOSTIC=attempt.completedAt, LESSON_MASTERY=completion.completedAt, REVIEW_MASTERY=reviewSession.completedAt; NOT materialization/backfill time
+  derivationVersion String            @map("derivation_version") // derivation formula/process id (TD-98) — NOT NULL, non-empty (CHECK); caller must supply, no default
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  skill         Skill                 @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  reviewSession LearnerReviewSession? @relation(fields: [reviewSessionId], references: [id], onDelete: Restrict) // history-safe provenance (TD-130 §55)
+
+  @@index([userId, skillId, createdAt])
+  @@index([userId, skillId, observedAt]) // learning-progress-merge-v1 current-window ordering (TD-114)
+  @@index([reviewSessionId]) // review-backed lookup (RM-DB-01)
+  // Partial UNIQUE (custom SQL, migration 20260819170000): assessment-backed idempotency
+  // uq_skill_measurement_assessment_idempotency (assessment_attempt_id, skill_id, source, derivation_version) WHERE assessment_attempt_id IS NOT NULL (SP-04)
+  // Partial UNIQUE (custom SQL, migration 20260820120000): lesson-backed idempotency (SP-10)
+  // Partial UNIQUE (custom SQL, migration 20260820160000): review-backed idempotency
+  //   uq_skill_measurement_review_idempotency (review_session_id, skill_id, source, derivation_version) WHERE review_session_id IS NOT NULL (RM-DB-02)
+  // CHECK chk_sm_evidence_count_positive (evidence_count > 0) — custom SQL, migration 20260820130000 (LP-01)
+  @@map("skill_measurement")
+}
+
+// ============================================================================
+// REVIEW SESSION (Phase 1.9B-2, TD-125/126/127/128) — dedicated review-execution provenance aggregate.
+// NOT LearningSession (generic time-tracking) / LearnerLessonProgress / LearnerLessonCompletion.
+// ============================================================================
+
+model LearnerReviewSession {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  userId           String              @map("user_id") @db.Uuid
+  skillId          String              @map("skill_id") @db.Uuid // target Skill (subject derived via Skill.subjectId, no duplicated subjectId)
+  lessonId         String              @map("lesson_id") @db.Uuid // logical Lesson
+  lessonRevisionId String              @map("lesson_revision_id") @db.Uuid // pinned ENCOUNTERED revision (never repin, TD-125)
+  status           ReviewSessionStatus @default(ACTIVE)
+  provenance       Json                @db.JsonB // server-owned strict snapshot {schemaVersion, signalTypes} (TD-92; NO evidenceRefs/answers)
+  startedAt        DateTime            @default(now()) @map("started_at")
+  completedAt      DateTime?           @map("completed_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  user       User                           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  skill      Skill                          @relation(fields: [skillId], references: [id], onDelete: Restrict) // provenance load-bearing — Restrict (TD-128 §3)
+  lesson     Lesson                         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  revision   LessonRevision                 @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  activities   LearnerReviewSessionActivity[]
+  attempts     ActivityAttempt[]
+  measurements SkillMeasurement[]
+
+  @@index([userId, status])
+  // Partial UNIQUE (custom SQL, migration 20260820150000): one ACTIVE per (user, skill, lesson)
+  // uq_review_session_active (user_id, skill_id, lesson_id) WHERE status = 'ACTIVE' (RS-DB-01)
+  @@map("learner_review_session")
+}
+
+model LearnerReviewSessionActivity {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  reviewSessionId String   @map("review_session_id") @db.Uuid
+  activityId      String   @map("activity_id") @db.Uuid
+  position        Int // 1-based; CHECK position > 0 (custom SQL, RS-DB-04)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  session  LearnerReviewSession @relation(fields: [reviewSessionId], references: [id], onDelete: Cascade)
+  activity Activity             @relation(fields: [activityId], references: [id], onDelete: Restrict) // snapshot provenance — Restrict
+
+  @@unique([reviewSessionId, activityId]) // RS-DB-02 — immutable membership
+  @@unique([reviewSessionId, position]) // RS-DB-03 — stable order
+  @@index([reviewSessionId])
+  @@map("learner_review_session_activity")
+}
+
+// ============================================================================
+// LEARNING SESSION + ACTIVITY ATTEMPT (TD-36/82)
+// ============================================================================
+
+model LearningSession {
+  id            String                @id @default(uuid(7)) @db.Uuid
+  userId        String                @map("user_id") @db.Uuid
+  status        LearningSessionStatus @default(ACTIVE)
+  startedAt     DateTime              @default(now()) @map("started_at")
+  endedAt       DateTime?             @map("ended_at")
+  activeSeconds Int                   @default(0) @map("active_seconds")
+  dailyPlanId   String?               @map("daily_plan_id") @db.Uuid
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  user             User                             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  dailyPlan        DailyPlan?                       @relation(fields: [dailyPlanId], references: [id], onDelete: SetNull)
+  activityAttempts ActivityAttempt[]
+  rewardGrants     RewardGrant[]                    @relation("RewardGrantSession")
+  missionEvidence  DailyMissionCompletionEvidence[]
+
+  @@index([userId, startedAt])
+  @@map("learning_session")
+}
+
+model ActivityAttempt {
+  id                   String                @id @default(uuid(7)) @db.Uuid
+  userId               String                @map("user_id") @db.Uuid
+  activityId           String                @map("activity_id") @db.Uuid
+  lessonRevisionId     String                @map("lesson_revision_id") @db.Uuid
+  learningSessionId    String?               @map("learning_session_id") @db.Uuid
+  reviewSessionId      String?               @map("review_session_id") @db.Uuid // Phase 1.9B-2 review provenance (TD-127); normal execution = NULL (isolation discriminator)
+  roadmapItemId        String?               @map("roadmap_item_id") @db.Uuid
+  attemptNo            Int                   @map("attempt_no")
+  status               ActivityAttemptStatus @default(IN_PROGRESS)
+  answer               Json?                 @db.JsonB // TD-22/92
+  responseMediaAssetId String?               @map("response_media_asset_id") @db.Uuid // TD-82
+  isCorrect            Boolean?              @map("is_correct")
+  deterministicScore   Int?                  @map("deterministic_score")
+  responseTimeMs       Int?                  @map("response_time_ms")
+  clientRequestId      String?               @map("client_request_id") // retry dedup (TD-44)
+  startedAt            DateTime              @default(now()) @map("started_at")
+  submittedAt          DateTime?             @map("submitted_at")
+  createdAt            DateTime              @default(now()) @map("created_at")
+
+  user            User                             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  activity        Activity                         @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  revision        LessonRevision                   @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  session         LearningSession?                 @relation(fields: [learningSessionId], references: [id], onDelete: SetNull)
+  reviewSession   LearnerReviewSession?            @relation(fields: [reviewSessionId], references: [id], onDelete: Restrict) // review provenance load-bearing
+  roadmapItem     RoadmapItem?                     @relation(fields: [roadmapItemId], references: [id], onDelete: SetNull)
+  responseMedia   MediaAsset?                      @relation("AttemptResponseMedia", fields: [responseMediaAssetId], references: [id], onDelete: Restrict)
+  aiEvaluations   AiEvaluation[]
+  rewardGrants    RewardGrant[]                    @relation("RewardGrantAttempt")
+  missionEvidence DailyMissionCompletionEvidence[]
+
+  @@unique([userId, activityId, attemptNo])
+  @@index([userId, submittedAt])
+  @@index([activityId])
+  @@index([reviewSessionId]) // review attempt lookup (RS-06)
+  @@map("activity_attempt")
+}
+
+// ============================================================================
+// LESSON PROGRESS (current) + COMPLETION (append-only history, TD-37/88)
+// ============================================================================
+
+model LearnerLessonProgress {
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  userId              String               @map("user_id") @db.Uuid
+  lessonId            String               @map("lesson_id") @db.Uuid
+  lessonRevisionId    String               @map("lesson_revision_id") @db.Uuid // pinned revision (TD-37)
+  status              LessonProgressStatus @default(IN_PROGRESS)
+  completedActivities Json?                @map("completed_activities") @db.JsonB // view-only bloklar (TD-92)
+  lastActivityId      String?              @map("last_activity_id") @db.Uuid
+  completionPct       Int                  @default(0) @map("completion_pct") // cached
+  masteryBestScore    Int?                 @map("mastery_best_score") // cached
+  startedAt           DateTime             @default(now()) @map("started_at")
+  completedAt         DateTime?            @map("completed_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lesson   Lesson         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  revision LessonRevision @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, lessonId])
+  @@map("learner_lesson_progress")
+}
+
+model LearnerLessonCompletion {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  lessonId         String    @map("lesson_id") @db.Uuid
+  lessonRevisionId String    @map("lesson_revision_id") @db.Uuid // abadiy saqlanadi (L-14)
+  completionNo     Int       @map("completion_no")
+  startedAt        DateTime? @map("started_at")
+  completedAt      DateTime  @default(now()) @map("completed_at")
+  masteryBestScore Int?      @map("mastery_best_score")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lesson   Lesson         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  revision LessonRevision @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, lessonId, completionNo])
+  @@index([userId, lessonId])
+  @@map("learner_lesson_completion")
+}
+
+// ============================================================================
+// ROADMAP (TD-38/39)
+// ============================================================================
+
+model LearnerRoadmap {
+  id                        String        @id @default(uuid(7)) @db.Uuid
+  userId                    String        @map("user_id") @db.Uuid
+  subjectId                 String        @map("subject_id") @db.Uuid
+  trackId                   String        @map("track_id") @db.Uuid
+  status                    RoadmapStatus @default(ACTIVE)
+  sourceAssessmentAttemptId String?       @map("source_assessment_attempt_id") @db.Uuid
+  generatedAt               DateTime      @default(now()) @map("generated_at")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
+
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject         Subject                 @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  track           Track                   @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  items           RoadmapItem[]
+  changes         RoadmapChange[]
+  recommendations LearnerRecommendation[]
+
+  @@index([userId, subjectId, status])
+  @@map("learner_roadmap")
+}
+
+model RoadmapItem {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  roadmapId       String            @map("roadmap_id") @db.Uuid
+  itemType        RoadmapItemType   @map("item_type")
+  lessonId        String?           @map("lesson_id") @db.Uuid
+  checkpointId    String?           @map("checkpoint_id") @db.Uuid
+  skillId         String?           @map("skill_id") @db.Uuid
+  position        Int
+  status          RoadmapItemStatus @default(PENDING)
+  source          RoadmapItemSource
+  reason          String?
+  roadmapChangeId String?           @map("roadmap_change_id") @db.Uuid
+  params          Json?             @db.JsonB
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  roadmap       LearnerRoadmap    @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  checkpoint    Checkpoint?       @relation(fields: [checkpointId], references: [id], onDelete: Restrict)
+  skill         Skill?            @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  roadmapChange RoadmapChange?    @relation(fields: [roadmapChangeId], references: [id], onDelete: SetNull)
+  attempts      ActivityAttempt[]
+
+  @@index([roadmapId, position])
+  @@map("roadmap_item")
+}
+
+model LearnerRecommendation {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  userId         String               @map("user_id") @db.Uuid
+  type           RecommendationType
+  source         RecommendationSource
+  roadmapId      String?              @map("roadmap_id") @db.Uuid
+  reason         String?
+  proposedChange Json?                @map("proposed_change") @db.JsonB // TD-92
+  signalRefs     Json?                @map("signal_refs") @db.JsonB
+  status         RecommendationStatus @default(PROPOSED)
+  respondedAt    DateTime?            @map("responded_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  roadmap LearnerRoadmap? @relation(fields: [roadmapId], references: [id], onDelete: SetNull)
+  changes RoadmapChange[]
+
+  @@index([userId, status])
+  @@map("learner_recommendation")
+}
+
+model RoadmapChange {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  roadmapId        String   @map("roadmap_id") @db.Uuid
+  recommendationId String?  @map("recommendation_id") @db.Uuid // ACCEPTED bo'lishi shart (L-4, app)
+  changeType       String   @map("change_type") // registry
+  changePayload    Json?    @map("change_payload") @db.JsonB
+  appliedBy        String   @map("applied_by") // SYSTEM / USER (actor turi)
+  appliedAt        DateTime @default(now()) @map("applied_at")
+
+  roadmap        LearnerRoadmap         @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  recommendation LearnerRecommendation? @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  items          RoadmapItem[]
+
+  @@index([roadmapId])
+  @@map("roadmap_change")
+}
+
+// LearnerSignal (TD-40) — actionable insight; category_code string registry
+model LearnerSignal {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  userId          String       @map("user_id") @db.Uuid
+  subjectId       String       @map("subject_id") @db.Uuid
+  type            String // REPEATED_MISTAKE / REVIEW_DUE / CONSISTENCY_RISK ... (small set, registry)
+  skillId         String?      @map("skill_id") @db.Uuid
+  lessonId        String?      @map("lesson_id") @db.Uuid
+  topicId         String?      @map("topic_id") @db.Uuid
+  categoryCode    String?      @map("category_code") // mistake taxonomy — registry (TD-40/90)
+  strength        Int          @default(0)
+  evidenceRefs    Json?        @map("evidence_refs") @db.JsonB // ataylab loose (TD-92)
+  status          SignalStatus @default(ACTIVE)
+  firstDetectedAt DateTime     @default(now()) @map("first_detected_at")
+  lastSeenAt      DateTime     @default(now()) @map("last_seen_at")
+  resolvedAt      DateTime?    @map("resolved_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  skill   Skill?  @relation(fields: [skillId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@map("learner_signal")
+}
+
+// Checkpoint (TD-41)
+model Checkpoint {
+  id                     String          @id @default(uuid(7)) @db.Uuid
+  subjectId              String          @map("subject_id") @db.Uuid
+  moduleId               String          @unique @map("module_id") @db.Uuid // bitta module → bitta checkpoint
+  assessmentDefinitionId String          @map("assessment_definition_id") @db.Uuid
+  status                 ContainerStatus @default(DRAFT)
+  createdBy              String          @map("created_by") @db.Uuid
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+
+  subject      Subject              @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  module       Module               @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  definition   AssessmentDefinition @relation(fields: [assessmentDefinitionId], references: [id], onDelete: Restrict)
+  attempts     AssessmentAttempt[]
+  roadmapItems RoadmapItem[]
+
+  @@index([subjectId])
+  @@map("checkpoint")
+}
+
+// ============================================================================
+// DAILY PLAN (TD-42/91) — versioned/supersedable snapshots
+// ============================================================================
+
+model DailyPlan {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  userId           String          @map("user_id") @db.Uuid
+  localDate        DateTime        @map("local_date") @db.Date
+  timezoneSnapshot String          @map("timezone_snapshot") // TD-91
+  generationNo     Int             @map("generation_no")
+  status           DailyPlanStatus @default(CURRENT)
+  availableTimeMin Int?            @map("available_time_min")
+  context          Json?           @db.JsonB // explainability (TD-92)
+  generatedAt      DateTime        @default(now()) @map("generated_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items            DailyPlanItem[]
+  learningSessions LearningSession[]
+
+  @@unique([userId, localDate, generationNo])
+  @@index([userId, localDate])
+  @@map("daily_plan")
+}
+
+model DailyPlanItem {
+  id            String              @id @default(uuid(7)) @db.Uuid
+  dailyPlanId   String              @map("daily_plan_id") @db.Uuid
+  section       DailyPlanSection
+  itemType      DailyPlanItemType   @map("item_type")
+  roadmapItemId String?             @map("roadmap_item_id") @db.Uuid
+  lessonId      String?             @map("lesson_id") @db.Uuid
+  skillId       String?             @map("skill_id") @db.Uuid
+  params        Json?               @db.JsonB
+  position      Int
+  status        DailyPlanItemStatus @default(PENDING)
+  completedAt   DateTime?           @map("completed_at")
+
+  dailyPlan   DailyPlan                @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  completions DailyMissionCompletion[]
+
+  @@index([dailyPlanId, position])
+  @@map("daily_plan_item")
+}
+
+// DailyMissionCompletion + Evidence (TD-84) — append-only immutable evidence
+model DailyMissionCompletion {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  missionCode      String   @map("mission_code") // Phase 2.0B registry: LEARN_TODAY | MASTERY_TEST_90 (TD-136)
+  policyVersion    String   @map("policy_version") // immutable producer version (learn-today-mission-v1 / mastery-test-90-mission-v1)
+  localDate        DateTime @map("local_date") @db.Date // learner-local mission day (TD-136 §17/19)
+  timezoneSnapshot String   @map("timezone_snapshot") // IANA tz used to derive localDate (frozen, §20)
+  dailyPlanItemId  String?  @unique @map("daily_plan_item_id") @db.Uuid // NULL for account-level missions (Phase 2.0B); plan-item link reserved
+  completionType   String?  @map("completion_type")
+  completedAt      DateTime @default(now()) @map("completed_at") // = qualifying ActivityAttempt.submittedAt (§29)
+
+  user          User                             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  dailyPlanItem DailyPlanItem?                   @relation(fields: [dailyPlanItemId], references: [id], onDelete: Restrict)
+  evidence      DailyMissionCompletionEvidence[]
+  rewardGrants  RewardGrant[]                    @relation("RewardGrantMission") // IZL mission reward (TD-84, future Phase 2.1A)
+  xpGrants      XpGrant[]                        @relation("XpGrantMission") // XP mission reward (TD-141, Phase 2.0C-2) — distinct from IZL
+
+  @@index([userId])
+  @@index([userId, localDate]) // GET today's completions
+  // Partial UNIQUE (custom SQL, migration 20260820170000): one completion per (user, mission, local day)
+  // uq_daily_mission_completion_day (user_id, mission_code, local_date) WHERE local_date IS NOT NULL (DM-DB-01)
+  @@map("daily_mission_completion")
+}
+
+// Evidence — har qatorda roppa-rosa bitta typed FK (XOR, CHECK custom SQL, L-26)
+model DailyMissionCompletionEvidence {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  completionId      String   @map("completion_id") @db.Uuid
+  communityPostId   String?  @map("community_post_id") @db.Uuid
+  activityAttemptId String?  @map("activity_attempt_id") @db.Uuid
+  learningSessionId String?  @map("learning_session_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  completion      DailyMissionCompletion @relation(fields: [completionId], references: [id], onDelete: Cascade)
+  communityPost   CommunityPost?         @relation(fields: [communityPostId], references: [id], onDelete: Restrict)
+  activityAttempt ActivityAttempt?       @relation(fields: [activityAttemptId], references: [id], onDelete: Restrict)
+  learningSession LearningSession?       @relation(fields: [learningSessionId], references: [id], onDelete: Restrict)
+
+  @@index([completionId])
+  @@map("daily_mission_completion_evidence")
+}
+
+// ============================================================================
+// SCHEDULE / WEEKLY (TD-16/17/91)
+// ============================================================================
+
+model LearningSchedulePreference {
+  userId                  String   @id @map("user_id") @db.Uuid
+  selectedWeekdays        Int[]    @map("selected_weekdays") // 0..6 array
+  targetSessionsPerWeek   Int      @map("target_sessions_per_week")
+  preferredSessionMinutes Int      @map("preferred_session_minutes") // 30..360 (CHECK)
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("learning_schedule_preference")
+}
+
+model WeeklyProgress {
+  id                String               @id @default(uuid(7)) @db.Uuid
+  userId            String               @map("user_id") @db.Uuid
+  weekStartDate     DateTime             @map("week_start_local_date") @db.Date
+  timezoneSnapshot  String?              @map("timezone_snapshot") // TD-91
+  targetSessions    Int                  @map("target_sessions") // hafta boshida snapshot
+  completedSessions Int                  @default(0) @map("completed_sessions")
+  status            WeeklyProgressStatus @default(IN_PROGRESS)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, weekStartDate])
+  @@map("weekly_progress")
+}

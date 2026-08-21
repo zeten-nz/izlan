@@ -1,0 +1,262 @@
+// Izlan — Community / Moderation / Announcements / Notifications (TD-61..80, TD-84)
+// Learning-oriented; DM/video/follow/groups YO'Q. Community IZL ledgerga yozmaydi.
+
+model CommunityPost {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  authorUserId    String              @map("author_user_id") @db.Uuid
+  type            CommunityPostType
+  title           String? // Question title majburiyligi — product OPEN (nullable)
+  body            String // plain text (TD-62)
+  subjectId       String?             @map("subject_id") @db.Uuid
+  topicId         String?             @map("topic_id") @db.Uuid
+  visibility      CommunityVisibility @default(VISIBLE) // TD-67 (deletedAt YO'Q)
+  acceptedReplyId String?             @unique @map("accepted_reply_id") @db.Uuid // circular (TD-64)
+  replyCount      Int                 @default(0) @map("reply_count") // cached (TD-73)
+  reactionCount   Int                 @default(0) @map("reaction_count") // cached
+  editedAt        DateTime?           @map("edited_at") // TD-67 (editing policy OPEN)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  author          User                             @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  subject         Subject?                         @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic           Topic?                           @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  acceptedReply   CommunityReply?                  @relation("PostAcceptedReply", fields: [acceptedReplyId], references: [id], onDelete: SetNull)
+  replies         CommunityReply[]                 @relation("PostReplies")
+  reactions       CommunityReaction[]
+  media           CommunityPostMedia[]
+  reports         CommunityReport[]
+  missionEvidence DailyMissionCompletionEvidence[]
+
+  @@index([subjectId, createdAt])
+  @@index([topicId, createdAt])
+  @@index([authorUserId, createdAt])
+  @@index([visibility])
+  @@map("community_post")
+}
+
+model CommunityReply {
+  id           String              @id @default(uuid(7)) @db.Uuid
+  postId       String              @map("post_id") @db.Uuid
+  authorUserId String              @map("author_user_id") @db.Uuid
+  body         String // plain text
+  visibility   CommunityVisibility @default(VISIBLE)
+  editedAt     DateTime?           @map("edited_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  post        CommunityPost       @relation("PostReplies", fields: [postId], references: [id], onDelete: Restrict)
+  author      User                @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  acceptedFor CommunityPost?      @relation("PostAcceptedReply")
+  reactions   CommunityReaction[]
+  reports     CommunityReport[]
+
+  @@index([postId, createdAt])
+  @@index([authorUserId])
+  @@map("community_reply")
+}
+
+// ReactionType (TD-65) — seeded; code/semantika immutable, label o'zgaradi, retirement isActive=false
+model ReactionType {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  code      String   @unique
+  label     String
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reactions CommunityReaction[]
+
+  @@map("reaction_type")
+}
+
+// CommunityReaction — post XOR reply (CHECK, K1); unique(user, target, type) — partial (K2, custom SQL)
+model CommunityReaction {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  postId         String?  @map("post_id") @db.Uuid
+  replyId        String?  @map("reply_id") @db.Uuid
+  reactionTypeId String   @map("reaction_type_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  post         CommunityPost?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reply        CommunityReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  reactionType ReactionType    @relation(fields: [reactionTypeId], references: [id], onDelete: Restrict)
+
+  @@index([postId])
+  @@index([replyId])
+  @@map("community_reaction")
+}
+
+model CommunityPostMedia {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  postId       String   @map("post_id") @db.Uuid
+  mediaAssetId String   @map("media_asset_id") @db.Uuid // image/audio only (video — app allowlist, C-1)
+  position     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  post  CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media MediaAsset    @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([postId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@map("community_post_media")
+}
+
+// CommunityReport — post XOR reply (CHECK, K3); unique(reporter, target) — partial (K4)
+model CommunityReport {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  reporterUserId  String       @map("reporter_user_id") @db.Uuid
+  postId          String?      @map("post_id") @db.Uuid
+  replyId         String?      @map("reply_id") @db.Uuid
+  categoryCode    String       @map("category_code") // registry
+  freeText        String?      @map("free_text")
+  contentSnapshot String       @map("content_snapshot") // edit'dan himoya (TD-67, C-15)
+  status          ReportStatus @default(OPEN)
+  resolvedBy      String?      @map("resolved_by") @db.Uuid
+  resolvedAt      DateTime?    @map("resolved_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  reporter          User               @relation("ReportReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
+  post              CommunityPost?     @relation(fields: [postId], references: [id], onDelete: Restrict)
+  reply             CommunityReply?    @relation(fields: [replyId], references: [id], onDelete: Restrict)
+  resolvedByUser    User?              @relation("ReportResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  moderationActions ModerationAction[]
+
+  @@index([status, createdAt])
+  @@index([postId])
+  @@index([replyId])
+  @@map("community_report")
+}
+
+// ModerationAction (TD-69) — append-only domain history; StaffAudit'dan alohida
+model ModerationAction {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  actionType   String   @map("action_type") // registry (punishment policy OPEN)
+  postId       String?  @map("post_id") @db.Uuid
+  replyId      String?  @map("reply_id") @db.Uuid
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  reportId     String?  @map("report_id") @db.Uuid
+  reason       String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actor      User             @relation("ModerationActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  targetUser User?            @relation("ModerationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  report     CommunityReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@index([replyId])
+  @@index([createdAt])
+  @@map("moderation_action")
+}
+
+// CommunityRestriction (TD-70) — temporary; ≠ account SUSPENDED
+model CommunityRestriction {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  startsAt  DateTime  @map("starts_at")
+  expiresAt DateTime  @map("expires_at") // temporary (CHECK > startsAt)
+  reason    String?
+  createdBy String    @map("created_by") @db.Uuid
+  revokedAt DateTime? @map("revoked_at")
+  revokedBy String?   @map("revoked_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user          User  @relation("RestrictionUser", fields: [userId], references: [id], onDelete: Restrict)
+  createdByUser User  @relation("RestrictionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  revokedByUser User? @relation("RestrictionRevokedBy", fields: [revokedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, expiresAt])
+  @@map("community_restriction")
+}
+
+// ============================================================================
+// REPUTATION (TD-71) — balance cache + append-only event; XP/IZL emas
+// ============================================================================
+
+model ReputationBalance {
+  userId    String   @id @map("user_id") @db.Uuid
+  total     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("reputation_balance")
+}
+
+model ReputationEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  amount     Int // ± (korreksiya manfiy event bilan)
+  reasonCode String   @map("reason_code") // registry
+  dedupKey   String   @map("dedup_key") // unique(user, dedup_key) — C-16
+  postId     String?  @map("post_id") @db.Uuid
+  replyId    String?  @map("reply_id") @db.Uuid
+  reactionId String?  @map("reaction_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, dedupKey])
+  @@index([userId, createdAt])
+  @@map("reputation_event")
+}
+
+// ============================================================================
+// ANNOUNCEMENTS + NOTIFICATIONS (TD-42/75/76/77/78)
+// ============================================================================
+
+model Announcement {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  title        String
+  body         String // plain text
+  status       ContainerStatus @default(DRAFT)
+  publishAt    DateTime?       @map("publish_at") // scheduled-ready (TD-75)
+  expiresAt    DateTime?       @map("expires_at")
+  audienceType String          @default("ALL") @map("audience_type") // segmentatsiya — future
+  createdBy    String          @map("created_by") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  createdByUser User                    @relation("AnnouncementCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  userStates    AnnouncementUserState[]
+
+  @@index([status, publishAt])
+  @@map("announcement")
+}
+
+model AnnouncementUserState {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  announcementId String    @map("announcement_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  readAt         DateTime? @map("read_at")
+  dismissedAt    DateTime? @map("dismissed_at")
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([announcementId, userId]) // lazy sparse (TD-76)
+  @@map("announcement_user_state")
+}
+
+// Notification (TD-77) — rendered snapshot + lightweight polymorphic source (source_type/source_id)
+model Notification {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  type       String // registry (minimal set OPEN)
+  title      String // rendered snapshot
+  body       String // rendered snapshot
+  sourceType String?   @map("source_type") // lightweight polymorphic — FK YO'Q (TD-77)
+  sourceId   String?   @map("source_id") @db.Uuid
+  params     Json?     @db.JsonB
+  dedupKey   String    @map("dedup_key") // unique(user, dedup_key) — C-11
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, dedupKey])
+  @@index([userId, readAt, createdAt])
+  @@map("notification")
+}

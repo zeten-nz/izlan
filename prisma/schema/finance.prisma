@@ -1,0 +1,511 @@
+// Izlan — Finance domain (TD-45..60, TD-84/85/86/87/89)
+// Correctness/auditability/immutability > tezlik. Money = integer (TD-89), float YO'Q.
+
+// ============================================================================
+// XP (TD-45) — gamification, financial apparat YO'Q
+// ============================================================================
+
+model XpBalance {
+  userId                String   @id @map("user_id") @db.Uuid
+  totalXp               Int      @default(0) @map("total_xp") // signed cache of SUM(XpGrant.amount) (TD-146)
+  currentLevel          Int      @default(1) @map("current_level") // xp-progression-v1 derived; floor 1 (chk_xp_balance_current_level_min)
+  progressionVersionCode String? @map("progression_version_code") // Phase 2.0D: projection provenance (xp-progression-v1); NULL = stale/unversioned (TD-146)
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Rebuildable projection of XpGrant (NOT authoritative). CHECK chk_xp_balance_progression_version_nonempty (XPP-DB-01)
+  // + chk_xp_balance_current_level_min (XPP-DB-02). Custom SQL, migration 20260820190000.
+  @@map("xp_balance")
+}
+
+model XpGrant {
+  id                      String   @id @default(uuid(7)) @db.Uuid
+  userId                  String   @map("user_id") @db.Uuid
+  amount                  Int // ± (korreksiya yangi grant bilan); mission XP > 0 (chk_xp_grant_mission_amount_positive)
+  reasonCode              String   @map("reason_code") // registry (mission XP: DAILY_MISSION)
+  policyVersionCode       String?  @map("policy_version_code") // Phase 2.0C-2: immutable XP policy snapshot (daily-mission-xp-reward-v1); IZL RewardPolicyVersion EMAS (TD-142)
+  dailyMissionCompletionId String? @map("daily_mission_completion_id") @db.Uuid // Phase 2.0C-2: load-bearing mission XP provenance (TD-141); non-mission XP rows NULL
+  sourceRefs              Json?    @map("source_refs") @db.JsonB // ataylab loose (TD-92); mission XP uchun FK authority, JSONB EMAS
+  createdAt               DateTime @default(now()) @map("created_at") // physical insertion; earning time = missionCompletion.completedAt
+
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  missionCompletion DailyMissionCompletion? @relation("XpGrantMission", fields: [dailyMissionCompletionId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  // Partial UNIQUE (custom SQL, migration 20260820180000): one XP grant per mission completion
+  // uq_xp_grant_mission_completion (daily_mission_completion_id) WHERE daily_mission_completion_id IS NOT NULL (XP-DB-01)
+  // CHECK chk_xp_grant_policy_version_nonempty (XP-DB-03) + chk_xp_grant_mission_amount_positive (XP-DB-04)
+  @@map("xp_grant")
+}
+
+// ============================================================================
+// IZL WALLET + LEDGER (TD-47) — append-only signed ledger + cache; reserved (TD-57)
+// ============================================================================
+
+// Phase 2.1B: rebuildable projection of ledger + ACTIVE reservations (TD-156) — NOT the accounting authority.
+// balance mirrors signed SUM(ledger); reserved = SUM(ACTIVE IZLReservation). The old F-2/F-17 non-negative +
+// reserved<=balance CHECKs were dropped (migration 20260820200000) so the cache can mirror signed canonical state.
+model IZLWallet {
+  userId                 String   @id @map("user_id") @db.Uuid
+  balance                Int      @default(0) // = SUM(IZLLedgerEntry.amount), signed
+  reservedAmount         Int      @default(0) @map("reserved_amount") // = SUM(ACTIVE reservation.amount); CHECK >= 0
+  lastEntryNo            Int      @default(0) @map("last_entry_no") // wallet-local ordering (TD-47)
+  projectionVersionCode  String?  @map("projection_version_code") // Phase 2.1B: izl-wallet-projection-v1; NULL = stale/unversioned
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("izl_wallet")
+}
+
+// Phase 2.1B — IZL spendability hold (TD-158). A temporary hold against available IZL for a FUTURE trusted spend/
+// redemption workflow. It does NOT debit the ledger, is NOT a RewardGrant, is NOT a redemption/payment. Distinct
+// from IZLRedemption (the redemption/spend entity). Internal-only — no learner-facing create/release endpoint.
+model IZLReservation {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  userId         String               @map("user_id") @db.Uuid
+  amountIzl      Int                  @map("amount_izl") // CHECK > 0
+  status         IzlReservationStatus @default(ACTIVE)
+  idempotencyKey String               @map("idempotency_key") // server/trusted; CHECK non-empty
+  purposeCode    String               @map("purpose_code") // server-owned provenance (e.g. SUBSCRIPTION_DISCOUNT_REDEMPTION)
+  redemptionId   String?              @unique @map("redemption_id") @db.Uuid // Phase 2.1C-2: typed 1:1 hold↔redemption provenance (RD-DB-02/03)
+  createdAt      DateTime             @default(now()) @map("created_at")
+  releasedAt     DateTime?            @map("released_at")
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  redemption IZLRedemption?  @relation("ReservationRedemption", fields: [redemptionId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, idempotencyKey]) // RES-DB-02: idempotency identity (immutable provenance §34)
+  @@index([userId, status]) // ACTIVE reserved SUM
+  // CHECK chk_izl_reservation_amount_positive (RES-DB-01) + chk_izl_reservation_idempotency_nonempty (RES-DB-03), custom SQL
+  @@map("izl_reservation")
+}
+
+model IZLLedgerEntry {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  userId              String          @map("user_id") @db.Uuid
+  entryNo             Int             @map("entry_no") // wallet-local monotonic (TD-47; unique per user)
+  entryType           LedgerEntryType @map("entry_type")
+  amount              Int // signed (EARN + / REDEEM - / ...)
+  balanceAfter        Int             @map("balance_after")
+  rewardGrantId       String?         @unique @map("reward_grant_id") @db.Uuid
+  redemptionId        String?         @map("redemption_id") @db.Uuid
+  subscriptionCycleId String?         @map("subscription_cycle_id") @db.Uuid
+  reversalOfEntryId   String?         @unique @map("reversal_of_entry_id") @db.Uuid // self-FK
+  reason              String? // ADJUSTMENT uchun majburiy (CHECK, F-26)
+  actorUserId         String?         @map("actor_user_id") @db.Uuid
+  createdAt           DateTime        @default(now()) @map("created_at")
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  actor       User?              @relation("LedgerAdjustmentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  rewardGrant RewardGrant?       @relation(fields: [rewardGrantId], references: [id], onDelete: Restrict)
+  redemption  IZLRedemption?     @relation(fields: [redemptionId], references: [id], onDelete: Restrict)
+  cycle       SubscriptionCycle? @relation(fields: [subscriptionCycleId], references: [id], onDelete: Restrict)
+  reversalOf  IZLLedgerEntry?    @relation("LedgerReversal", fields: [reversalOfEntryId], references: [id], onDelete: Restrict)
+  reversedBy  IZLLedgerEntry?    @relation("LedgerReversal")
+
+  @@unique([userId, entryNo])
+  @@index([userId, createdAt])
+  @@index([subscriptionCycleId])
+  // Partial UNIQUE (custom SQL, migration 20260821000000): uq_izl_ledger_redeem_per_redemption (redemption_id)
+  //   WHERE redemption_id IS NOT NULL AND entry_type='REDEEM' (FP-DB-04, Phase 2.1G-D) — one REDEEM debit per redemption
+  @@map("izl_ledger_entry")
+}
+
+// ============================================================================
+// REWARD (TD-48/49/50/58/84)
+// ============================================================================
+
+model RewardGrant {
+  id                    String            @id @default(uuid(7)) @db.Uuid
+  userId                String            @map("user_id") @db.Uuid
+  category              RewardCategory
+  rewardPolicyVersionId String            @map("reward_policy_version_id") @db.Uuid
+  subscriptionCycleId   String            @map("subscription_cycle_id") @db.Uuid
+  amount                Int // IZL
+  dedupKey              String            @map("dedup_key") // unique(user, dedup_key) — F-5
+  activityAttemptId     String?           @map("activity_attempt_id") @db.Uuid
+  learningSessionId     String?           @map("learning_session_id") @db.Uuid
+  missionCompletionId   String?           @map("daily_mission_completion_id") @db.Uuid // TD-84
+  status                RewardGrantStatus @default(GRANTED)
+  createdAt             DateTime          @default(now()) @map("created_at")
+
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  policyVersion     RewardPolicyVersion     @relation(fields: [rewardPolicyVersionId], references: [id], onDelete: Restrict)
+  cycle             SubscriptionCycle       @relation(fields: [subscriptionCycleId], references: [id], onDelete: Restrict)
+  activityAttempt   ActivityAttempt?        @relation("RewardGrantAttempt", fields: [activityAttemptId], references: [id], onDelete: Restrict)
+  learningSession   LearningSession?        @relation("RewardGrantSession", fields: [learningSessionId], references: [id], onDelete: Restrict)
+  missionCompletion DailyMissionCompletion? @relation("RewardGrantMission", fields: [missionCompletionId], references: [id], onDelete: Restrict)
+  ledgerEntry       IZLLedgerEntry?
+
+  @@unique([userId, dedupKey])
+  @@index([subscriptionCycleId])
+  @@map("reward_grant")
+}
+
+model RewardPolicyVersion {
+  id            String              @id @default(uuid(7)) @db.Uuid
+  version       Int                 @unique
+  status        PolicyVersionStatus @default(DRAFT)
+  config        Json                @db.JsonB // TD-92 (exact qiymatlar OPEN)
+  effectiveFrom DateTime            @map("effective_from")
+  createdBy     String              @map("created_by") @db.Uuid
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  createdByUser User                @relation("PolicyVersionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  grants        RewardGrant[]
+  cycles        SubscriptionCycle[]
+
+  @@map("reward_policy_version")
+}
+
+model IzlRateVersion {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  rateUzsPerIzl Int               @map("rate_uzs_per_izl") // integer (TD-46/58); precision noaniqligi report'da flagged
+  status        RateVersionStatus @default(DRAFT)
+  effectiveFrom DateTime          @map("effective_from")
+  createdBy     String            @map("created_by") @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  createdByUser User @relation("RateVersionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("izl_rate_version")
+}
+
+// ============================================================================
+// REDEMPTION (TD-57) — reservation-first
+// ============================================================================
+
+model IZLRedemption {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  userId            String           @map("user_id") @db.Uuid
+  type              RedemptionType   @default(SUBSCRIPTION_DISCOUNT)
+  amountIzl         Int              @map("amount_izl") // CHECK > 0
+  izlRateSnapshot   Int              @map("izl_rate_snapshot") // UZS per IZL, frozen (CHECK > 0)
+  valueUzs          Int              @map("value_uzs") // amountIzl × rate, frozen (CHECK > 0)
+  paymentOrderId    String?          @map("payment_order_id") @db.Uuid // Phase 2.1C-2: concrete purchase authority; producer REQUIRES it
+  clientRequestId   String?          @map("client_request_id") // Phase 2.1C-2: network idempotency (partial UNIQUE per user, RD-DB-01)
+  policyVersionCode String?          @map("policy_version_code") // Phase 2.1C-2: subscription-discount-redemption-v1 (CHECK nonempty when present)
+  status            RedemptionStatus @default(REQUESTED)
+  createdAt         DateTime         @default(now()) @map("created_at")
+  resolvedAt        DateTime?        @map("resolved_at")
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  paymentOrder  PaymentOrder?    @relation(fields: [paymentOrderId], references: [id], onDelete: Restrict) // Phase 2.1C-2: load-bearing provenance (was SetNull)
+  ledgerEntries IZLLedgerEntry[]
+  reservation   IZLReservation?  @relation("ReservationRedemption") // typed 1:1 hold (TD-174)
+
+  @@index([userId, status])
+  // Partial UNIQUE (custom SQL, migration 20260820220000): uq_izl_redemption_client_request (user_id, client_request_id) WHERE NOT NULL (RD-DB-01)
+  //   + uq_izl_redemption_open_per_order (payment_order_id) WHERE payment_order_id IS NOT NULL AND type='SUBSCRIPTION_DISCOUNT' AND status IN ('REQUESTED','RESERVED') (RD-DB-04)
+  //   + CHECK nonempty policy (RD-DB-05) + amount/rate/value > 0 (RD-DB-06/07/08)
+  @@map("izl_redemption")
+}
+
+// ============================================================================
+// SUBSCRIPTION (TD-51/52/54/85/86/87)
+// ============================================================================
+
+model SubscriptionPlan {
+  id          String                 @id @default(uuid(7)) @db.Uuid
+  code        String                 @unique // START / PRO / MAX
+  name        String
+  description String?
+  status      SubscriptionPlanStatus @default(ACTIVE)
+  sortOrder   Int                    @default(0) @map("sort_order")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  prices        PlanPrice[]
+  entitlements  PlanEntitlement[]
+  subscriptions Subscription[]
+  cycles        SubscriptionCycle[]
+  paymentOrders PaymentOrder[]
+
+  @@map("subscription_plan")
+}
+
+// PlanPrice (TD-85) — 100% immutable, effective_to YO'Q
+model PlanPrice {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  planId              String   @map("plan_id") @db.Uuid
+  currency            String   @default("UZS")
+  amount              Int // integer UZS (TD-89)
+  billingPeriodMonths Int      @map("billing_period_months") // Phase 2.1G-D: immutable commercial duration (TD-195); v1 rows = 1 calendar month; CHECK > 0 (FP-DB-01)
+  effectiveFrom       DateTime @map("effective_from")
+  createdBy           String   @map("created_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  plan          SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdByUser User                @relation("PlanPriceCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  cycles        SubscriptionCycle[]
+  paymentOrders PaymentOrder[]
+
+  @@unique([planId, currency, effectiveFrom])
+  @@index([planId, effectiveFrom])
+  @@map("plan_price")
+}
+
+// PlanEntitlement (TD-86) — mode + limit; CHECK: LIMITED ⟺ limit NOT NULL
+model PlanEntitlement {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  planId      String          @map("plan_id") @db.Uuid
+  featureCode String          @map("feature_code") // registry
+  mode        EntitlementMode
+  limitValue  Int?            @map("limit_value")
+
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureCode])
+  @@map("plan_entitlement")
+}
+
+// Subscription (TD-87) — long-lived episode container
+model Subscription {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  planId         String             @map("plan_id") @db.Uuid
+  status         SubscriptionStatus @default(ACTIVE)
+  startedAt      DateTime           @default(now()) @map("started_at")
+  currentCycleId String?            @unique @map("current_cycle_id") @db.Uuid // circular (§43)
+  cancelledAt    DateTime?          @map("cancelled_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  plan         SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  currentCycle SubscriptionCycle?   @relation("SubscriptionCurrentCycle", fields: [currentCycleId], references: [id], onDelete: Restrict)
+  cycles       SubscriptionCycle[]  @relation("SubscriptionCycles")
+  changes      SubscriptionChange[]
+
+  @@index([userId, status])
+  @@map("subscription")
+}
+
+// SubscriptionCycle (TD-50/54) — markaziy iqtisod snapshot entity
+model SubscriptionCycle {
+  id                    String                  @id @default(uuid(7)) @db.Uuid
+  subscriptionId        String                  @map("subscription_id") @db.Uuid
+  sequenceNo            Int                     @map("sequence_no")
+  periodStart           DateTime                @map("period_start")
+  periodEnd             DateTime                @map("period_end")
+  planId                String                  @map("plan_id") @db.Uuid
+  planPriceId           String                  @map("plan_price_id") @db.Uuid
+  grossPriceUzs         Int                     @map("gross_price_uzs")
+  discountUzs           Int                     @default(0) @map("discount_uzs")
+  paidAmountUzs         Int                     @map("paid_amount_uzs")
+  rewardBasisUzs        Int                     @map("reward_basis_uzs") // Phase 2.1G-D: = PaymentOrder.payableAmount (net, TD-197)
+  rewardCeilingUzs      Int                     @map("reward_ceiling_uzs") // floor(basis × 2000/10000); 0 in a reward-disabled cycle
+  rewardPolicyVersionId String?                 @map("reward_policy_version_id") @db.Uuid // Phase 2.1G-D: nullable — NULL = reward-disabled cycle (TD-198)
+  izlRateSnapshot       Int?                    @map("izl_rate_snapshot") // Phase 2.1G-D: nullable — NULL ⟺ reward-disabled (coherence CHECK FP-DB-02/03)
+  rewardCeilingIzl      Int                     @map("reward_ceiling_izl") // floor(ceilingUzs / rate); 0 in a reward-disabled cycle
+  earnedIzl             Int                     @default(0) @map("earned_izl") // cached (F-6, non-authoritative §19); CHECK <= ceiling
+  paymentOrderId        String?                 @unique @map("payment_order_id") @db.Uuid
+  status                SubscriptionCycleStatus @default(ACTIVE)
+  createdAt             DateTime                @default(now()) @map("created_at")
+
+  subscription           Subscription                   @relation("SubscriptionCycles", fields: [subscriptionId], references: [id], onDelete: Restrict)
+  plan                   SubscriptionPlan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planPrice              PlanPrice                      @relation(fields: [planPriceId], references: [id], onDelete: Restrict)
+  policyVersion          RewardPolicyVersion?           @relation(fields: [rewardPolicyVersionId], references: [id], onDelete: Restrict)
+  paymentOrder           PaymentOrder?                  @relation(fields: [paymentOrderId], references: [id], onDelete: Restrict)
+  currentForSubscription Subscription?                  @relation("SubscriptionCurrentCycle")
+  entitlements           SubscriptionCycleEntitlement[]
+  usageCounters          UsageCounter[]
+  rewardGrants           RewardGrant[]
+  ledgerEntries          IZLLedgerEntry[]
+
+  @@unique([subscriptionId, sequenceNo])
+  @@index([subscriptionId])
+  // CHECK chk_cycle_reward_config_coherent (custom SQL, migration 20260821000000, FP-DB-02/03): reward-enabled ⟺
+  //   policy+rate present (rate > 0); reward-disabled ⟺ policy NULL + rate NULL + reward_ceiling_uzs=0 + reward_ceiling_izl=0
+  @@map("subscription_cycle")
+}
+
+// SubscriptionCycleEntitlement (TD-52) — normalized immutable snapshot
+model SubscriptionCycleEntitlement {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  cycleId     String          @map("subscription_cycle_id") @db.Uuid
+  featureCode String          @map("feature_code")
+  mode        EntitlementMode
+  limitValue  Int?            @map("limit_value")
+
+  cycle SubscriptionCycle @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+
+  @@unique([cycleId, featureCode])
+  @@map("subscription_cycle_entitlement")
+}
+
+model SubscriptionChange {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  subscriptionId String   @map("subscription_id") @db.Uuid
+  fromPlanId     String?  @map("from_plan_id") @db.Uuid
+  toPlanId       String?  @map("to_plan_id") @db.Uuid
+  changeType     String   @map("change_type") // registry
+  actorType      String   @map("actor_type") // USER / STAFF
+  changedAt      DateTime @default(now()) @map("changed_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId])
+  @@map("subscription_change")
+}
+
+model UsageCounter {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  cycleId     String   @map("subscription_cycle_id") @db.Uuid
+  featureCode String   @map("feature_code")
+  used        Int      @default(0) // CHECK >= 0
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  cycle SubscriptionCycle @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+
+  @@unique([cycleId, featureCode])
+  @@map("usage_counter")
+}
+
+// ============================================================================
+// PAYMENT (TD-55/56) — provider port; frontend activation YO'Q (app invariant)
+// ============================================================================
+
+model PaymentOrder {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  userId            String              @map("user_id") @db.Uuid
+  purpose           PaymentOrderPurpose
+  subscriptionId    String?             @map("subscription_id") @db.Uuid
+  planId            String              @map("plan_id") @db.Uuid
+  planPriceId       String              @map("plan_price_id") @db.Uuid
+  currency          String              @default("UZS")
+  grossAmount       Int                 @map("gross_amount")
+  izlDiscountAmount Int                 @default(0) @map("izl_discount_amount")
+  izlRedemptionId   String?             @map("izl_redemption_id") @db.Uuid // Phase 2.1D: committed discount redemption pointer; partial UNIQUE WHERE NOT NULL (DC-DB-01) — one redemption prices one order
+  payableAmount     Int                 @map("payable_amount") // gross - discount (CHECK)
+  provider          PaymentProvider?    // Phase 2.1C-PO: nullable — PaymentOrder is provider-agnostic purchase authority; PaymentTransaction.provider = execution authority (TD-168)
+  status            PaymentOrderStatus  @default(CREATED)
+  clientRequestId   String?             @map("client_request_id") // Phase 2.1C-PO: partial UNIQUE(user_id, client_request_id) WHERE NOT NULL (PO-DB-01)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  expiresAt         DateTime?           @map("expires_at")
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  plan         SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planPrice    PlanPrice            @relation(fields: [planPriceId], references: [id], onDelete: Restrict)
+  transactions PaymentTransaction[]
+  cycle        SubscriptionCycle?
+  redemptions  IZLRedemption[]
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("payment_order")
+}
+
+model PaymentTransaction {
+  id                    String                   @id @default(uuid(7)) @db.Uuid
+  paymentOrderId        String                   @map("payment_order_id") @db.Uuid
+  provider              PaymentProvider
+  providerTransactionId String?                  @map("provider_transaction_id") // Phase 2.1E: nullable — internal attempt exists before external provider init attaches the id (PT-DB-03; TD-187)
+  amount                Int // = PaymentOrder.payableAmount snapshot (TD-186)
+  status                PaymentTransactionStatus @default(PENDING)
+  providerMetadata      Json?                    @map("provider_metadata") @db.JsonB // sanitized (TD-92)
+  clientRequestId       String?                  @map("client_request_id") // Phase 2.1E: attempt idempotency (partial UNIQUE per order, PT-DB-01)
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  confirmedAt           DateTime?                @map("confirmed_at")
+
+  paymentOrder PaymentOrder           @relation(fields: [paymentOrderId], references: [id], onDelete: Restrict)
+  callbacks    PaymentCallbackEvent[]
+  paymeProtocol PaymeMerchantTransaction? // Phase 2.1L-D: durable Payme Merchant API protocol state (1:1, TD-233)
+  clickProtocol ClickShopTransaction?     // Phase 2.1L-D: durable CLICK Shop API protocol state (1:1, TD-233)
+
+  @@unique([provider, providerTransactionId]) // PT-DB-03 — no duplicate external identity (nullable → NULLs distinct)
+  @@index([paymentOrderId])
+  // Partial UNIQUE (custom SQL, migration 20260820240000): uq_payment_transaction_client_request (PT-DB-01)
+  //   + uq_payment_transaction_pending (payment_order_id) WHERE status='PENDING' (PT-DB-02, one in-flight attempt)
+  // Partial UNIQUE (custom SQL, migration 20260820250000): uq_payment_transaction_succeeded (payment_order_id)
+  //   WHERE status='SUCCEEDED' (PV-DB-01, Phase 2.1F — one successful charge authority per order)
+  @@map("payment_transaction")
+}
+
+model PaymentCallbackEvent {
+  id                   String          @id @default(uuid(7)) @db.Uuid
+  provider             PaymentProvider
+  providerEventId      String          @map("provider_event_id")
+  paymentTransactionId String?         @map("payment_transaction_id") @db.Uuid
+  result               String? // ACCEPTED / DUPLICATE / REJECTED
+  receivedAt           DateTime        @default(now()) @map("received_at")
+  processedAt          DateTime?       @map("processed_at")
+
+  transaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId]) // idempotency (F-19)
+  @@index([paymentTransactionId])
+  @@map("payment_callback_event")
+}
+
+// ============================================================================
+// REAL PROVIDER PROTOCOL PERSISTENCE (Phase 2.1L-D, TD-233) — durable adapter protocol state, NOT economic authority.
+// Core economic truth stays in PaymentTransaction/PaymentOrder/PaymentCallbackEvent/Subscription/IZL (§25). These rows
+// only speak the provider protocol correctly, reconstruct idempotent native responses across restart, and bind the
+// provider identity. No secrets / auth headers / raw callback bodies (§24). One provider financial transaction ⟺ one
+// PaymentTransaction attempt (1:1). No real adapter / route / provider call is introduced in this phase (§18/§19).
+// ============================================================================
+
+// Payme Merchant API durable protocol state (TD-233). Every native fact below is VERIFIED from the current official
+// developer.help.paycom.uz Merchant API docs: amount is in tiyin; time/create_time/perform_time/cancel_time are
+// 13-digit Unix milliseconds; state ∈ {1 created, 2 performed, -1 cancelled-before-perform, -2 cancelled-after-perform}.
+// providerCreatedTimeMs (Payme params.time) is the GetStatement range authority and must be preserved verbatim (§8) —
+// never substituted by the local createdAt. amountTiyin + timestamps use BigInt (13-digit ms / tiyin never coerced
+// through JS Number, §3). state -2 (post-success reversal) belongs to the FUTURE refund domain and is never produced
+// here (§6/§7/§26); the CHECK allows it only for forward compatibility.
+model PaymeMerchantTransaction {
+  id                    String   @id @default(uuid(7)) @db.Uuid
+  paymentTransactionId  String   @unique @map("payment_transaction_id") @db.Uuid // 1:1 core attempt (§4/§24)
+  paymeTransactionId    String   @unique @map("payme_transaction_id") // Payme params.id (external financial identity, §4)
+  amountTiyin           BigInt   @map("amount_tiyin") // verified tiyin (§20); CHECK > 0
+  accountSnapshot       Json     @map("account_snapshot") @db.JsonB // bound account object = our PT identity (non-secret, §4)
+  providerCreatedTimeMs BigInt   @map("provider_created_time_ms") // Payme params.time — GetStatement range authority (§8)
+  createTimeMs          BigInt   @map("create_time_ms") // merchant create_time = Clock.now() at first accepted CreateTransaction (§5)
+  performTimeMs         BigInt?  @map("perform_time_ms") // = PaymentTransaction.confirmedAt instant at first accepted PerformTransaction (§5/§35)
+  cancelTimeMs          BigInt?  @map("cancel_time_ms") // first accepted pre-success cancellation (§5)
+  state                 Int // native Payme state (CHECK ∈ {1,2,-1,-2})
+  reason                Int? // native cancellation reason snapshot; exact code enumeration re-verified at 2.1L-PM
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  paymentTransaction PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([providerCreatedTimeMs]) // GetStatement range scan over Payme creation time (§8)
+  // Custom SQL (migration 21): chk_payme_mt_state_valid (state ∈ {1,2,-1,-2}), chk_payme_mt_amount_positive
+  //   (amount_tiyin > 0), chk_payme_mt_time_coherent (time fields match state), chk_payme_mt_reason_coherent
+  //   (reason present ⟺ cancel state).
+  @@map("payme_merchant_transaction")
+}
+
+// CLICK Shop API durable protocol state — PROVIDER-NEUTRAL SHELL (TD-233). The CLICK Shop API native constants
+// (Prepare/Complete sign_string MD5 formula, native field types, amount format, error taxonomy, merchant_prepare_id
+// required format, merchant_trans_id UUID compatibility) are UNVERIFIED from an official current source: a standing
+// PROTOCOL VERIFICATION BLOCKER (§0). This table therefore encodes NO CLICK native constant — external identifiers are
+// stored as lossless strings (a superset of any numeric/string native form, matching PaymentTransaction.providerTransactionId),
+// merchant_prepare_id / merchant_confirm_id are Izlan-generated with a format DEFERRED to Phase 2.1L-C, and no
+// native-value CHECK is added. The real Prepare/Complete signature/amount/error/generation logic is Phase 2.1L-C, which
+// MUST first verify those constants from docs.click.uz Shop API.
+model ClickShopTransaction {
+  id                   String                  @id @default(uuid(7)) @db.Uuid
+  paymentTransactionId String                  @unique @map("payment_transaction_id") @db.Uuid // 1:1 core attempt
+  clickTransId         String?                 @map("click_trans_id") // CLICK external id — String (native type unverified; superset-safe)
+  clickPaydocId        String?                 @map("click_paydoc_id") // CLICK payment-document number — audit only
+  merchantPrepareId    String?                 @map("merchant_prepare_id") // Izlan-generated, replay-stable; native format → 2.1L-C
+  merchantConfirmId    String?                 @map("merchant_confirm_id") // Izlan-generated at Complete acceptance; replay-stable
+  prepareState         ClickProtocolPhaseState @default(PENDING) @map("prepare_state")
+  completeState        ClickProtocolPhaseState @default(PENDING) @map("complete_state")
+  preparedAt           DateTime?               @map("prepared_at")
+  completedAt          DateTime?               @map("completed_at")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+
+  paymentTransaction PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Restrict)
+
+  // Custom SQL (migration 21): uq_click_shop_click_trans_id (click_trans_id) WHERE NOT NULL — external-id dedup;
+  //   chk_click_shop_complete_requires_prepare — an ACCEPTED Complete requires an ACCEPTED Prepare (Izlan phase model,
+  //   NOT a CLICK native constant).
+  @@map("click_shop_transaction")
+}

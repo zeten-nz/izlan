@@ -1,0 +1,16 @@
+# Dependencies (generated Prisma Client node_modules/@prisma ichida — build artifact, §48)
+node_modules/
+
+# Build output
+dist/
+
+# Test coverage
+coverage/
+
+# Secrets — .env HECH QACHON commit qilinmaydi (§46/47)
+.env
+
+# Local probes
+_probe/
+
+# NOTE: prisma/migrations/ IGNORE QILINMAYDI — migration history version-controlled (§47)

@@ -1,0 +1,366 @@
+// Izlan.uz — Prisma Schema v1 (Phase 1.3)
+// Datasource + generator + shared enums.
+// Domain models: core.prisma, content.prisma, learning.prisma, finance.prisma, community.prisma
+//
+// Source of truth: TECH_DECISIONS.md (TD-01..TD-92), DB_CONSTRAINT_MATRIX.md, JSONB_GOVERNANCE.md.
+// Constraints Prisma ifodalay olmaydigan joylar (CHECK, partial unique, append-only PRIV) —
+// migration/postgres_constraints.sql da; DB_CONSTRAINT_MATRIX.md Phase 1.3 mapping'i bilan.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: connection URL prisma.config.ts (datasource.url) da.
+  // relationMode default ("foreignKeys") — PostgreSQL FK integrity DB tomonidan enforce qilinadi (§5).
+}
+
+// ============================================================================
+// SHARED ENUMS (TD-90: yopiq, kod bilan o'zgaradigan state machine'lar)
+// ============================================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+// Content container lifecycle (Subject/Track/Level/Module/Topic) — TD-28
+enum ContainerStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Lesson (logical) lifecycle — TD-28 (REVIEW yo'q, u revisionda)
+enum LessonStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// LessonRevision + AssessmentDefinitionVersion + AssessmentItem lifecycle — TD-28/32/83
+enum RevisionStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SkillStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// Activity block turlari — TD-21 (VIDEO: lesson content uchun future qiymat)
+enum ActivityType {
+  TEXT
+  EXPLANATION
+  IMAGE
+  AUDIO
+  EXAMPLE
+  MINI_QUESTION
+  PRACTICE
+  SPEAKING
+  WRITING
+  LISTENING
+  AI_INTERACTION
+  MASTERY_TEST
+  VIDEO
+}
+
+// Content provenance — TD-20 (AI review'siz publish bo'lmaydi)
+enum ContentSource {
+  HUMAN
+  AI_GENERATED
+  AI_ASSISTED
+}
+
+// MediaAsset — TD-74: processing ≠ moderation (ikki mustaqil o'lchov).
+// Exact nomlar IMPLEMENTATION DECISION (TD-74 clarification: nomlar OPEN/implementation detail).
+enum MediaProcessingStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+enum MediaModerationStatus {
+  UNREVIEWED
+  APPROVED
+  BLOCKED
+}
+
+// ---- Learning ----
+enum AssessmentPurposeScope {
+  DIAGNOSTIC
+  CHECKPOINT
+}
+
+enum AssessmentAttemptPurpose {
+  INITIAL_DIAGNOSTIC
+  CHECKPOINT
+  REASSESSMENT
+}
+
+enum AssessmentAttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum AssessmentResponseStatus {
+  PRESENTED
+  DRAFT
+  SUBMITTED
+  SKIPPED
+}
+
+enum ActivityAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EVALUATED
+}
+
+enum AiEvaluationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum SkillMeasurementSource {
+  DIAGNOSTIC
+  CHECKPOINT
+  LESSON_MASTERY
+  REVIEW_MASTERY // Phase 1.9C (TD-129) — normalized completed-review evidence; merge-v2 incremental (not anchor)
+  AI_EVALUATION
+  ENGINE_RECALC
+}
+
+enum LearningSessionStatus {
+  ACTIVE
+  ENDED
+}
+
+// Phase 1.9B-2 (TD-125): dedicated review-session lifecycle — v1 ACTIVE → COMPLETED only.
+enum ReviewSessionStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum LessonProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum RoadmapStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum RoadmapItemType {
+  LESSON
+  REVIEW
+  PRACTICE
+  CHECKPOINT
+}
+
+enum RoadmapItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum RoadmapItemSource {
+  INITIAL_GENERATION
+  RECOMMENDATION
+  SYSTEM
+}
+
+enum RecommendationType {
+  ROADMAP_ADJUSTMENT
+  REVIEW_SUGGESTION
+  SCHEDULE_ADJUSTMENT
+}
+
+enum RecommendationSource {
+  AI_TUTOR
+  SYSTEM_RULE
+}
+
+enum RecommendationStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum SignalStatus {
+  ACTIVE
+  RESOLVED
+  EXPIRED
+}
+
+enum DailyPlanStatus {
+  CURRENT
+  SUPERSEDED
+}
+
+enum DailyPlanSection {
+  MUST_DO
+  RECOMMENDED
+  EXTRA
+}
+
+enum DailyPlanItemType {
+  LESSON
+  REVIEW
+  PRACTICE
+  MISSION
+  COMMUNITY
+  OTHER
+}
+
+enum DailyPlanItemStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+}
+
+enum WeeklyProgressStatus {
+  IN_PROGRESS
+  MET
+  MISSED
+}
+
+// ---- Finance ----
+enum LedgerEntryType {
+  EARN
+  REDEEM
+  ADJUSTMENT
+  REVERSAL
+}
+
+enum RewardCategory {
+  LEARNING_SESSION
+  LESSON_ATTENTION
+  MASTERY
+  DAILY_MISSION
+}
+
+enum RewardGrantStatus {
+  GRANTED
+  REVERSED
+}
+
+enum PolicyVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum RateVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum RedemptionType {
+  SUBSCRIPTION_DISCOUNT
+}
+
+enum RedemptionStatus {
+  REQUESTED
+  RESERVED
+  APPLIED
+  RELEASED
+}
+
+// IZL spendability hold lifecycle. ACTIVE reduces available; RELEASED (freed, no spend) + CONSUMED (fulfilled by a
+// REDEEM ledger debit) are terminal and BOTH excluded from the reserved SUM. Phase 2.1G-D adds CONSUMED as a distinct
+// audit state (TD-201, §20/§34); it has NO runtime producer yet — the Phase 2.1G finalizer is the first (§21).
+enum IzlReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+}
+
+enum SubscriptionPlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EntitlementMode {
+  DISABLED
+  ENABLED
+  LIMITED
+  UNLIMITED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionCycleStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum PaymentProvider {
+  CLICK
+  PAYME
+}
+
+enum PaymentOrderPurpose {
+  SUBSCRIPTION_PURCHASE
+  SUBSCRIPTION_RENEWAL
+}
+
+enum PaymentOrderStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// Phase 2.1L-D (TD-233): CLICK Shop API protocol-phase acceptance state (Izlan-owned; NOT a CLICK native constant).
+enum ClickProtocolPhaseState {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// ---- Community ----
+enum CommunityPostType {
+  QUESTION
+  LEARNED
+  EXPLANATION
+  DISCUSSION
+  OTHER
+}
+
+enum CommunityVisibility {
+  VISIBLE
+  AUTHOR_REMOVED
+  MODERATOR_HIDDEN
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
