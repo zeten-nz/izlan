@@ -94,7 +94,7 @@ describe('Daily plan (e2e, izlan_test)', () => {
     return (await prisma.topic.create({ data: { moduleId: mod.id, title: `Topic-${uid()}`, sortOrder: nextSort(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } })).id;
   }
   async function makeLesson(creatorId: string, topicId: string, skillIds: string[], prereqIds: string[] = []) {
-    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, sortOrder: nextSort(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
+    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, contentKey: `ck-${uid()}`, sortOrder: nextSort(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
     const rev = await prisma.lessonRevision.create({ data: { lessonId: lesson.id, version: 1, title: 'Lesson', status: RevisionStatus.PUBLISHED, createdBy: creatorId, publishedAt: new Date() } });
     await prisma.lesson.update({ where: { id: lesson.id }, data: { publishedRevisionId: rev.id } });
     for (const sid of skillIds) await prisma.lessonSkill.create({ data: { lessonId: lesson.id, skillId: sid } });

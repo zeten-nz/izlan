@@ -102,7 +102,7 @@ describe('IZL economic reward (e2e, izlan_test)', () => {
     const level = await prisma.level.create({ data: { trackId: t.id, code: `C-${uid()}`, title: 'L', sortOrder: nx(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } });
     const mod = await prisma.module.create({ data: { levelId: level.id, title: 'M', sortOrder: nx(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } });
     const topic = await prisma.topic.create({ data: { moduleId: mod.id, title: 'Top', sortOrder: nx(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } });
-    const lesson = await prisma.lesson.create({ data: { topicId: topic.id, slug: `l-${uid()}`, sortOrder: nx(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
+    const lesson = await prisma.lesson.create({ data: { topicId: topic.id, slug: `l-${uid()}`, contentKey: `ck-${uid()}`, sortOrder: nx(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
     const rev = await prisma.lessonRevision.create({ data: { lessonId: lesson.id, version: 1, title: 'V1', status: RevisionStatus.PUBLISHED, createdBy: creatorId, publishedAt: new Date() } });
     await prisma.lesson.update({ where: { id: lesson.id }, data: { publishedRevisionId: rev.id } });
     const activity = await prisma.activity.create({ data: { lessonRevisionId: rev.id, type, position: 1, payload: { schemaVersion: LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION, format: 'single_choice', prompt: 'Q', options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }], answerKey: { correctOptionIds: ['a'] } }, source: ContentSource.HUMAN } });

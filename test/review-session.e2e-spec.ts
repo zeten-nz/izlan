@@ -87,7 +87,7 @@ describe('Review session (e2e, izlan_test)', () => {
     return (await prisma.topic.create({ data: { moduleId: mod.id, title: 'Top', sortOrder: nx(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } })).id;
   }
   async function makeLesson(creatorId: string, topicId: string, lessonSkillIds: string[] = [], title = 'Lesson') {
-    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, sortOrder: nx(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
+    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, contentKey: `ck-${uid()}`, sortOrder: nx(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
     const rev = await prisma.lessonRevision.create({ data: { lessonId: lesson.id, version: 1, title, status: RevisionStatus.PUBLISHED, createdBy: creatorId, publishedAt: new Date() } });
     await prisma.lesson.update({ where: { id: lesson.id }, data: { publishedRevisionId: rev.id } });
     for (const sid of lessonSkillIds) await prisma.lessonSkill.create({ data: { lessonId: lesson.id, skillId: sid } });

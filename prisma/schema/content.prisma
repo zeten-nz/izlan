@@ -117,6 +117,11 @@ model Topic {
 model Lesson {
   id                  String       @id @default(uuid(7)) @db.Uuid
   topicId             String       @map("topic_id") @db.Uuid
+  // Phase 2.2A-D (TD-244): immutable stable business/import identity — DISTINCT from `id` (internal DB identity), `slug`
+  // (future routing/SEO), and `title` (mutable, on LessonRevision). NOT NULL + globally UNIQUE. Supplied by the future
+  // import/authoring layer (no generation service here). Immutability is an authoring-service contract, NOT a DB trigger:
+  // the future Phase 2.2A writer must treat contentKey as immutable and never expose it as an ordinary mutable field.
+  contentKey          String       @unique @map("content_key")
   slug                String?
   sortOrder           Int          @map("sort_order")
   status              LessonStatus @default(DRAFT)
@@ -270,7 +275,10 @@ model ActivitySkill {
   @@map("activity_skill")
 }
 
-// LessonPrerequisite — explicit DAG (TD-29). Self-ref taqiqi + cycle prevention: app + CHECK.
+// LessonPrerequisite — explicit prerequisite edges (TD-29). Phase 2.2A-D (TD-245): a DB CHECK
+// (chk_lesson_prerequisite_no_self_loop, custom SQL) enforces ONLY the direct self-loop invariant
+// lesson_id <> prerequisite_lesson_id. A row-level CHECK CANNOT detect a multi-node DAG cycle (A→B→C→A) — full DAG
+// cycle prevention belongs to the future Phase 2.2A authoring service (transactional write-time validation), NOT the DB.
 model LessonPrerequisite {
   id                   String   @id @default(uuid(7)) @db.Uuid
   lessonId             String   @map("lesson_id") @db.Uuid

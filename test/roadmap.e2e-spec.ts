@@ -97,7 +97,7 @@ describe('Roadmap foundation (e2e, izlan_test)', () => {
   }
   interface LessonOpts { status?: LessonStatus; published?: boolean; skillIds?: string[]; prereqIds?: string[] }
   async function makeLesson(creatorId: string, topicId: string, opts: LessonOpts = {}): Promise<string> {
-    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, sortOrder: nextSort(), status: opts.status ?? LessonStatus.PUBLISHED, createdBy: creatorId } });
+    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, contentKey: `ck-${uid()}`, sortOrder: nextSort(), status: opts.status ?? LessonStatus.PUBLISHED, createdBy: creatorId } });
     if (opts.published ?? true) {
       const rev = await prisma.lessonRevision.create({ data: { lessonId: lesson.id, version: 1, title: 'L', status: RevisionStatus.PUBLISHED, createdBy: creatorId, publishedAt: new Date() } });
       await prisma.lesson.update({ where: { id: lesson.id }, data: { publishedRevisionId: rev.id } });
