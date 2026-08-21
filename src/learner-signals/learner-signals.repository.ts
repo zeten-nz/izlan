@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ActivityAttemptStatus, Prisma, SignalStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { OBJECTIVE_TYPES } from '../lesson-execution/completion/lesson-completion-eligibility';
+import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry';
 import { ActivityOutcome, REPEATED_MISTAKE_SIGNAL_TYPE } from './repeated-mistake.detector';
 
-const OBJECTIVE_TYPE_LIST = [...OBJECTIVE_TYPES];
+const OBJECTIVE_TYPE_LIST = [...OBJECTIVE_ACTIVITY_TYPES];
 
 /** Learner Signals persistence. Reads append-only ActivityAttempt evidence + content attribution; writes ONLY
  *  LearnerSignal (advisory). Never mutates ActivityAttempt / SkillMeasurement / LearnerSkillState / Roadmap. */

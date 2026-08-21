@@ -15,7 +15,8 @@ import {
 } from '../common/errors';
 import { ReviewService } from '../review/review.service';
 import { ObjectiveActivityScorerService } from '../lesson-execution/activity/objective-activity-scorer.service';
-import { isObjectiveActivityType, parseObjectiveActivityPayload, projectActivityForLearner } from '../lesson-execution/activity/objective-activity-payload';
+import { parseObjectiveActivityPayload, projectActivityForLearner } from '../lesson-execution/activity/objective-activity-payload';
+import { isObjectiveActivityType } from '../content/activity/activity-registry';
 import { ActivityType } from '@prisma/client';
 import { ReviewSessionRepository } from './review-session.repository';
 import { REVIEW_SESSION_EVIDENCE_SCHEMA, selectReviewActivities } from './selection/review-activity-selection';

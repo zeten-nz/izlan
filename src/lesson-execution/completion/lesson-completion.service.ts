@@ -12,7 +12,8 @@ import {
 import { RoadmapService } from '../../roadmap/roadmap.service';
 import { LearningProgressService } from '../../learning-progress/learning-progress.service';
 import { ActivityAttemptRepository } from '../activity/activity-attempt.repository';
-import { VIEW_ONLY_TYPES, computeEligibility } from './lesson-completion-eligibility';
+import { isViewOnlyActivityType } from '../../content/activity/activity-registry';
+import { computeEligibility } from './lesson-completion-eligibility';
 import { LESSON_MASTERY_DERIVATION_VERSION, MasteryActivityInput, deriveLessonMastery } from './lesson-mastery.engine';
 import { LessonCompletionRepository } from './lesson-completion.repository';
 
@@ -54,7 +55,7 @@ export class LessonCompletionService {
     const activity = await this.attempts.findActivity(activityId);
     if (!activity) throw new ActivityNotFoundError('activity not found');
     if (activity.lessonRevisionId !== progress.lessonRevisionId) throw new ActivityNotInPinnedRevisionError('wrong revision');
-    if (!VIEW_ONLY_TYPES.has(activity.type)) throw new ActivityTypeNotSupportedError('not a view-only activity'); // objective/deferred → reject (§5/43)
+    if (!isViewOnlyActivityType(activity.type)) throw new ActivityTypeNotSupportedError('not a view-only activity'); // objective/deferred → reject (§5/43)
 
     await this.attempts.recordActivityStep(userId, lessonId, activityId); // set-union, idempotent (§5)
     return { lessonId, activityId, recorded: true };
