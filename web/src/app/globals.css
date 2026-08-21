@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens. Colors are RGB channel triplets ("R G B") so Tailwind's `rgb(var(--token) / <alpha-value>)`
+ * can apply opacity. ONE token set defines light (:root) and dark (.dark) — components never hard-code colors.
+ */
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --radius-card: 0.75rem;
+
+  --color-bg: 247 248 250;
+  --color-surface: 255 255 255;
+  --color-surface-2: 242 244 247;
+  --color-border: 224 227 232;
+  --color-text: 22 27 34;
+  --color-muted: 100 108 120;
+  --color-primary: 37 99 235;
+  --color-primary-fg: 255 255 255;
+  --color-danger: 220 38 38;
+  --color-warning: 202 138 4;
+  --color-success: 22 163 74;
+  --color-info: 8 145 178;
+}
+
+.dark {
+  --color-bg: 13 17 23;
+  --color-surface: 22 27 34;
+  --color-surface-2: 30 36 44;
+  --color-border: 48 54 61;
+  --color-text: 230 234 240;
+  --color-muted: 148 158 170;
+  --color-primary: 88 143 255;
+  --color-primary-fg: 8 12 20;
+  --color-danger: 248 113 113;
+  --color-warning: 234 179 8;
+  --color-success: 74 222 128;
+  --color-info: 34 211 238;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: rgb(var(--color-border));
+}
+
+/* Visible keyboard focus everywhere; suppressed only for mouse users via :focus-visible. */
+:focus-visible {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion for the few transitions/animations used. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.izl-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.izl-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border));
+  border-radius: 9999px;
+}

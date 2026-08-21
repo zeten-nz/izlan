@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AuthorizationModule } from '../authorization/authorization.module';
+import { CmsSessionController } from './http/cms-session.controller';
 import { SubjectsController } from './http/subjects.controller';
 import { HierarchyController } from './http/hierarchy.controller';
 import { LessonsController } from './http/lessons.controller';
@@ -37,7 +39,9 @@ import './content-authoring.constants'; // side-effect: register permission code
  * No LessonRevision/Activity/prerequisite/publish authoring here (deferred to 2.2A-2 / 2.2A-3).
  */
 @Module({
+  imports: [AuthorizationModule], // AuthorizationService for the CMS capability endpoint (Phase 2.2C)
   controllers: [
+    CmsSessionController,
     SubjectsController, HierarchyController, LessonsController, RevisionsController, ActivitiesController,
     SkillsController, SkillMappingsController, PrerequisitesController, HierarchyPublishController, PublicationController,
   ],

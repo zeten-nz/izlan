@@ -13,4 +13,10 @@ coverage/
 # Local probes
 _probe/
 
+# Next.js web app (izlan/web) — build output + local env; web/.env.example IS committed
+.next/
+next-env.d.ts
+.env*.local
+tsconfig.tsbuildinfo
+
 # NOTE: prisma/migrations/ IGNORE QILINMAYDI — migration history version-controlled (§47)
