@@ -157,3 +157,10 @@ export class ContentNotDraftError extends DomainError {}
 export class ContentEditConflictError extends DomainError {}
 export class ContentUniqueConflictError extends DomainError {}
 export class ContentAssignmentInvalidError extends DomainError {}
+
+// Content authoring — draft revision + activity authoring (Phase 2.2A-2). Payload validation is enumeration/leak-safe:
+// never expose payload/answerKey/parser internals in messages, audit, or logs.
+export class ContentActivityPayloadInvalidError extends DomainError {}
+export class ContentActivityTypeNotAuthorableError extends DomainError {}
+export class ContentReorderInvalidError extends DomainError {}
+export class ContentDeleteBlockedError extends DomainError {}

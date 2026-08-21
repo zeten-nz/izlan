@@ -28,8 +28,11 @@ export type ActivityScoringCapability = 'DETERMINISTIC_OBJECTIVE' | 'NONE';
 /** How much of the Activity may be projected to a learner (§8). */
 export type ActivityLearnerProjection = 'OBJECTIVE_SAFE' | 'METADATA_ONLY';
 
-/** The accepted Activity payload contract, if any. NONE_DEFINED = no accepted shape in this phase (§13). */
-export type ActivityPayloadContract = 'LESSON_OBJECTIVE_V1' | 'NONE_DEFINED';
+/**
+ * The accepted Activity payload contract (drives authoring-time validation, TD-248). NONE_DEFINED = not authorable
+ * in v1 (unsupported types). Objective/markdown/media contracts are closed in Phase 2.2A-2.
+ */
+export type ActivityPayloadContract = 'LESSON_OBJECTIVE_V1' | 'LESSON_MARKDOWN_V1' | 'LESSON_MEDIA_V1' | 'NONE_DEFINED';
 
 export interface ActivityDefinition {
   type: ActivityType;
@@ -49,13 +52,17 @@ const OBJECTIVE = (type: ActivityType): ActivityDefinition => ({
   payloadContract: 'LESSON_OBJECTIVE_V1',
 });
 
-const VIEW_ONLY = (type: ActivityType): ActivityDefinition => ({
+/**
+ * View-only activities are metadata-only at learner runtime (unchanged); the payloadContract only governs
+ * AUTHORING-time payload validation (2.2A-2). TEXT/EXPLANATION/EXAMPLE → markdown; IMAGE/AUDIO → media marker.
+ */
+const VIEW_ONLY = (type: ActivityType, payloadContract: ActivityPayloadContract): ActivityDefinition => ({
   type,
   executionKind: 'VIEW_ONLY',
   completionEvidence: 'COMPLETED_ACTIVITY',
   scoring: 'NONE',
   learnerProjection: 'METADATA_ONLY',
-  payloadContract: 'NONE_DEFINED',
+  payloadContract,
 });
 
 const UNSUPPORTED = (type: ActivityType): ActivityDefinition => ({
@@ -77,12 +84,13 @@ export const ACTIVITY_REGISTRY: Readonly<Record<ActivityType, ActivityDefinition
   [ActivityType.MINI_QUESTION]: OBJECTIVE(ActivityType.MINI_QUESTION),
   [ActivityType.PRACTICE]: OBJECTIVE(ActivityType.PRACTICE),
   [ActivityType.MASTERY_TEST]: OBJECTIVE(ActivityType.MASTERY_TEST),
-  // view-only — completed by explicit learner acknowledgement; metadata-only projection; no payload contract yet
-  [ActivityType.TEXT]: VIEW_ONLY(ActivityType.TEXT),
-  [ActivityType.EXPLANATION]: VIEW_ONLY(ActivityType.EXPLANATION),
-  [ActivityType.IMAGE]: VIEW_ONLY(ActivityType.IMAGE),
-  [ActivityType.AUDIO]: VIEW_ONLY(ActivityType.AUDIO),
-  [ActivityType.EXAMPLE]: VIEW_ONLY(ActivityType.EXAMPLE),
+  // view-only — completed by explicit learner acknowledgement; metadata-only projection. Authoring payload contract:
+  // markdown for prose types (TEXT/EXPLANATION/EXAMPLE), media marker for IMAGE/AUDIO (media identity stays relational).
+  [ActivityType.TEXT]: VIEW_ONLY(ActivityType.TEXT, 'LESSON_MARKDOWN_V1'),
+  [ActivityType.EXPLANATION]: VIEW_ONLY(ActivityType.EXPLANATION, 'LESSON_MARKDOWN_V1'),
+  [ActivityType.EXAMPLE]: VIEW_ONLY(ActivityType.EXAMPLE, 'LESSON_MARKDOWN_V1'),
+  [ActivityType.IMAGE]: VIEW_ONLY(ActivityType.IMAGE, 'LESSON_MEDIA_V1'),
+  [ActivityType.AUDIO]: VIEW_ONLY(ActivityType.AUDIO, 'LESSON_MEDIA_V1'),
   // deferred — not supported by learner runtime v1 (completion cannot authoritatively record them)
   [ActivityType.SPEAKING]: UNSUPPORTED(ActivityType.SPEAKING),
   [ActivityType.WRITING]: UNSUPPORTED(ActivityType.WRITING),

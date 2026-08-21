@@ -16,10 +16,14 @@ import {
   AssessmentItemNotCurrentError,
   AssessmentNotAvailableError,
   AssessmentResponseConflictError,
+  ContentActivityPayloadInvalidError,
+  ContentActivityTypeNotAuthorableError,
   ContentAssignmentInvalidError,
+  ContentDeleteBlockedError,
   ContentEditConflictError,
   ContentNotDraftError,
   ContentNotFoundError,
+  ContentReorderInvalidError,
   ContentUniqueConflictError,
   CsrfRejectedError,
   DailyPlanConfigurationInvalidError,
@@ -235,6 +239,10 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ContentEditConflictError) return { statusCode: 409, code: 'CONTENT_EDIT_CONFLICT', message: 'content was modified by another edit' };
     if (e instanceof ContentUniqueConflictError) return { statusCode: 409, code: 'CONTENT_UNIQUE_CONFLICT', message: 'a conflicting value already exists' };
     if (e instanceof ContentAssignmentInvalidError) return { statusCode: 409, code: 'CONTENT_ASSIGNMENT_INVALID', message: 'invalid subject assignment request' };
+    if (e instanceof ContentActivityPayloadInvalidError) return { statusCode: 400, code: 'CONTENT_ACTIVITY_PAYLOAD_INVALID', message: 'activity payload invalid' };
+    if (e instanceof ContentActivityTypeNotAuthorableError) return { statusCode: 400, code: 'CONTENT_ACTIVITY_TYPE_NOT_AUTHORABLE', message: 'activity type is not authorable' };
+    if (e instanceof ContentReorderInvalidError) return { statusCode: 400, code: 'CONTENT_REORDER_INVALID', message: 'invalid activity order' };
+    if (e instanceof ContentDeleteBlockedError) return { statusCode: 409, code: 'CONTENT_DELETE_BLOCKED', message: 'content cannot be deleted in its current state' };
 
     // Noma'lum (Prisma/internal) — generic 500, DETAIL LEAK YO'Q. Safe kategoriya log qilinadi.
     if (e instanceof DomainError) {

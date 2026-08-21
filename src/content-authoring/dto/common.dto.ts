@@ -24,3 +24,12 @@ export class ConcurrentEditDto {
   @IsISO8601({ strict: true }, { message: 'expectedUpdatedAt must be an ISO-8601 timestamp' })
   expectedUpdatedAt!: string;
 }
+
+/**
+ * Revision-aggregate concurrency token (Phase 2.2A-2, §12): every Activity mutation (create/patch/delete/reorder)
+ * carries the owning DRAFT LessonRevision's exact `updatedAt`. The revision is the authoring concurrency boundary.
+ */
+export class RevisionEditDto {
+  @IsISO8601({ strict: true }, { message: 'expectedRevisionUpdatedAt must be an ISO-8601 timestamp' })
+  expectedRevisionUpdatedAt!: string;
+}
