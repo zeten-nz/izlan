@@ -149,3 +149,11 @@ export class ReviewSessionNoReviewableActivityError extends DomainError {}
 export class ReviewSessionActivityNotAvailableError extends DomainError {}
 export class ReviewSessionNotReadyError extends DomainError {}
 export class ReviewSessionAlreadyCompletedError extends DomainError {}
+
+// Content authoring (Phase 2.2A-1). Scope failures use the not-found error (IDOR-safe, §17): never reveal
+// that a resource exists in another Subject.
+export class ContentNotFoundError extends DomainError {}
+export class ContentNotDraftError extends DomainError {}
+export class ContentEditConflictError extends DomainError {}
+export class ContentUniqueConflictError extends DomainError {}
+export class ContentAssignmentInvalidError extends DomainError {}

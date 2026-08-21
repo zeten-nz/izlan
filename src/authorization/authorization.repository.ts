@@ -39,6 +39,14 @@ export class AuthorizationRepository {
     return this.db(tx).rolePermission.create({ data: { roleId, permissionCode } });
   }
 
+  /** Idempotent bootstrap of default role permissions — existing rows are never removed (skipDuplicates). */
+  ensureRolePermissions(roleId: string, permissionCodes: readonly string[], tx?: Prisma.TransactionClient) {
+    return this.db(tx).rolePermission.createMany({
+      data: permissionCodes.map((permissionCode) => ({ roleId, permissionCode })),
+      skipDuplicates: true,
+    });
+  }
+
   /** User → UserRole → Role → RolePermission (effective permission lookup uchun). */
   findUserRolePermissions(userId: string, tx?: Prisma.TransactionClient) {
     return this.db(tx).userRole.findMany({
