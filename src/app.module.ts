@@ -22,6 +22,7 @@ import { DailyMissionModule } from './daily-mission/daily-mission.module';
 import { XpModule } from './xp/xp.module';
 import { FinanceModule } from './finance/finance.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ContentAuthoringModule } from './content-authoring/content-authoring.module';
 
 /**
  * AppModule — foundational (Config/Database/Health) + auth core + learner flow (…/LearningProgress/
@@ -53,6 +54,7 @@ import { PaymentsModule } from './payments/payments.module';
     XpModule,
     FinanceModule,
     PaymentsModule,
+    ContentAuthoringModule,
   ],
 })
 export class AppModule {}

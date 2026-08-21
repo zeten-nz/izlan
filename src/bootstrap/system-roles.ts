@@ -1,7 +1,8 @@
 import { AuthorizationRepository } from '../authorization/authorization.repository';
+import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from '../content-authoring/content-authoring.constants';
 
 /**
- * System role bootstrap (§7, TD-27). Faqat role identity — demo user/content/permission matrix YO'Q.
+ * System role bootstrap (§7, TD-27). Faqat role identity — demo user YO'Q.
  * Idempotent (upsert): qayta ishga tushirish xavfsiz; mavjud role code destructive overwrite qilinmaydi.
  */
 export const SYSTEM_ROLES: ReadonlyArray<{ code: string; name: string }> = [
@@ -11,8 +12,25 @@ export const SYSTEM_ROLES: ReadonlyArray<{ code: string; name: string }> = [
   { code: 'ADMIN', name: 'Admin' },
 ];
 
+/**
+ * Default role → permission mapping (Phase 2.2A-1, TD-247). Additive + idempotent (createMany skipDuplicates) —
+ * existing RolePermission rows are NEVER destructively removed. ADMIN succeeds via EXPLICIT permission rows, not a
+ * role-name bypass. LEARNER/MODERATOR intentionally receive no content permissions.
+ */
+export const SYSTEM_ROLE_PERMISSIONS: ReadonlyArray<{ roleCode: string; permissions: readonly string[] }> = [
+  { roleCode: 'METHODIST', permissions: [CONTENT_AUTHOR] },
+  { roleCode: 'ADMIN', permissions: [CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE] },
+  { roleCode: 'MODERATOR', permissions: [] },
+  { roleCode: 'LEARNER', permissions: [] },
+];
+
 export async function bootstrapSystemRoles(authz: AuthorizationRepository): Promise<void> {
   for (const role of SYSTEM_ROLES) {
     await authz.upsertRole(role.code, role.name);
+  }
+  for (const { roleCode, permissions } of SYSTEM_ROLE_PERMISSIONS) {
+    if (permissions.length === 0) continue;
+    const role = await authz.findRoleByCode(roleCode);
+    if (role) await authz.ensureRolePermissions(role.id, permissions);
   }
 }

@@ -16,6 +16,11 @@ import {
   AssessmentItemNotCurrentError,
   AssessmentNotAvailableError,
   AssessmentResponseConflictError,
+  ContentAssignmentInvalidError,
+  ContentEditConflictError,
+  ContentNotDraftError,
+  ContentNotFoundError,
+  ContentUniqueConflictError,
   CsrfRejectedError,
   DailyPlanConfigurationInvalidError,
   DailyPlanItemNotFoundError,
@@ -223,6 +228,13 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof RedemptionOpenIntentConflictError) return { statusCode: 409, code: 'REDEMPTION_OPEN_INTENT_CONFLICT', message: 'an open discount redemption already exists for this order' };
     if (e instanceof RedemptionNotFoundError) return { statusCode: 404, code: 'REDEMPTION_NOT_FOUND', message: 'redemption not found' };
     if (e instanceof RedemptionCommitConflictError) return { statusCode: 409, code: 'REDEMPTION_COMMIT_CONFLICT', message: 'discount commit conflicts with the current order state' };
+
+    // Content authoring (Phase 2.2A-1). Scope failures are surfaced as CONTENT_NOT_FOUND (IDOR-safe, §17).
+    if (e instanceof ContentNotFoundError) return { statusCode: 404, code: 'CONTENT_NOT_FOUND', message: 'not found' };
+    if (e instanceof ContentNotDraftError) return { statusCode: 409, code: 'CONTENT_NOT_DRAFT', message: 'content is not editable in its current state' };
+    if (e instanceof ContentEditConflictError) return { statusCode: 409, code: 'CONTENT_EDIT_CONFLICT', message: 'content was modified by another edit' };
+    if (e instanceof ContentUniqueConflictError) return { statusCode: 409, code: 'CONTENT_UNIQUE_CONFLICT', message: 'a conflicting value already exists' };
+    if (e instanceof ContentAssignmentInvalidError) return { statusCode: 409, code: 'CONTENT_ASSIGNMENT_INVALID', message: 'invalid subject assignment request' };
 
     // Noma'lum (Prisma/internal) — generic 500, DETAIL LEAK YO'Q. Safe kategoriya log qilinadi.
     if (e instanceof DomainError) {
