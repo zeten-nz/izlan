@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ActivityAttemptStatus, Prisma, ReviewSessionStatus, SignalStatus, SkillMeasurementSource } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { REVIEW_MASTERY_DERIVATION_VERSION } from './mastery/review-mastery.engine';
-import { OBJECTIVE_ACTIVITY_TYPES } from '../lesson-execution/activity/objective-activity-payload';
+import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry';
 import { parseTriggerActivityIds, REPEATED_MISTAKE_SIGNAL_TYPE } from '../learner-signals/repeated-mistake.detector';
 import { SelectionActivity } from './selection/review-activity-selection';
 

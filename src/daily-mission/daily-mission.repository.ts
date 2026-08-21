@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { ActivityAttemptStatus, ActivityType, Prisma } from '@prisma/client';
+import { ActivityAttemptStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry';
 import { MissionEvidence } from './mission/daily-mission.policy';
 
-const OBJECTIVE_TYPE_LIST = [ActivityType.MINI_QUESTION, ActivityType.PRACTICE, ActivityType.MASTERY_TEST];
+const OBJECTIVE_TYPE_LIST = [...OBJECTIVE_ACTIVITY_TYPES];
 
 /** Daily-mission persistence. READS ActivityAttempt evidence + profile timezone; WRITES only append-only
  *  DailyMissionCompletion (+ its evidence). Never writes reward/skill/signal/plan/roadmap/session (§68-73). */

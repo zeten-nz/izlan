@@ -1,4 +1,5 @@
 import { AssessmentConfigurationInvalidError } from '../../common/errors';
+import { validateChoiceQuestionBody } from '../../common/payload/choice-question-payload';
 
 /**
  * PLACEMENT_ITEM_V1 — ACCEPTED technical contract for AssessmentItem.payload (class A, TD-22/92, OD/§2).
@@ -74,37 +75,15 @@ export function parseItemPayload(raw: unknown): PlacementItemPayload {
     return { schemaVersion: PLACEMENT_ITEM_SCHEMA_VERSION, format, prompt: p.prompt };
   }
 
-  // choice / true_false
-  if (!Array.isArray(p.options) || p.options.length < 2) fail();
-  if (format === 'true_false' && p.options.length !== 2) fail();
-  const options: PlacementItemOption[] = [];
-  const ids = new Set<string>();
-  for (const o of p.options) {
-    if (o === null || typeof o !== 'object') fail();
-    const oo = o as Record<string, unknown>;
-    if (!isNonEmptyString(oo.id) || typeof oo.text !== 'string') fail();
-    if (ids.has(oo.id)) fail(); // duplicate option id
-    ids.add(oo.id);
-    options.push({ id: oo.id, text: oo.text });
-  }
-
-  const ak = p.answerKey;
-  if (ak === null || typeof ak !== 'object') fail();
-  const correct = (ak as Record<string, unknown>).correctOptionIds;
-  if (!Array.isArray(correct) || correct.length === 0) fail();
-  const correctSet = new Set<string>();
-  for (const cid of correct) {
-    if (typeof cid !== 'string' || !ids.has(cid)) fail(); // unknown correct id
-    correctSet.add(cid);
-  }
-  if ((format === 'single_choice' || format === 'true_false') && correctSet.size !== 1) fail();
-
+  // choice / true_false — structural rules via the shared primitive (TD-246 §12), our own `fail` preserves
+  // AssessmentConfigurationInvalidError. `open_ended` policy + placement schemaVersion stay owned here (§12).
+  const v = validateChoiceQuestionBody(format, p.prompt, p.options, p.answerKey, fail);
   return {
     schemaVersion: PLACEMENT_ITEM_SCHEMA_VERSION,
-    format,
-    prompt: p.prompt,
-    options,
-    answerKey: { correctOptionIds: [...correctSet] },
+    format: v.format,
+    prompt: v.prompt,
+    options: v.options,
+    answerKey: { correctOptionIds: v.correctOptionIds },
   };
 }
 

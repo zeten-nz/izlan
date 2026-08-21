@@ -19,7 +19,8 @@ import { localDateInTimezone, toDateOnly } from '../daily-plan/local-date.util';
 import { LessonExecutionRepository, isUniqueViolation } from './lesson-execution.repository';
 import { ActivityAttemptRepository } from './activity/activity-attempt.repository';
 import { ObjectiveActivityScorerService } from './activity/objective-activity-scorer.service';
-import { LearnerFacingActivity, isObjectiveActivityType, parseObjectiveActivityPayload } from './activity/objective-activity-payload';
+import { LearnerFacingActivity, parseObjectiveActivityPayload } from './activity/objective-activity-payload';
+import { getActivityDefinition } from '../content/activity/activity-registry';
 import { LearnerSignalsService } from '../learner-signals/learner-signals.service';
 import { DailyMissionService } from '../daily-mission/daily-mission.service';
 
@@ -145,7 +146,7 @@ export class LessonExecutionService {
   /** Objective activities → learner-safe payload (answerKey stripped); others → metadata only (§10/34). */
   private projectActivity(a: { id: string; type: ActivityType; position: number; payload: Prisma.JsonValue }): LearnerActivity {
     const meta = { id: a.id, type: a.type, position: a.position };
-    if (!isObjectiveActivityType(a.type)) return meta; // view-only / deferred → no body (§34)
+    if (getActivityDefinition(a.type).executionKind !== 'OBJECTIVE') return meta; // view-only / deferred → no body (§34)
     try {
       const payload = parseObjectiveActivityPayload(a.payload);
       return { ...meta, format: payload.format, prompt: payload.prompt, options: payload.options.map((o) => ({ id: o.id, text: o.text })) };
@@ -187,7 +188,7 @@ export class LessonExecutionService {
     const activity = await this.attempts.findActivity(activityId);
     if (!activity) throw new ActivityNotFoundError('activity not found');
     if (activity.lessonRevisionId !== progress.lessonRevisionId) throw new ActivityNotInPinnedRevisionError('wrong revision'); // §13/43
-    if (!isObjectiveActivityType(activity.type)) throw new ActivityTypeNotSupportedError('activity type not supported'); // §11/33
+    if (getActivityDefinition(activity.type).executionKind !== 'OBJECTIVE') throw new ActivityTypeNotSupportedError('activity type not supported'); // §11/33
 
     const payload = parseObjectiveActivityPayload(activity.payload); // ACTIVITY_PAYLOAD_INVALID (safe, §38)
     const scored = this.scorer.score(payload, answer); // ACTIVITY_INVALID_RESPONSE (§37)
