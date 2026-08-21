@@ -7,6 +7,12 @@ import { ActivitiesController } from './http/activities.controller';
 import { SkillsController } from './http/skills.controller';
 import { SkillMappingsController } from './http/skill-mappings.controller';
 import { PrerequisitesController } from './http/prerequisites.controller';
+import { HierarchyPublishController } from './http/hierarchy-publish.controller';
+import { PublicationController } from './http/publication.controller';
+import { HierarchyPublishService } from './publish/hierarchy-publish.service';
+import { PublicationService } from './publish/publication.service';
+import { PublicationReadinessService } from './publish/publication-readiness.service';
+import { PublishRepository } from './publish/publish.repository';
 import { SubjectService } from './subject.service';
 import { HierarchyService } from './hierarchy.service';
 import { RevisionService } from './revision.service';
@@ -33,11 +39,12 @@ import './content-authoring.constants'; // side-effect: register permission code
 @Module({
   controllers: [
     SubjectsController, HierarchyController, LessonsController, RevisionsController, ActivitiesController,
-    SkillsController, SkillMappingsController, PrerequisitesController,
+    SkillsController, SkillMappingsController, PrerequisitesController, HierarchyPublishController, PublicationController,
   ],
   providers: [
     SubjectService, HierarchyService, RevisionService, ActivityService, SkillService, SkillMappingService, PrerequisiteService, SubjectScopeService,
-    SubjectRepository, HierarchyRepository, RevisionRepository, ActivityRepository, SkillRepository, MappingRepository, PrerequisiteRepository, ContentAuditRepository,
+    HierarchyPublishService, PublicationService, PublicationReadinessService,
+    SubjectRepository, HierarchyRepository, RevisionRepository, ActivityRepository, SkillRepository, MappingRepository, PrerequisiteRepository, ContentAuditRepository, PublishRepository,
   ],
 })
 export class ContentAuthoringModule {}

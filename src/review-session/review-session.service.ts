@@ -46,6 +46,9 @@ export class ReviewSessionService {
 
   /** Start (or resume) a review session for a currently-valid candidate. Idempotent per (user, skill, lesson). */
   async start(userId: string, subjectId: string, skillId: string, lessonId: string) {
+    // Urgent-takedown gate (§5): a taken-down (ARCHIVED) Lesson/hierarchy is not a valid review candidate — deny
+    // start AND resume, indistinguishably from an unencountered lesson. Never leak that hidden content exists.
+    if (!(await this.repo.isLessonAccessible(lessonId))) throw new ReviewCandidateNotAvailableError('review candidate not available');
     const sessionId = await this.prisma.$transaction(async (tx) => {
       await this.repo.advisoryLock(tx, userId, skillId, lessonId); // serialize NEW creation (§32)
       const existing = await this.repo.findActiveSession(tx, userId, skillId, lessonId);
@@ -82,6 +85,8 @@ export class ReviewSessionService {
   async getSession(userId: string, sessionId: string) {
     const session = await this.repo.ownSession(userId, sessionId);
     if (!session) throw new ReviewSessionNotFoundError('review session not found'); // 404-safe IDOR (§88)
+    // Urgent-takedown gate (§5): hidden Lesson/hierarchy → 404-safe, indistinguishable from a non-existent session.
+    if (!(await this.repo.isLessonAccessible(session.lessonId))) throw new ReviewSessionNotFoundError('review session not found');
     const [activities, summary, measurement] = await Promise.all([this.repo.sessionActivities(sessionId), this.repo.attemptSummary(sessionId), this.repo.reviewMeasurement(sessionId)]);
     return {
       id: session.id,
@@ -121,6 +126,9 @@ export class ReviewSessionService {
   private async persistReviewAttempt(userId: string, sessionId: string, activityId: string, clientRequestId: string, answer: Record<string, unknown>) {
     const session = await this.repo.ownSession(userId, sessionId);
     if (!session) throw new ReviewSessionNotFoundError('review session not found');
+    // Urgent-takedown gate (§5): deny objective review submission on a hidden Lesson/hierarchy, before any scoring or
+    // attempt create; do not leak that the content exists. History rows are left intact (no delete/cancel/repin).
+    if (!(await this.repo.isLessonAccessible(session.lessonId))) throw new ReviewSessionActivityNotAvailableError('activity not available');
     if (session.status !== 'ACTIVE') throw new ReviewSessionAlreadyCompletedError('session already completed');
 
     const member = await this.repo.sessionActivity(sessionId, activityId); // snapshot membership is authority (§38)
@@ -154,6 +162,9 @@ export class ReviewSessionService {
   async complete(userId: string, sessionId: string) {
     const session = await this.repo.ownSession(userId, sessionId);
     if (!session) throw new ReviewSessionNotFoundError('review session not found');
+    // Urgent-takedown gate (§5): deny completion (including idempotent recovery) on a hidden Lesson/hierarchy, before
+    // any completion processing; do not leak that the content exists. Session/history rows are left intact.
+    if (!(await this.repo.isLessonAccessible(session.lessonId))) throw new ReviewSessionActivityNotAvailableError('activity not available');
     if (session.status === 'COMPLETED') {
       await this.finalizeReview(userId, sessionId, session.skillId); // idempotent recovery — ensure downstream materialized (§31)
       return this.getSession(userId, sessionId);

@@ -457,8 +457,8 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
       const methodist = await prisma.role.findUnique({ where: { code: 'METHODIST' }, select: { permissions: { select: { permissionCode: true } } } });
       const admin = await prisma.role.findUnique({ where: { code: 'ADMIN' }, select: { permissions: { select: { permissionCode: true } } } });
       const learner = await prisma.role.findUnique({ where: { code: 'LEARNER' }, select: { permissions: { select: { permissionCode: true } } } });
-      expect(methodist!.permissions.map((p) => p.permissionCode)).toEqual([CONTENT_AUTHOR]);
-      expect(admin!.permissions.map((p) => p.permissionCode).sort()).toEqual([CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE].sort());
+      expect(methodist!.permissions.map((p) => p.permissionCode).sort()).toEqual(['content.author', 'content.publish'].sort());
+      expect(admin!.permissions.map((p) => p.permissionCode).sort()).toEqual([CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE, 'content.publish'].sort());
       expect(learner!.permissions).toEqual([]);
     };
     await check();

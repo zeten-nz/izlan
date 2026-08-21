@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ContainerStatus, DailyPlanStatus, LessonProgressStatus, LessonStatus, Prisma } from '@prisma/client';
+import { DailyPlanStatus, LessonProgressStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { currentVisibleLessonWhere, resumableLessonWhere } from '../content/visibility/learner-content-visibility';
 
 export const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
@@ -35,18 +36,19 @@ export class LessonExecutionRepository {
     return this.prisma.learnerLessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId } }, select: PROGRESS_VIEW });
   }
 
-  /** The lesson's CURRENT published revision id — only if the whole hierarchy is learner-visible (§8/48). */
+  /**
+   * The lesson's CURRENT published revision id — only if it is currently learner-visible via the canonical visibility
+   * authority (full Subject→Topic hierarchy PUBLISHED + current-pointer coherence, Phase 2.2B §34). Used for NEW starts.
+   */
   async publishedRevisionId(lessonId: string): Promise<string | null> {
-    const lesson = await this.prisma.lesson.findFirst({
-      where: {
-        id: lessonId,
-        status: LessonStatus.PUBLISHED,
-        publishedRevisionId: { not: null },
-        topic: { status: ContainerStatus.PUBLISHED, module: { status: ContainerStatus.PUBLISHED, level: { status: ContainerStatus.PUBLISHED } } },
-      },
-      select: { publishedRevisionId: true },
-    });
+    const lesson = await this.prisma.lesson.findFirst({ where: currentVisibleLessonWhere(lessonId), select: { publishedRevisionId: true } });
     return lesson?.publishedRevisionId ?? null;
+  }
+
+  /** Is a pinned execution still resumable — Lesson + full hierarchy PUBLISHED (denies resume after takedown, §36B/38)? */
+  async isLessonResumable(lessonId: string): Promise<boolean> {
+    const lesson = await this.prisma.lesson.findFirst({ where: resumableLessonWhere(lessonId), select: { id: true } });
+    return lesson !== null;
   }
 
   /** First start pins the resolved published revision (§8). Caller catches P2002 (concurrent start, §11). */

@@ -170,3 +170,10 @@ export class ContentDeleteBlockedError extends DomainError {}
 export class ContentSkillArchivedError extends DomainError {}
 export class ContentPrerequisiteInvalidError extends DomainError {}
 export class ContentPrerequisiteCycleError extends DomainError {}
+
+// Content publishing (Phase 2.2B). Readiness/lifecycle/pointer conflicts are leak-safe (never carry payload/answerKey/
+// storageKey or a full readiness report in the HTTP message).
+export class ContentReviewNotReadyError extends DomainError {}
+export class ContentPublishNotReadyError extends DomainError {}
+export class ContentLifecycleConflictError extends DomainError {}
+export class ContentPublicationStateInvalidError extends DomainError {}

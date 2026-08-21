@@ -19,14 +19,15 @@ import { localDateInTimezone, toDateOnly } from '../daily-plan/local-date.util';
 import { LessonExecutionRepository, isUniqueViolation } from './lesson-execution.repository';
 import { ActivityAttemptRepository } from './activity/activity-attempt.repository';
 import { ObjectiveActivityScorerService } from './activity/objective-activity-scorer.service';
-import { LearnerFacingActivity, parseObjectiveActivityPayload } from './activity/objective-activity-payload';
+import { parseObjectiveActivityPayload } from './activity/objective-activity-payload';
 import { getActivityDefinition } from '../content/activity/activity-registry';
+import { LearnerProjectedActivity, projectActivityForLearnerRuntime } from '../content/activity/learner-activity-projection';
 import { LearnerSignalsService } from '../learner-signals/learner-signals.service';
 import { DailyMissionService } from '../daily-mission/daily-mission.service';
 
 type ProgressRow = NonNullable<Awaited<ReturnType<LessonExecutionRepository['findProgress']>>>;
 type AttemptRow = NonNullable<Awaited<ReturnType<ActivityAttemptRepository['findByClientRequest']>>>;
-type LearnerActivity = LearnerFacingActivity | { id: string; type: string; position: number };
+type LearnerActivity = LearnerProjectedActivity;
 
 export interface LessonExecutionView {
   lessonId: string;
@@ -80,9 +81,13 @@ export class LessonExecutionService {
     if (state === 'COMPLETED') throw new LessonAlreadyCompletedError('lesson already completed'); // §7
     if (state !== 'AVAILABLE' && state !== 'IN_PROGRESS') throw new LessonNotExecutableError('lesson blocked or unavailable'); // §6/43
 
-    // Idempotent: existing progress resumes with its pinned revision (never repin, §10).
+    // Idempotent: existing progress resumes with its pinned revision (never repin, §10). Resume requires the Lesson +
+    // full hierarchy to still be learner-visible — an urgent takedown (Lesson ARCHIVED) denies resume (Phase 2.2B §38).
     const existing = await this.repo.findProgress(userId, lessonId);
-    if (existing) return this.toView(existing);
+    if (existing) {
+      if (!(await this.repo.isLessonResumable(lessonId))) throw new LessonNotExecutableError('lesson not available');
+      return this.toView(existing);
+    }
 
     // First start pins the current published revision.
     const revisionId = await this.repo.publishedRevisionId(lessonId);
@@ -105,6 +110,7 @@ export class LessonExecutionService {
   async resume(userId: string, lessonId: string): Promise<LessonExecutionView> {
     const progress = await this.repo.findProgress(userId, lessonId);
     if (!progress) throw new LessonProgressNotFoundError('no execution');
+    if (!(await this.repo.isLessonResumable(lessonId))) throw new LessonNotExecutableError('lesson not available'); // takedown / hierarchy hidden (§38)
     return this.toView(progress);
   }
 
@@ -143,16 +149,12 @@ export class LessonExecutionService {
     };
   }
 
-  /** Objective activities → learner-safe payload (answerKey stripped); others → metadata only (§10/34). */
+  /**
+   * Learner-safe Activity projection via the ONE shared projector (Phase 2.2B §32): OBJECTIVE → answerKey stripped;
+   * TEXT/EXPLANATION/EXAMPLE → validated markdown body; IMAGE/AUDIO + deferred → metadata only. Malformed → metadata only.
+   */
   private projectActivity(a: { id: string; type: ActivityType; position: number; payload: Prisma.JsonValue }): LearnerActivity {
-    const meta = { id: a.id, type: a.type, position: a.position };
-    if (getActivityDefinition(a.type).executionKind !== 'OBJECTIVE') return meta; // view-only / deferred → no body (§34)
-    try {
-      const payload = parseObjectiveActivityPayload(a.payload);
-      return { ...meta, format: payload.format, prompt: payload.prompt, options: payload.options.map((o) => ({ id: o.id, text: o.text })) };
-    } catch {
-      return meta; // malformed payload → metadata only, never leak (§38); a safe fallback for read
-    }
+    return projectActivityForLearnerRuntime(a);
   }
 
   // ── Activity submission (Phase 1.7B-2) ──
@@ -181,6 +183,9 @@ export class LessonExecutionService {
   }
 
   private async persistAttempt(userId: string, lessonId: string, activityId: string, clientRequestId: string, answer: Record<string, unknown>): Promise<ActivityAttemptView> {
+    // Urgent-takedown gate (Phase 2.2B §3): if the Lesson/hierarchy is no longer learner-accessible, deny BEFORE any
+    // idempotent replay, ActivityAttempt create, progress-step, or downstream signal/mission evaluation.
+    if (!(await this.repo.isLessonResumable(lessonId))) throw new LessonNotExecutableError('lesson not available');
     const progress = await this.repo.findProgress(userId, lessonId);
     if (!progress) throw new LessonProgressNotFoundError('no execution'); // must have started (§40)
     if (progress.status !== 'IN_PROGRESS') throw new LessonAlreadyCompletedError('lesson not in progress'); // no completed-lesson bypass

@@ -3,8 +3,6 @@ import {
   AssessmentAttemptPurpose,
   AssessmentAttemptStatus,
   AssessmentResponseStatus,
-  ContainerStatus,
-  LessonStatus,
   Prisma,
   RoadmapItemSource,
   RoadmapItemType,
@@ -12,6 +10,7 @@ import {
   SkillMeasurementSource,
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { LEARNER_VISIBILITY_SELECT, isLessonCurrentlyVisible } from '../content/visibility/learner-content-visibility';
 
 /** Prisma unique-constraint violation (ux_active_roadmap race). */
 export const isUniqueViolation = (e: unknown): boolean =>
@@ -105,22 +104,15 @@ export class RoadmapRepository {
     const rows = await this.prisma.lesson.findMany({
       where: { id: { in: lessonIds } },
       select: {
-        id: true,
-        status: true,
-        publishedRevisionId: true,
+        ...LEARNER_VISIBILITY_SELECT, // canonical visibility fields (full hierarchy + pointer coherence, Phase 2.2B §34)
         sortOrder: true,
-        topic: { select: { status: true, sortOrder: true, module: { select: { status: true, level: { select: { status: true } } } } } },
-        publishedRevision: { select: { title: true } }, // current learner-facing revision (§25/26); null when unpublished
+        topic: { select: { status: true, sortOrder: true, module: { select: { status: true, level: { select: { status: true, track: { select: { status: true, subject: { select: { status: true } } } } } } } } } },
+        publishedRevision: { select: { id: true, status: true, lessonId: true, title: true } }, // current learner-facing revision title; null when unpublished
       },
     });
     const out = new Map<string, { eligible: boolean; topicSortOrder: number; lessonSortOrder: number; title: string | null }>();
     for (const l of rows) {
-      const eligible =
-        l.status === LessonStatus.PUBLISHED &&
-        l.publishedRevisionId !== null &&
-        l.topic.status === ContainerStatus.PUBLISHED &&
-        l.topic.module.status === ContainerStatus.PUBLISHED &&
-        l.topic.module.level.status === ContainerStatus.PUBLISHED;
+      const eligible = isLessonCurrentlyVisible(l); // THE canonical current-visibility gate
       // Title only from the CURRENT published revision — never a draft/archived body (§7 hidden-content safety).
       out.set(l.id, { eligible, topicSortOrder: l.topic.sortOrder, lessonSortOrder: l.sortOrder, title: eligible ? l.publishedRevision?.title ?? null : null });
     }

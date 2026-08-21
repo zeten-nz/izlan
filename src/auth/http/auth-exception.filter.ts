@@ -25,7 +25,11 @@ import {
   ContentNotFoundError,
   ContentPrerequisiteCycleError,
   ContentPrerequisiteInvalidError,
+  ContentLifecycleConflictError,
+  ContentPublicationStateInvalidError,
+  ContentPublishNotReadyError,
   ContentReorderInvalidError,
+  ContentReviewNotReadyError,
   ContentSkillArchivedError,
   ContentUniqueConflictError,
   CsrfRejectedError,
@@ -249,6 +253,10 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ContentSkillArchivedError) return { statusCode: 409, code: 'CONTENT_SKILL_ARCHIVED', message: 'skill is archived' };
     if (e instanceof ContentPrerequisiteInvalidError) return { statusCode: 400, code: 'CONTENT_PREREQUISITE_INVALID', message: 'invalid prerequisite' };
     if (e instanceof ContentPrerequisiteCycleError) return { statusCode: 409, code: 'CONTENT_PREREQUISITE_CYCLE', message: 'prerequisite would create a cycle' };
+    if (e instanceof ContentReviewNotReadyError) return { statusCode: 409, code: 'CONTENT_REVIEW_NOT_READY', message: 'revision is not ready for review' };
+    if (e instanceof ContentPublishNotReadyError) return { statusCode: 409, code: 'CONTENT_PUBLISH_NOT_READY', message: 'revision is not ready to publish' };
+    if (e instanceof ContentLifecycleConflictError) return { statusCode: 409, code: 'CONTENT_LIFECYCLE_CONFLICT', message: 'invalid lifecycle transition' };
+    if (e instanceof ContentPublicationStateInvalidError) return { statusCode: 409, code: 'CONTENT_PUBLICATION_STATE_INVALID', message: 'publication state is invalid' };
 
     // Noma'lum (Prisma/internal) — generic 500, DETAIL LEAK YO'Q. Safe kategoriya log qilinadi.
     if (e instanceof DomainError) {

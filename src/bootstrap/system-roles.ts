@@ -1,5 +1,5 @@
 import { AuthorizationRepository } from '../authorization/authorization.repository';
-import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from '../content-authoring/content-authoring.constants';
+import { CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE } from '../content-authoring/content-authoring.constants';
 
 /**
  * System role bootstrap (§7, TD-27). Faqat role identity — demo user YO'Q.
@@ -18,8 +18,10 @@ export const SYSTEM_ROLES: ReadonlyArray<{ code: string; name: string }> = [
  * role-name bypass. LEARNER/MODERATOR intentionally receive no content permissions.
  */
 export const SYSTEM_ROLE_PERMISSIONS: ReadonlyArray<{ roleCode: string; permissions: readonly string[] }> = [
-  { roleCode: 'METHODIST', permissions: [CONTENT_AUTHOR] },
-  { roleCode: 'ADMIN', permissions: [CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE] },
+  // MVP self-publish (TD-250): METHODIST holds both content.author + content.publish. SubjectAssignment is still
+  // required for every mutation — there is no role-name bypass; an ADMIN without an assignment cannot publish.
+  { roleCode: 'METHODIST', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH] },
+  { roleCode: 'ADMIN', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE] },
   { roleCode: 'MODERATOR', permissions: [] },
   { roleCode: 'LEARNER', permissions: [] },
 ];
