@@ -71,8 +71,16 @@ describe('canonical Activity registry (activity-registry-v1, TD-246)', () => {
     for (const t of allTypes) {
       const d = ACTIVITY_REGISTRY[t];
       if (d.executionKind === 'OBJECTIVE') expect(d.learnerProjection).toBe('OBJECTIVE_SAFE');
+      else if (d.payloadContract === 'LESSON_MARKDOWN_V1') expect(d.learnerProjection).toBe('MARKDOWN_SAFE');
       else expect(d.learnerProjection).toBe('METADATA_ONLY');
     }
+  });
+
+  it('AR-09 learner projection mapping (2.2B): objective→OBJECTIVE_SAFE, prose→MARKDOWN_SAFE, media/deferred→METADATA_ONLY', () => {
+    const projOf = (t: ActivityType) => ACTIVITY_REGISTRY[t].learnerProjection;
+    for (const t of [ActivityType.MINI_QUESTION, ActivityType.PRACTICE, ActivityType.MASTERY_TEST]) expect(projOf(t)).toBe('OBJECTIVE_SAFE');
+    for (const t of [ActivityType.TEXT, ActivityType.EXPLANATION, ActivityType.EXAMPLE]) expect(projOf(t)).toBe('MARKDOWN_SAFE');
+    for (const t of [ActivityType.IMAGE, ActivityType.AUDIO, ActivityType.SPEAKING, ActivityType.WRITING, ActivityType.LISTENING, ActivityType.AI_INTERACTION, ActivityType.VIDEO]) expect(projOf(t)).toBe('METADATA_ONLY');
   });
 
   it('AR-08 payloadContract mapping (2.2A-2): objective→OBJECTIVE_V1, prose→MARKDOWN_V1, media→MEDIA_V1, deferred→NONE_DEFINED', () => {

@@ -14,6 +14,7 @@ export interface AuditEntry {
   actionCode: string;
   targetType: string;
   targetId: string | null;
+  reason?: string; // human return/takedown reason (§14/37/41) — stored in StaffAudit.reason, never a body dump
   metadata?: Prisma.InputJsonValue;
 }
 
@@ -26,6 +27,7 @@ export class ContentAuditRepository {
         actionCode: entry.actionCode,
         targetType: entry.targetType,
         targetId: entry.targetId,
+        reason: entry.reason,
         metadata: entry.metadata,
       },
       select: { id: true },

@@ -25,8 +25,9 @@ export type ActivityCompletionEvidence = 'SUBMITTED_ATTEMPT' | 'COMPLETED_ACTIVI
 /** Whether the backend deterministically scores attempts on this Activity (§11). */
 export type ActivityScoringCapability = 'DETERMINISTIC_OBJECTIVE' | 'NONE';
 
-/** How much of the Activity may be projected to a learner (§8). */
-export type ActivityLearnerProjection = 'OBJECTIVE_SAFE' | 'METADATA_ONLY';
+/** How much of the Activity may be projected to a learner (§8/32). MARKDOWN_SAFE = learner receives the validated
+ *  markdown body (Phase 2.2B); METADATA_ONLY = identity/type/position only. */
+export type ActivityLearnerProjection = 'OBJECTIVE_SAFE' | 'MARKDOWN_SAFE' | 'METADATA_ONLY';
 
 /**
  * The accepted Activity payload contract (drives authoring-time validation, TD-248). NONE_DEFINED = not authorable
@@ -56,12 +57,12 @@ const OBJECTIVE = (type: ActivityType): ActivityDefinition => ({
  * View-only activities are metadata-only at learner runtime (unchanged); the payloadContract only governs
  * AUTHORING-time payload validation (2.2A-2). TEXT/EXPLANATION/EXAMPLE → markdown; IMAGE/AUDIO → media marker.
  */
-const VIEW_ONLY = (type: ActivityType, payloadContract: ActivityPayloadContract): ActivityDefinition => ({
+const VIEW_ONLY = (type: ActivityType, payloadContract: ActivityPayloadContract, learnerProjection: ActivityLearnerProjection): ActivityDefinition => ({
   type,
   executionKind: 'VIEW_ONLY',
   completionEvidence: 'COMPLETED_ACTIVITY',
   scoring: 'NONE',
-  learnerProjection: 'METADATA_ONLY',
+  learnerProjection,
   payloadContract,
 });
 
@@ -86,11 +87,11 @@ export const ACTIVITY_REGISTRY: Readonly<Record<ActivityType, ActivityDefinition
   [ActivityType.MASTERY_TEST]: OBJECTIVE(ActivityType.MASTERY_TEST),
   // view-only — completed by explicit learner acknowledgement; metadata-only projection. Authoring payload contract:
   // markdown for prose types (TEXT/EXPLANATION/EXAMPLE), media marker for IMAGE/AUDIO (media identity stays relational).
-  [ActivityType.TEXT]: VIEW_ONLY(ActivityType.TEXT, 'LESSON_MARKDOWN_V1'),
-  [ActivityType.EXPLANATION]: VIEW_ONLY(ActivityType.EXPLANATION, 'LESSON_MARKDOWN_V1'),
-  [ActivityType.EXAMPLE]: VIEW_ONLY(ActivityType.EXAMPLE, 'LESSON_MARKDOWN_V1'),
-  [ActivityType.IMAGE]: VIEW_ONLY(ActivityType.IMAGE, 'LESSON_MEDIA_V1'),
-  [ActivityType.AUDIO]: VIEW_ONLY(ActivityType.AUDIO, 'LESSON_MEDIA_V1'),
+  [ActivityType.TEXT]: VIEW_ONLY(ActivityType.TEXT, 'LESSON_MARKDOWN_V1', 'MARKDOWN_SAFE'),
+  [ActivityType.EXPLANATION]: VIEW_ONLY(ActivityType.EXPLANATION, 'LESSON_MARKDOWN_V1', 'MARKDOWN_SAFE'),
+  [ActivityType.EXAMPLE]: VIEW_ONLY(ActivityType.EXAMPLE, 'LESSON_MARKDOWN_V1', 'MARKDOWN_SAFE'),
+  [ActivityType.IMAGE]: VIEW_ONLY(ActivityType.IMAGE, 'LESSON_MEDIA_V1', 'METADATA_ONLY'),
+  [ActivityType.AUDIO]: VIEW_ONLY(ActivityType.AUDIO, 'LESSON_MEDIA_V1', 'METADATA_ONLY'),
   // deferred — not supported by learner runtime v1 (completion cannot authoritatively record them)
   [ActivityType.SPEAKING]: UNSUPPORTED(ActivityType.SPEAKING),
   [ActivityType.WRITING]: UNSUPPORTED(ActivityType.WRITING),

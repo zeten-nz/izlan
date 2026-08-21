@@ -10,8 +10,9 @@ import { registerPermissions } from '../authorization/permission-registry';
  */
 export const CONTENT_AUTHOR = 'content.author';
 export const CONTENT_SUBJECT_MANAGE = 'content.subject.manage';
+export const CONTENT_PUBLISH = 'content.publish';
 
-export const CONTENT_AUTHORING_PERMISSIONS = [CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE] as const;
+export const CONTENT_AUTHORING_PERMISSIONS = [CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE, CONTENT_PUBLISH] as const;
 
 registerPermissions(CONTENT_AUTHORING_PERMISSIONS);
 
@@ -48,6 +49,16 @@ export const CONTENT_AUDIT = {
   ACTIVITY_SKILL_REMOVE: 'content.activity_skill.remove',
   PREREQUISITE_ADD: 'content.prerequisite.add',
   PREREQUISITE_REMOVE: 'content.prerequisite.remove',
+  // Phase 2.2B — review + publication
+  SUBJECT_PUBLISH: 'content.subject.publish',
+  TRACK_PUBLISH: 'content.track.publish',
+  LEVEL_PUBLISH: 'content.level.publish',
+  MODULE_PUBLISH: 'content.module.publish',
+  TOPIC_PUBLISH: 'content.topic.publish',
+  REVISION_SUBMIT_REVIEW: 'content.revision.submit_review',
+  REVISION_RETURN_DRAFT: 'content.revision.return_draft',
+  REVISION_PUBLISH: 'content.revision.publish',
+  LESSON_ARCHIVE: 'content.lesson.archive',
 } as const;
 
 /** StaffAudit.targetType stable values. */

@@ -1,5 +1,5 @@
 import { isKnownPermission } from '../authorization/permission-registry';
-import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from './content-authoring.constants';
+import { CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE } from './content-authoring.constants';
 import { SYSTEM_ROLE_PERMISSIONS } from '../bootstrap/system-roles';
 
 const permsFor = (roleCode: string) => SYSTEM_ROLE_PERMISSIONS.find((r) => r.roleCode === roleCode)?.permissions ?? [];
@@ -15,12 +15,13 @@ describe('content authoring permissions + bootstrap mapping (Phase 2.2A-1, TD-24
     expect(isKnownPermission(CONTENT_SUBJECT_MANAGE)).toBe(true);
   });
 
-  it('AUTH-03 METHODIST default receives content.author (and only that)', () => {
-    expect([...permsFor('METHODIST')]).toEqual([CONTENT_AUTHOR]);
+  it('AUTH-03 METHODIST default receives content.author + content.publish (MVP self-publish, TD-250)', () => {
+    expect([...permsFor('METHODIST')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_PUBLISH].sort());
+    expect(isKnownPermission(CONTENT_PUBLISH)).toBe(true);
   });
 
-  it('AUTH-04 ADMIN default receives both content permissions', () => {
-    expect([...permsFor('ADMIN')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE].sort());
+  it('AUTH-04 ADMIN default receives all three content permissions', () => {
+    expect([...permsFor('ADMIN')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE].sort());
   });
 
   it('AUTH-05 LEARNER and MODERATOR receive no content permissions', () => {

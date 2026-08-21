@@ -117,6 +117,37 @@ export class HierarchyRepository {
     const l = await tx.lesson.findUnique({ where: { id }, select: { updatedAt: true } });
     return l?.updatedAt ?? null;
   }
+
+  // ── Phase 2.2B hierarchy publication: ancestor-status reads + DRAFT → PUBLISHED conditionals ──
+  async findTrackForPublish(id: string, tx: Prisma.TransactionClient) {
+    const t = await tx.track.findUnique({ where: { id }, select: { status: true, updatedAt: true, subjectId: true, subject: { select: { status: true } } } });
+    return t ? { status: t.status, updatedAt: t.updatedAt, subjectId: t.subjectId, ancestors: [t.subject.status] } : null;
+  }
+  async findLevelForPublish(id: string, tx: Prisma.TransactionClient) {
+    const l = await tx.level.findUnique({ where: { id }, select: { status: true, updatedAt: true, track: { select: { subjectId: true, status: true, subject: { select: { status: true } } } } } });
+    return l ? { status: l.status, updatedAt: l.updatedAt, subjectId: l.track.subjectId, ancestors: [l.track.subject.status, l.track.status] } : null;
+  }
+  async findModuleForPublish(id: string, tx: Prisma.TransactionClient) {
+    const m = await tx.module.findUnique({ where: { id }, select: { status: true, updatedAt: true, level: { select: { status: true, track: { select: { subjectId: true, status: true, subject: { select: { status: true } } } } } } } });
+    return m ? { status: m.status, updatedAt: m.updatedAt, subjectId: m.level.track.subjectId, ancestors: [m.level.track.subject.status, m.level.track.status, m.level.status] } : null;
+  }
+  async findTopicForPublish(id: string, tx: Prisma.TransactionClient) {
+    const t = await tx.topic.findUnique({ where: { id }, select: { status: true, updatedAt: true, module: { select: { status: true, level: { select: { status: true, track: { select: { subjectId: true, status: true, subject: { select: { status: true } } } } } } } } } });
+    return t ? { status: t.status, updatedAt: t.updatedAt, subjectId: t.module.level.track.subjectId, ancestors: [t.module.level.track.subject.status, t.module.level.track.status, t.module.level.status, t.module.status] } : null;
+  }
+
+  publishTrackConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.track.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { status: ContainerStatus.PUBLISHED, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
+  publishLevelConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.level.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { status: ContainerStatus.PUBLISHED, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
+  publishModuleConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.module.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { status: ContainerStatus.PUBLISHED, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
+  publishTopicConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.topic.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { status: ContainerStatus.PUBLISHED, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
 }
 
 const TRACK_SELECT = { id: true, subjectId: true, slug: true, title: true, description: true, status: true, sortOrder: true, createdBy: true, createdAt: true, updatedAt: true } satisfies Prisma.TrackSelect;

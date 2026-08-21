@@ -35,6 +35,11 @@ export class SubjectRepository {
     return tx.subject.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
+  /** Subject DRAFT → PUBLISHED (Phase 2.2B); strictly advances updatedAt. */
+  publishSubjectConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.subject.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { status: ContainerStatus.PUBLISHED, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
+
   // ── SubjectAssignment ──
   createAssignment(tx: Prisma.TransactionClient, data: { userId: string; subjectId: string; assignedBy: string }) {
     return tx.subjectAssignment.create({ data, select: ASSIGNMENT_SELECT });
