@@ -88,7 +88,7 @@ describe('Roadmap progress read model (e2e, izlan_test)', () => {
     return (await prisma.topic.create({ data: { moduleId: mod.id, title: 'Top', sortOrder: nextSort(), status: ContainerStatus.PUBLISHED, createdBy: creatorId } })).id;
   }
   async function makeLesson(creatorId: string, topicId: string, opts: { skillIds?: string[]; prereqIds?: string[]; title?: string } = {}) {
-    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, sortOrder: nextSort(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
+    const lesson = await prisma.lesson.create({ data: { topicId, slug: `l-${uid()}`, contentKey: `ck-${uid()}`, sortOrder: nextSort(), status: LessonStatus.PUBLISHED, createdBy: creatorId } });
     const rev = await prisma.lessonRevision.create({ data: { lessonId: lesson.id, version: 1, title: opts.title ?? 'Lesson', status: RevisionStatus.PUBLISHED, createdBy: creatorId, publishedAt: new Date() } });
     await prisma.lesson.update({ where: { id: lesson.id }, data: { publishedRevisionId: rev.id } });
     for (const sid of opts.skillIds ?? []) await prisma.lessonSkill.create({ data: { lessonId: lesson.id, skillId: sid } });
