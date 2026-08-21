@@ -70,14 +70,17 @@ describe('canonical Activity registry (activity-registry-v1, TD-246)', () => {
   it('AR-07 learner projection + payload contract follow execution kind (objective safe / metadata-only; no invented view-only contract)', () => {
     for (const t of allTypes) {
       const d = ACTIVITY_REGISTRY[t];
-      if (d.executionKind === 'OBJECTIVE') {
-        expect(d.learnerProjection).toBe('OBJECTIVE_SAFE');
-        expect(d.payloadContract).toBe('LESSON_OBJECTIVE_V1');
-      } else {
-        expect(d.learnerProjection).toBe('METADATA_ONLY');
-        expect(d.payloadContract).toBe('NONE_DEFINED'); // §13 — view-only/deferred payload shapes are NOT defined in this phase
-      }
+      if (d.executionKind === 'OBJECTIVE') expect(d.learnerProjection).toBe('OBJECTIVE_SAFE');
+      else expect(d.learnerProjection).toBe('METADATA_ONLY');
     }
+  });
+
+  it('AR-08 payloadContract mapping (2.2A-2): objective→OBJECTIVE_V1, prose→MARKDOWN_V1, media→MEDIA_V1, deferred→NONE_DEFINED', () => {
+    const contractOf = (t: ActivityType) => ACTIVITY_REGISTRY[t].payloadContract;
+    for (const t of [ActivityType.MINI_QUESTION, ActivityType.PRACTICE, ActivityType.MASTERY_TEST]) expect(contractOf(t)).toBe('LESSON_OBJECTIVE_V1');
+    for (const t of [ActivityType.TEXT, ActivityType.EXPLANATION, ActivityType.EXAMPLE]) expect(contractOf(t)).toBe('LESSON_MARKDOWN_V1');
+    for (const t of [ActivityType.IMAGE, ActivityType.AUDIO]) expect(contractOf(t)).toBe('LESSON_MEDIA_V1');
+    for (const t of [ActivityType.SPEAKING, ActivityType.WRITING, ActivityType.LISTENING, ActivityType.AI_INTERACTION, ActivityType.VIDEO]) expect(contractOf(t)).toBe('NONE_DEFINED');
   });
 
   it('the three predicates partition the enum (each type is exactly one kind)', () => {

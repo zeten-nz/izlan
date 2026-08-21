@@ -32,6 +32,13 @@ export const CONTENT_AUDIT = {
   LESSON_CREATE: 'content.lesson.create',
   LESSON_UPDATE: 'content.lesson.update',
   LESSON_MOVE: 'content.lesson.move',
+  // Phase 2.2A-2 — draft revision + activity authoring
+  REVISION_CREATE: 'content.revision.create',
+  REVISION_UPDATE: 'content.revision.update',
+  ACTIVITY_CREATE: 'content.activity.create',
+  ACTIVITY_UPDATE: 'content.activity.update',
+  ACTIVITY_DELETE: 'content.activity.delete',
+  ACTIVITY_REORDER: 'content.activity.reorder',
 } as const;
 
 /** StaffAudit.targetType stable values. */
@@ -43,4 +50,6 @@ export const CONTENT_TARGET = {
   MODULE: 'Module',
   TOPIC: 'Topic',
   LESSON: 'Lesson',
+  LESSON_REVISION: 'LessonRevision',
+  ACTIVITY: 'Activity',
 } as const;
