@@ -41,7 +41,7 @@ describe('Content authoring — draft revision + activity (e2e, izlan_test)', ()
     await reset();
   });
   afterAll(async () => { await reset(); await app.close(); });
-  beforeEach(async () => { await reset(); sms.clear(); });
+  beforeEach(async () => { await reset(); sms.clear(); jest.restoreAllMocks(); });
 
   async function reset() {
     await prisma.staffAudit.deleteMany();
@@ -374,6 +374,27 @@ describe('Content authoring — draft revision + activity (e2e, izlan_test)', ()
     const reorder = await prisma.staffAudit.findMany({ where: { actionCode: 'content.activity.reorder', targetId: revId } });
     expect(reorder).toHaveLength(1); // exactly ONE reorder audit
     expect(reorder[0]).toMatchObject({ actorUserId: admin.userId, targetType: 'LessonRevision' });
+  });
+
+  it('OCC-01 successful OCC write strictly advances updatedAt at TIMESTAMP(3) precision (same-ms determinism)', async () => {
+    const { admin, lessonId } = await seedLesson();
+    const rev = await mkRevision(admin.token, lessonId);
+    const expectedMs = new Date(rev.updatedAt).getTime();
+    // Freeze the wall clock to the stored token's EXACT millisecond — if the writer relied on @updatedAt advancing
+    // it could re-write the same ms; the explicit nextOptimisticTimestamp must still advance by ≥1ms.
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(expectedMs);
+    try {
+      const ok = await PATCH(`${BASE}/revisions/${rev.id}`, admin.token, { title: 'Advance', expectedUpdatedAt: rev.updatedAt });
+      expect(ok.status).toBe(200);
+      const stored = await prisma.lessonRevision.findUnique({ where: { id: rev.id } });
+      expect(stored!.updatedAt.getTime()).toBeGreaterThanOrEqual(expectedMs + 1); // strictly advanced
+    } finally {
+      spy.mockRestore();
+    }
+    // reusing the original (now-stale) token no longer matches → 409, regardless of same-millisecond timing
+    const stale = await PATCH(`${BASE}/revisions/${rev.id}`, admin.token, { title: 'Again', expectedUpdatedAt: rev.updatedAt });
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe('CONTENT_EDIT_CONFLICT');
   });
 
   it('CA2-32 the objective secret answer never appears in StaffAudit metadata', async () => {

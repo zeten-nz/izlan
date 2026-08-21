@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContainerStatus, LessonStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { nextOptimisticTimestamp } from './optimistic-concurrency';
 
 export const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
@@ -29,7 +30,7 @@ export class HierarchyRepository {
     return this.db(tx).track.findMany({ where: { subjectId }, select: TRACK_SELECT, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
   }
   updateTrackConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.TrackUpdateManyMutationInput) {
-    return tx.track.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data });
+    return tx.track.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   // ── Level ──
@@ -46,7 +47,7 @@ export class HierarchyRepository {
     return this.db(tx).level.findMany({ where: { trackId }, select: LEVEL_SELECT, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
   }
   updateLevelConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.LevelUpdateManyMutationInput) {
-    return tx.level.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data });
+    return tx.level.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   // ── Module ──
@@ -63,7 +64,7 @@ export class HierarchyRepository {
     return this.db(tx).module.findMany({ where: { levelId }, select: MODULE_SELECT, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
   }
   updateModuleConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.ModuleUpdateManyMutationInput) {
-    return tx.module.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data });
+    return tx.module.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   // ── Topic ──
@@ -80,7 +81,7 @@ export class HierarchyRepository {
     return this.db(tx).topic.findMany({ where: { moduleId }, select: TOPIC_SELECT, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
   }
   updateTopicConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.TopicUpdateManyMutationInput) {
-    return tx.topic.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data });
+    return tx.topic.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   // ── Lesson ──
@@ -97,11 +98,11 @@ export class HierarchyRepository {
     return this.db(tx).lesson.findMany({ where: { topicId }, select: LESSON_SELECT, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
   }
   updateLessonConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.LessonUpdateManyMutationInput) {
-    return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data });
+    return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
   /** DRAFT lesson topic move — conditional on updatedAt + DRAFT (scope + same-subject asserted in the service). */
   moveLessonConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, toTopicId: string) {
-    return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data: { topicId: toTopicId } });
+    return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data: { topicId: toTopicId, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 }
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContainerStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { nextOptimisticTimestamp } from './optimistic-concurrency';
 
 /**
  * Subject + SubjectAssignment persistence (Phase 2.2A-1). Subjects are top-level (no parent scope); assignments
@@ -30,7 +31,8 @@ export class SubjectRepository {
     });
   }
   updateSubjectConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.SubjectUpdateManyMutationInput) {
-    return tx.subject.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data });
+    // Strictly advance the OCC token by ≥1ms in the SAME write (TIMESTAMP(3) precision).
+    return tx.subject.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: ContainerStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   // ── SubjectAssignment ──

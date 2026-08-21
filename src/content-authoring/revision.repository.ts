@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, RevisionStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { nextOptimisticTimestamp } from './optimistic-concurrency';
 
 /**
  * LessonRevision persistence (Phase 2.2A-2). Version is backend authority (max+1); scoped reads flatten the resolved
@@ -43,12 +44,16 @@ export class RevisionRepository {
   }
 
   updateRevisionConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, data: Prisma.LessonRevisionUncheckedUpdateManyInput) {
-    return tx.lessonRevision.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: RevisionStatus.DRAFT }, data });
+    return tx.lessonRevision.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: RevisionStatus.DRAFT }, data: { ...data, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
-  /** Concurrency claim for Activity mutations: bump updatedAt (+updatedBy) iff still DRAFT with the expected token. */
+  /**
+   * Concurrency claim for Activity mutations (§12): bump updatedAt (strictly, +updatedBy) iff still DRAFT with the
+   * expected token. The explicit `updatedAt` guarantees the returned revision token advances by ≥1ms even at the
+   * TIMESTAMP(3) same-millisecond boundary.
+   */
   touchRevision(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, updatedBy: string) {
-    return tx.lessonRevision.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: RevisionStatus.DRAFT }, data: { updatedBy } });
+    return tx.lessonRevision.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: RevisionStatus.DRAFT }, data: { updatedBy, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
 
   async currentUpdatedAt(tx: Prisma.TransactionClient, id: string): Promise<Date | null> {
