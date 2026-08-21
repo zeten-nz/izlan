@@ -40,8 +40,19 @@ export class PublicationReadinessService {
           select: {
             id: true, status: true, publishedRevisionId: true,
             skills: { select: { skill: { select: { status: true } } } },
-            prerequisites: { select: { prerequisiteLesson: { select: { status: true } } } },
-            topic: { select: { status: true, module: { select: { status: true, level: { select: { status: true, track: { select: { status: true, subject: { select: { status: true } } } } } } } } } },
+            // prerequisite status AND owning Subject (via its own hierarchy) — the schema does not encode
+            // same-subject, so readiness is the final safety gate that must revalidate it (§25/Blocker C).
+            prerequisites: {
+              select: {
+                prerequisiteLesson: {
+                  select: {
+                    status: true,
+                    topic: { select: { module: { select: { level: { select: { track: { select: { subjectId: true } } } } } } } },
+                  },
+                },
+              },
+            },
+            topic: { select: { status: true, module: { select: { status: true, level: { select: { status: true, track: { select: { status: true, subjectId: true, subject: { select: { status: true } } } } } } } } } },
             publishedRevision: { select: { id: true, status: true, lessonId: true } },
           },
         },
@@ -90,7 +101,14 @@ export class PublicationReadinessService {
       ['topic', l.topic.status],
     ];
     for (const [scope, status] of hierarchy) if (status !== ContainerStatus.PUBLISHED) publishBlockers.push({ code: 'PARENT_NOT_PUBLISHED', scope });
-    for (const p of l.prerequisites) if (p.prerequisiteLesson.status !== LessonStatus.PUBLISHED) publishBlockers.push({ code: 'PREREQUISITE_NOT_PUBLISHED', scope: 'prerequisite' });
+    // Prerequisites must be PUBLISHED AND belong to the SAME Subject as this lesson (§25/Blocker C). The DB has no
+    // constraint tying a LessonPrerequisite to a same-subject target, so we revalidate here as the final gate. Never
+    // expose the foreign Subject/lesson identity — only the safe code + scope are reported.
+    const sourceSubjectId = l.topic.module.level.track.subjectId;
+    for (const p of l.prerequisites) {
+      if (p.prerequisiteLesson.status !== LessonStatus.PUBLISHED) publishBlockers.push({ code: 'PREREQUISITE_NOT_PUBLISHED', scope: 'prerequisite' });
+      if (p.prerequisiteLesson.topic.module.level.track.subjectId !== sourceSubjectId) publishBlockers.push({ code: 'PREREQUISITE_SUBJECT_MISMATCH', scope: 'prerequisite' });
+    }
     if (l.skills.some((s) => s.skill.status !== SkillStatus.ACTIVE)) publishBlockers.push({ code: 'LESSON_SKILL_ARCHIVED', scope: 'lesson', targetId: l.id });
     if (l.skills.length === 0) warnings.push({ code: 'NO_LESSON_SKILL', scope: 'lesson', targetId: l.id });
     // current-pointer coherence when replacing (§25G/43): existing pointer must reference a PUBLISHED revision of THIS lesson

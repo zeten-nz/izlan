@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActivityAttemptStatus, ActivityType, LessonProgressStatus, Prisma, RoadmapStatus, SkillMeasurementSource } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { resumableLessonWhere } from '../../content/visibility/learner-content-visibility';
 
 export interface MasteryMeasurementRow {
   userId: string;
@@ -17,6 +18,11 @@ export interface MasteryMeasurementRow {
 @Injectable()
 export class LessonCompletionRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Urgent-takedown gate (Phase 2.2B §4): Lesson + full hierarchy still learner-accessible (canonical authority). */
+  async isLessonAccessible(lessonId: string): Promise<boolean> {
+    return (await this.prisma.lesson.findFirst({ where: resumableLessonWhere(lessonId), select: { id: true } })) !== null;
+  }
 
   /** All activities of the pinned revision, ordered (eligibility, §8). */
   pinnedActivities(revisionId: string) {

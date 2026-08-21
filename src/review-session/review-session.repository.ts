@@ -3,6 +3,7 @@ import { ActivityAttemptStatus, Prisma, ReviewSessionStatus, SignalStatus, Skill
 import { PrismaService } from '../database/prisma.service';
 import { REVIEW_MASTERY_DERIVATION_VERSION } from './mastery/review-mastery.engine';
 import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry';
+import { resumableLessonWhere } from '../content/visibility/learner-content-visibility';
 import { parseTriggerActivityIds, REPEATED_MISTAKE_SIGNAL_TYPE } from '../learner-signals/repeated-mistake.detector';
 import { SelectionActivity } from './selection/review-activity-selection';
 
@@ -28,6 +29,11 @@ const ATTEMPT_VIEW = { id: true, activityId: true, attemptNo: true, isCorrect: t
 @Injectable()
 export class ReviewSessionRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Urgent-takedown gate (Phase 2.2B §5): Lesson + full hierarchy still learner-accessible (canonical authority). */
+  async isLessonAccessible(lessonId: string): Promise<boolean> {
+    return (await this.prisma.lesson.findFirst({ where: resumableLessonWhere(lessonId), select: { id: true } })) !== null;
+  }
 
   /** Review-namespaced per (user, skill, lesson) serialization (§32). Distinct keyspace; released at commit. */
   async advisoryLock(tx: Prisma.TransactionClient, userId: string, skillId: string, lessonId: string): Promise<void> {

@@ -48,6 +48,7 @@ export class LessonCompletionService {
 
   /** Mark a view-only activity step performed (TEXT/EXPLANATION/IMAGE/AUDIO/EXAMPLE). No ActivityAttempt (§5). */
   async markViewOnlyStep(userId: string, lessonId: string, activityId: string): Promise<{ lessonId: string; activityId: string; recorded: true }> {
+    if (!(await this.repo.isLessonAccessible(lessonId))) throw new LessonNotReadyForCompletionError('lesson not available'); // takedown gate (§4)
     const progress = await this.repo.findProgress(userId, lessonId);
     if (!progress) throw new LessonProgressNotFoundError('no execution');
     if (progress.status !== 'IN_PROGRESS') throw new LessonAlreadyCompletedError('lesson not in progress');
@@ -63,6 +64,7 @@ export class LessonCompletionService {
 
   /** Complete the Lesson (idempotent). Persists completion, derives mastery, reconciles roadmap (§10/11/38). */
   async completeLesson(userId: string, lessonId: string): Promise<LessonCompletionView> {
+    if (!(await this.repo.isLessonAccessible(lessonId))) throw new LessonNotReadyForCompletionError('lesson not available'); // takedown gate (§4)
     const progress = await this.repo.findProgress(userId, lessonId);
     if (!progress) throw new LessonProgressNotFoundError('no execution');
 

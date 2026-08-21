@@ -12,6 +12,16 @@ import { bootstrapSystemRoles } from '../src/bootstrap/system-roles';
 import { ContentAuditRepository } from '../src/content-authoring/content-audit.repository';
 import { RoadmapRepository } from '../src/roadmap/roadmap.repository';
 import { LessonExecutionRepository } from '../src/lesson-execution/lesson-execution.repository';
+import { LessonExecutionService } from '../src/lesson-execution/lesson-execution.service';
+import { LessonCompletionService } from '../src/lesson-execution/completion/lesson-completion.service';
+import { ReviewSessionService } from '../src/review-session/review-session.service';
+import {
+  LessonNotExecutableError,
+  LessonNotReadyForCompletionError,
+  ReviewCandidateNotAvailableError,
+  ReviewSessionActivityNotAvailableError,
+  ReviewSessionNotFoundError,
+} from '../src/common/errors';
 import { LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION } from '../src/lesson-execution/activity/objective-activity-payload';
 import { LESSON_ACTIVITY_MEDIA_SCHEMA_VERSION } from '../src/content/activity/media-activity-payload';
 import { cleanupAuthTables } from './test-db.helper';
@@ -29,6 +39,9 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
   let auditRepo: ContentAuditRepository;
   let roadmapRepo: RoadmapRepository;
   let execRepo: LessonExecutionRepository;
+  let execService: LessonExecutionService;
+  let completionService: LessonCompletionService;
+  let reviewSessionService: ReviewSessionService;
   const sms = new TestSmsAdapter();
   let n = 0;
 
@@ -45,6 +58,9 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
     auditRepo = moduleRef.get(ContentAuditRepository);
     roadmapRepo = moduleRef.get(RoadmapRepository);
     execRepo = moduleRef.get(LessonExecutionRepository);
+    execService = moduleRef.get(LessonExecutionService);
+    completionService = moduleRef.get(LessonCompletionService);
+    reviewSessionService = moduleRef.get(ReviewSessionService);
     await reset();
   });
   afterAll(async () => { await reset(); await app.close(); });
@@ -52,6 +68,12 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
 
   async function reset() {
     await prisma.staffAudit.deleteMany();
+    // takedown/review specs create attempts + review sessions (RESTRICT to activity/revision) — clear child rows first
+    await prisma.skillMeasurement.deleteMany();
+    await prisma.learnerSignal.deleteMany();
+    await prisma.learnerReviewSessionActivity.deleteMany();
+    await prisma.activityAttempt.deleteMany();
+    await prisma.learnerReviewSession.deleteMany();
     await prisma.learnerLessonCompletion.deleteMany();
     await prisma.learnerLessonProgress.deleteMany();
     await prisma.lessonPrerequisite.deleteMany();
@@ -128,6 +150,19 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
     const submitted = (await P(`${BASE}/revisions/${rev.id}/submit-review`, admin.token, { expectedUpdatedAt: act.revisionUpdatedAt })).body;
     const freshLesson = await prisma.lesson.findUnique({ where: { id: lesson.id } });
     return { lessonId: lesson.id, revisionId: rev.id, revToken: submitted.updatedAt, lessonToken: freshLesson!.updatedAt.toISOString() };
+  }
+
+  /** Publish a lesson carrying one OBJECTIVE (MINI_QUESTION) + one VIEW-ONLY (TEXT) activity; returns their ids. */
+  async function publishLessonWithObjAndText(admin: { token: string }, topicId: string, sort = 0) {
+    const lesson = await mkLesson(admin.token, topicId, sort);
+    const rev = await mkRevision(admin.token, lesson.id);
+    const a0 = await addObj(admin.token, rev.id, rev.updatedAt, 0); // MINI_QUESTION @ 0
+    const text = (await P(`${BASE}/revisions/${rev.id}/activities`, admin.token, { type: 'TEXT', position: 1, payload: { schemaVersion: 'lesson-activity-markdown/v1', markdown: 'hello' }, expectedRevisionUpdatedAt: a0.revisionUpdatedAt })).body;
+    const sub = (await P(`${BASE}/revisions/${rev.id}/submit-review`, admin.token, { expectedUpdatedAt: text.revisionUpdatedAt })).body;
+    const lessonTok = (await prisma.lesson.findUnique({ where: { id: lesson.id } }))!.updatedAt.toISOString();
+    await P(`${BASE}/revisions/${rev.id}/publish`, admin.token, { expectedRevisionUpdatedAt: sub.updatedAt, expectedLessonUpdatedAt: lessonTok }).expect(201);
+    const objAct = await prisma.activity.findFirst({ where: { lessonRevisionId: rev.id, type: 'MINI_QUESTION' } });
+    return { lessonId: lesson.id, revisionId: rev.id, objActivityId: objAct!.id, textActivityId: text.activity.id as string };
   }
 
   // ── Hierarchy publish (PB) ──
@@ -469,5 +504,128 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
     expect(await prisma.learnerLessonProgress.count({ where: { lessonId: v1.lessonId } })).toBe(1);
     expect(await prisma.learnerLessonCompletion.count({ where: { lessonId: v1.lessonId } })).toBe(1);
     expect((await prisma.staffAudit.findFirst({ where: { actionCode: 'content.lesson.archive', targetId: v1.lessonId } }))!.reason).toBe('safety');
+  });
+
+  // ── Blocker A: urgent takedown fully removes learner EXECUTION access (TD) ──
+  it('TD-01..07 takedown denies objective attempt / view-only / completion; open before, closed after; history intact', async () => {
+    const admin = await makeAdmin();
+    const c = await seedChain(admin); await publishChain(admin.token, c);
+    const L = await publishLessonWithObjAndText(admin, c.topic.id);
+    const learner = await makeUser();
+    await prisma.learnerLessonProgress.create({ data: { userId: learner.userId, lessonId: L.lessonId, lessonRevisionId: L.revisionId, status: LessonProgressStatus.IN_PROGRESS } });
+
+    // TD-01/02 BEFORE takedown: both execution surfaces are open (PUBLISHED lesson + hierarchy)
+    await execService.submitActivityAttempt(learner.userId, L.lessonId, L.objActivityId, uid(), { selectedOptionId: 'a' });
+    expect(await prisma.activityAttempt.count({ where: { userId: learner.userId, activityId: L.objActivityId, reviewSessionId: null } })).toBe(1);
+    expect((await completionService.markViewOnlyStep(learner.userId, L.lessonId, L.textActivityId)).recorded).toBe(true);
+
+    // urgent takedown → Lesson ARCHIVED
+    const lessonTok = (await prisma.lesson.findUnique({ where: { id: L.lessonId } }))!.updatedAt.toISOString();
+    await P(`${BASE}/lessons/${L.lessonId}/archive`, admin.token, { expectedLessonUpdatedAt: lessonTok, reason: 'takedown' }).expect(201);
+
+    // TD-03 objective attempt denied BEFORE any replay/create/signal
+    await expect(execService.submitActivityAttempt(learner.userId, L.lessonId, L.objActivityId, uid(), { selectedOptionId: 'a' })).rejects.toBeInstanceOf(LessonNotExecutableError);
+    // TD-04 view-only step denied
+    await expect(completionService.markViewOnlyStep(learner.userId, L.lessonId, L.textActivityId)).rejects.toBeInstanceOf(LessonNotReadyForCompletionError);
+    // TD-05 lesson completion denied
+    await expect(completionService.completeLesson(learner.userId, L.lessonId)).rejects.toBeInstanceOf(LessonNotReadyForCompletionError);
+
+    // TD-06/07 history intact — nothing deleted / repinned; pointer + revision + the pre-takedown attempt survive
+    const prog = await prisma.learnerLessonProgress.findFirst({ where: { userId: learner.userId, lessonId: L.lessonId } });
+    expect(prog!.status).toBe(LessonProgressStatus.IN_PROGRESS);
+    expect(prog!.lessonRevisionId).toBe(L.revisionId);
+    expect(await prisma.activityAttempt.count({ where: { userId: learner.userId, activityId: L.objActivityId } })).toBe(1);
+    expect((await prisma.lesson.findUnique({ where: { id: L.lessonId } }))!.publishedRevisionId).toBe(L.revisionId);
+    expect((await prisma.lessonRevision.findUnique({ where: { id: L.revisionId } }))!.status).toBe(RevisionStatus.PUBLISHED);
+  });
+
+  // ── Blocker A: urgent takedown removes REVIEW-SESSION access without leaking hidden content (RS-TD) ──
+  it('RS-TD-01..03 takedown blocks getSession/submitAttempt/complete on an existing review session; open before', async () => {
+    const admin = await makeAdmin();
+    const c = await seedChain(admin); await publishChain(admin.token, c);
+    const L = await publishLessonWithObjAndText(admin, c.topic.id);
+    const learner = await makeUser();
+    const skill = (await P(`${BASE}/subjects/${c.subject.id}/skills`, admin.token, { name: `Sk-${uid()}` })).body;
+    // an existing ACTIVE review session over this lesson's pinned revision (direct row — bypasses candidate gating)
+    const session = await prisma.learnerReviewSession.create({
+      data: { userId: learner.userId, skillId: skill.id, lessonId: L.lessonId, lessonRevisionId: L.revisionId, provenance: { schemaVersion: 'review-session-evidence/v1', signalTypes: [] } },
+    });
+    await prisma.learnerReviewSessionActivity.create({ data: { reviewSessionId: session.id, activityId: L.objActivityId, position: 1 } });
+
+    // BEFORE takedown: session is usable
+    expect((await reviewSessionService.getSession(learner.userId, session.id)).id).toBe(session.id);
+    await reviewSessionService.submitAttempt(learner.userId, session.id, L.objActivityId, uid(), { selectedOptionId: 'a' });
+
+    // urgent takedown
+    const lessonTok = (await prisma.lesson.findUnique({ where: { id: L.lessonId } }))!.updatedAt.toISOString();
+    await P(`${BASE}/lessons/${L.lessonId}/archive`, admin.token, { expectedLessonUpdatedAt: lessonTok, reason: 'takedown' }).expect(201);
+
+    // RS-TD-01 getSession → 404-safe (do not reveal the hidden content exists)
+    await expect(reviewSessionService.getSession(learner.userId, session.id)).rejects.toBeInstanceOf(ReviewSessionNotFoundError);
+    // RS-TD-02 submitAttempt denied
+    await expect(reviewSessionService.submitAttempt(learner.userId, session.id, L.objActivityId, uid(), { selectedOptionId: 'a' })).rejects.toBeInstanceOf(ReviewSessionActivityNotAvailableError);
+    // RS-TD-03 complete denied
+    await expect(reviewSessionService.complete(learner.userId, session.id)).rejects.toBeInstanceOf(ReviewSessionActivityNotAvailableError);
+    // start (or resume) a candidate for a hidden lesson is not available either
+    await expect(reviewSessionService.start(learner.userId, c.subject.id, skill.id, L.lessonId)).rejects.toBeInstanceOf(ReviewCandidateNotAvailableError);
+
+    // session + its history rows are intact (not deleted / cancelled / repinned)
+    const after = await prisma.learnerReviewSession.findUnique({ where: { id: session.id } });
+    expect(after!.status).toBe('ACTIVE');
+    expect(after!.lessonRevisionId).toBe(L.revisionId);
+    expect(await prisma.activityAttempt.count({ where: { reviewSessionId: session.id } })).toBe(1);
+  });
+
+  // ── Blocker B: idempotent republish must not silently "restore" a taken-down lesson (REP-TD) ──
+  it('REP-TD-01 republish the same revision after takedown → lifecycle conflict, no restore / timestamp change / audit', async () => {
+    const admin = await makeAdmin();
+    const c = await seedChain(admin); await publishChain(admin.token, c);
+    const v1 = await reviewReadyRevision(admin, c.topic.id);
+    await P(`${BASE}/revisions/${v1.revisionId}/publish`, admin.token, { expectedRevisionUpdatedAt: v1.revToken, expectedLessonUpdatedAt: v1.lessonToken }).expect(201);
+    // urgent takedown (pointer + revision remain, only Lesson.status → ARCHIVED)
+    const lessonTok = (await prisma.lesson.findUnique({ where: { id: v1.lessonId } }))!.updatedAt.toISOString();
+    await P(`${BASE}/lessons/${v1.lessonId}/archive`, admin.token, { expectedLessonUpdatedAt: lessonTok, reason: 'takedown' }).expect(201);
+    const archived = await prisma.lesson.findUnique({ where: { id: v1.lessonId } });
+    const publishAudits = await prisma.staffAudit.count({ where: { actionCode: 'content.revision.publish' } });
+
+    // republish the SAME (still-PUBLISHED) revision with the ORIGINAL tokens — must NOT be treated as an idempotent no-op
+    const res = await P(`${BASE}/revisions/${v1.revisionId}/publish`, admin.token, { expectedRevisionUpdatedAt: v1.revToken, expectedLessonUpdatedAt: v1.lessonToken });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CONTENT_LIFECYCLE_CONFLICT');
+    // lesson stays ARCHIVED, updatedAt unchanged, no publish audit written
+    const now = await prisma.lesson.findUnique({ where: { id: v1.lessonId } });
+    expect(now!.status).toBe(LessonStatus.ARCHIVED);
+    expect(now!.updatedAt.toISOString()).toBe(archived!.updatedAt.toISOString());
+    expect(await prisma.staffAudit.count({ where: { actionCode: 'content.revision.publish' } })).toBe(publishAudits);
+  });
+
+  // ── Blocker C: same-subject prerequisite is revalidated by readiness (the final safety gate) ──
+  it('PREREQ-SUBJECT direct-DB cross-subject prerequisite → readiness mismatch + publish 409; no state change / audit / foreign leak', async () => {
+    const admin = await makeAdmin();
+    const c1 = await seedChain(admin); await publishChain(admin.token, c1);
+    const c2 = await seedChain(admin); await publishChain(admin.token, c2);
+    // source lesson in subject 1 (REVIEW-ready), foreign PUBLISHED lesson in subject 2
+    const source = await reviewReadyRevision(admin, c1.topic.id, 0);
+    const foreign = await reviewReadyRevision(admin, c2.topic.id, 0);
+    await P(`${BASE}/revisions/${foreign.revisionId}/publish`, admin.token, { expectedRevisionUpdatedAt: foreign.revToken, expectedLessonUpdatedAt: foreign.lessonToken }).expect(201);
+    // corruption: cross-subject prerequisite inserted directly, bypassing the same-subject authoring guard
+    await prisma.lessonPrerequisite.create({ data: { lessonId: source.lessonId, prerequisiteLessonId: foreign.lessonId } });
+
+    // readiness (final gate) revalidates same-subject → publishReady false + safe mismatch blocker, no foreign identity
+    const rd = (await G(`${BASE}/revisions/${source.revisionId}/readiness`, admin.token)).body;
+    expect(rd.publishReady).toBe(false);
+    expect(rd.blockers.some((b: { code: string }) => b.code === 'PREREQUISITE_SUBJECT_MISMATCH')).toBe(true);
+    const rdJson = JSON.stringify(rd);
+    expect(rdJson).not.toContain(c2.subject.id);
+    expect(rdJson).not.toContain(foreign.lessonId);
+
+    // publish is refused (409), source revision/lesson unchanged, no publish audit
+    const publishAudits = await prisma.staffAudit.count({ where: { actionCode: 'content.revision.publish' } });
+    const res = await P(`${BASE}/revisions/${source.revisionId}/publish`, admin.token, { expectedRevisionUpdatedAt: source.revToken, expectedLessonUpdatedAt: source.lessonToken });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CONTENT_PUBLISH_NOT_READY');
+    expect((await prisma.lesson.findUnique({ where: { id: source.lessonId } }))!.status).toBe(LessonStatus.DRAFT);
+    expect((await prisma.lessonRevision.findUnique({ where: { id: source.revisionId } }))!.status).toBe(RevisionStatus.REVIEW);
+    expect(await prisma.staffAudit.count({ where: { actionCode: 'content.revision.publish' } })).toBe(publishAudits);
   });
 });

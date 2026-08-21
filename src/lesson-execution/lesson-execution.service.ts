@@ -183,6 +183,9 @@ export class LessonExecutionService {
   }
 
   private async persistAttempt(userId: string, lessonId: string, activityId: string, clientRequestId: string, answer: Record<string, unknown>): Promise<ActivityAttemptView> {
+    // Urgent-takedown gate (Phase 2.2B §3): if the Lesson/hierarchy is no longer learner-accessible, deny BEFORE any
+    // idempotent replay, ActivityAttempt create, progress-step, or downstream signal/mission evaluation.
+    if (!(await this.repo.isLessonResumable(lessonId))) throw new LessonNotExecutableError('lesson not available');
     const progress = await this.repo.findProgress(userId, lessonId);
     if (!progress) throw new LessonProgressNotFoundError('no execution'); // must have started (§40)
     if (progress.status !== 'IN_PROGRESS') throw new LessonAlreadyCompletedError('lesson not in progress'); // no completed-lesson bypass

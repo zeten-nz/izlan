@@ -107,17 +107,28 @@ export class PublicationService {
       const lesson = await this.hierarchy.findLessonScoped(revInit.lessonId, tx);
       if (!lesson) throw new ContentNotFoundError('not found');
 
-      // Idempotent republish (§21): the requested revision is ALREADY the coherent current publication → no-op,
-      // even if the supplied original OCC tokens are now stale.
-      if (rev.status === RevisionStatus.PUBLISHED && lesson.publishedRevisionId === revisionId && rev.lessonId === lesson.id) {
+      // Idempotent republish (§21): a no-op is allowed ONLY when the requested revision is the FULLY-COHERENT current
+      // publication — Lesson PUBLISHED AND Revision PUBLISHED AND pointer == this revision AND revision belongs to this
+      // Lesson. After an urgent takedown the pointer/revision are unchanged but Lesson.status == ARCHIVED, so this
+      // (correctly) does NOT match and never silently "restores" the lesson (Blocker B).
+      if (
+        lesson.status === LessonStatus.PUBLISHED &&
+        rev.status === RevisionStatus.PUBLISHED &&
+        lesson.publishedRevisionId === revisionId &&
+        rev.lessonId === lesson.id
+      ) {
         return this.publicationView(tx, lesson.id, revisionId);
       }
+
+      // A taken-down (ARCHIVED) Lesson can never be (re)published — deterministic lifecycle conflict BEFORE any OCC
+      // token comparison, so republish-after-takedown always fails safe with no restore, no timestamp change, no audit
+      // regardless of which (possibly stale) tokens the caller supplied (Blocker B).
+      if (lesson.status === LessonStatus.ARCHIVED) throw new ContentLifecycleConflictError('lesson archived');
 
       // Actual publication: validate both aggregate tokens.
       if (!sameToken(dto.expectedRevisionUpdatedAt, rev.updatedAt)) throw new ContentEditConflictError('edit conflict');
       if (!sameToken(dto.expectedLessonUpdatedAt, lesson.updatedAt)) throw new ContentEditConflictError('edit conflict');
       if (rev.status !== RevisionStatus.REVIEW) throw new ContentLifecycleConflictError('not in review'); // no direct DRAFT→PUBLISHED
-      if (lesson.status === LessonStatus.ARCHIVED) throw new ContentLifecycleConflictError('lesson archived');
 
       const report = await this.readiness.evaluate(revisionId, tx);
       if (!report || !report.publishReady) throw new ContentPublishNotReadyError('not publish-ready');
