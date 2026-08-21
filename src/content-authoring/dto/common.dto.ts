@@ -1,8 +1,16 @@
-import { IsISO8601 } from 'class-validator';
+import { IsISO8601, ValidateIf } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 /** Trim string inputs before validation (mirrors the profile DTO convention). */
 export const Trim = () => Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));
+
+/**
+ * PATCH "optional by presence, but NOT nullable" (§3 review correction). Unlike class-validator's `@IsOptional()`
+ * (which skips validation for BOTH undefined and null), this validates whenever the key is present — so an explicit
+ * `null` for a NON-NULL field flows into the field validators (@IsString/@IsInt) and is rejected 400, instead of
+ * being pushed down into Prisma/PostgreSQL. A missing key (undefined) still means "do not change".
+ */
+export const OptionalPresent = () => ValidateIf((_o: object, v: unknown) => v !== undefined);
 
 /** Reject control characters (allow all other Unicode). */
 export const NO_CONTROL = /^[^\p{Cc}]+$/u;

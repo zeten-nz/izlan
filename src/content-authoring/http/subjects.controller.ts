@@ -8,8 +8,9 @@ import { AssignUserDto } from '../dto/assignment.dto';
 
 /**
  * Staff Subject + assignment API (Phase 2.2A-1). Global AuthGuard → authenticated; PermissionsGuard enforces the
- * permission code. Subject reads/metadata = content.author (+ DB-resolved assignment scope in the service);
- * Subject create + assignment management = content.subject.manage. No role-name bypass.
+ * permission code. Subject discovery/read (assigned list + detail) = content.author (+ DB-resolved assignment scope in
+ * the service). Subject create, Subject metadata PATCH, and assignment management = content.subject.manage (a global
+ * top-level-Subject capability). No role-name bypass.
  */
 @Controller('staff/content')
 export class SubjectsController {
@@ -34,7 +35,7 @@ export class SubjectsController {
   }
 
   @Patch('subjects/:id')
-  @RequirePermissions(CONTENT_AUTHOR)
+  @RequirePermissions(CONTENT_SUBJECT_MANAGE)
   update(@CurrentPrincipal() principal: AuthPrincipal, @Param('id') id: string, @Body() dto: UpdateSubjectDto) {
     return this.subjects.updateSubject(principal.userId, id, dto);
   }

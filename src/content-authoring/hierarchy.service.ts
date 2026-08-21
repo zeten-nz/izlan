@@ -63,9 +63,9 @@ export class HierarchyService {
 
   // ── Track (parent = Subject via route :subjectId) ──
   async createTrack(userId: string, subjectId: string, dto: CreateTrackDto) {
-    await this.scope.requireScope(userId, subjectId); // subject must exist AND actor assigned (IDOR-safe)
     try {
       return await this.prisma.$transaction(async (tx) => {
+        await this.scope.requireScope(userId, subjectId, tx); // subject exists AND actor assigned — INSIDE the tx (no TOCTOU)
         const track = await this.repo.createTrack(tx, { subjectId, slug: dto.slug, title: dto.title, description: dto.description ?? null, sortOrder: dto.sortOrder ?? 0, createdBy: userId });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.TRACK_CREATE, targetType: CONTENT_TARGET.TRACK, targetId: track.id, metadata: { subjectId, slug: track.slug } });
         return presentTrack(track);
@@ -102,10 +102,10 @@ export class HierarchyService {
 
   // ── Level (parent = Track via route :trackId) ──
   async createLevel(userId: string, trackId: string, dto: CreateLevelDto) {
-    const track = await this.repo.findTrack(trackId);
-    await this.scope.requireScope(userId, track ? track.subjectId : null);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const track = await this.repo.findTrack(trackId, tx);
+        await this.scope.requireScope(userId, track ? track.subjectId : null, tx); // parent resolve + scope INSIDE the tx
         const level = await this.repo.createLevel(tx, { trackId, code: dto.code, title: dto.title, sortOrder: dto.sortOrder, createdBy: userId });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.LEVEL_CREATE, targetType: CONTENT_TARGET.LEVEL, targetId: level.id, metadata: { trackId, code: level.code } });
         return presentLevel(level);
@@ -142,10 +142,10 @@ export class HierarchyService {
 
   // ── Module (parent = Level via route :levelId) ──
   async createModule(userId: string, levelId: string, dto: CreateModuleDto) {
-    const level = await this.repo.findLevelScoped(levelId);
-    await this.scope.requireScope(userId, level ? level.subjectId : null);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const level = await this.repo.findLevelScoped(levelId, tx);
+        await this.scope.requireScope(userId, level ? level.subjectId : null, tx); // parent resolve + scope INSIDE the tx
         const mod = await this.repo.createModule(tx, { levelId, title: dto.title, description: dto.description ?? null, sortOrder: dto.sortOrder, createdBy: userId });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.MODULE_CREATE, targetType: CONTENT_TARGET.MODULE, targetId: mod.id, metadata: { levelId } });
         return presentModule(mod);
@@ -182,10 +182,10 @@ export class HierarchyService {
 
   // ── Topic (parent = Module via route :moduleId) ──
   async createTopic(userId: string, moduleId: string, dto: CreateTopicDto) {
-    const mod = await this.repo.findModuleScoped(moduleId);
-    await this.scope.requireScope(userId, mod ? mod.subjectId : null);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const mod = await this.repo.findModuleScoped(moduleId, tx);
+        await this.scope.requireScope(userId, mod ? mod.subjectId : null, tx); // parent resolve + scope INSIDE the tx
         const topic = await this.repo.createTopic(tx, { moduleId, title: dto.title, description: dto.description ?? null, sortOrder: dto.sortOrder, createdBy: userId });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.TOPIC_CREATE, targetType: CONTENT_TARGET.TOPIC, targetId: topic.id, metadata: { moduleId } });
         return presentTopic(topic);
@@ -222,10 +222,10 @@ export class HierarchyService {
 
   // ── Lesson (parent = Topic via route :topicId) ──
   async createLesson(userId: string, topicId: string, dto: CreateLessonDto) {
-    const topic = await this.repo.findTopicScoped(topicId);
-    await this.scope.requireScope(userId, topic ? topic.subjectId : null);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const topic = await this.repo.findTopicScoped(topicId, tx);
+        await this.scope.requireScope(userId, topic ? topic.subjectId : null, tx); // parent resolve + scope INSIDE the tx
         const lesson = await this.repo.createLesson(tx, { topicId, contentKey: dto.contentKey, slug: dto.slug ?? null, sortOrder: dto.sortOrder, createdBy: userId });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.LESSON_CREATE, targetType: CONTENT_TARGET.LESSON, targetId: lesson.id, metadata: { topicId, contentKey: lesson.contentKey } });
         return presentLesson(lesson);

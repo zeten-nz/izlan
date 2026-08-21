@@ -9,6 +9,7 @@ import { AuthorizationRepository } from '../src/authorization/authorization.repo
 import { AuthExceptionFilter } from '../src/auth/http/auth-exception.filter';
 import { SMS_PORT } from '../src/sms/sms.port';
 import { bootstrapSystemRoles } from '../src/bootstrap/system-roles';
+import { ContentAuditRepository } from '../src/content-authoring/content-audit.repository';
 import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from '../src/content-authoring/content-authoring.constants';
 import { cleanupAuthTables } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
@@ -19,6 +20,7 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
   let app: NestFastifyApplication;
   let prisma: PrismaService;
   let authz: AuthorizationRepository;
+  let auditRepo: ContentAuditRepository;
   const sms = new TestSmsAdapter();
   let n = 0;
 
@@ -32,10 +34,11 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
     await app.getHttpAdapter().getInstance().ready();
     prisma = moduleRef.get(PrismaService);
     authz = moduleRef.get(AuthorizationRepository);
+    auditRepo = moduleRef.get(ContentAuditRepository);
     await reset();
   });
   afterAll(async () => { await reset(); await app.close(); });
-  beforeEach(async () => { await reset(); sms.clear(); });
+  beforeEach(async () => { await reset(); sms.clear(); jest.restoreAllMocks(); });
 
   async function reset() {
     await prisma.staffAudit.deleteMany();
@@ -377,6 +380,75 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
     const before = await prisma.staffAudit.count();
     expect((await P(`${BASE}/subjects/${subject.id}/tracks`, methodist.token, { slug: `t-${uid()}`, title: 'x' })).status).toBe(404);
     expect(await prisma.staffAudit.count()).toBe(before); // no audit for the rejected write
+  });
+
+  // ── Review corrections (REV-01..06) ──
+  it('REV-01 METHODIST (content.author + assignment, NO content.subject.manage) cannot PATCH Subject metadata (403)', async () => {
+    const admin = await makeAdmin();
+    const subject = await createSubject(admin.token);
+    const methodist = await makeMethodist();
+    await P(`${BASE}/subjects/${subject.id}/assignments`, admin.token, { userId: methodist.userId }).expect(201);
+    const fresh = await prisma.subject.findUnique({ where: { id: subject.id } });
+    const res = await PATCH(`${BASE}/subjects/${subject.id}`, methodist.token, { title: 'Hijack', expectedUpdatedAt: fresh!.updatedAt.toISOString() });
+    expect(res.status).toBe(403);
+    expect((await prisma.subject.findUnique({ where: { id: subject.id } }))!.title).toBe(subject.title);
+  });
+
+  it('REV-02 content.subject.manage can PATCH Subject metadata (DRAFT, concurrency, audited)', async () => {
+    const admin = await makeAdmin();
+    const subject = await createSubject(admin.token);
+    const res = await PATCH(`${BASE}/subjects/${subject.id}`, admin.token, { title: 'Renamed', expectedUpdatedAt: subject.updatedAt });
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Renamed');
+    expect(await prisma.staffAudit.findFirst({ where: { actionCode: 'content.subject.update', targetId: subject.id } })).not.toBeNull();
+    // stale token now conflicts
+    expect((await PATCH(`${BASE}/subjects/${subject.id}`, admin.token, { title: 'X', expectedUpdatedAt: subject.updatedAt })).status).toBe(409);
+  });
+
+  it('REV-03 PATCH Track { title: null } → 400, DB unchanged', async () => {
+    const { admin, track } = await seedChain();
+    const res = await PATCH(`${BASE}/tracks/${track.id}`, admin.token, { title: null, expectedUpdatedAt: track.updatedAt });
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).not.toMatch(/prisma|column|violat/i);
+    const row = await prisma.track.findUnique({ where: { id: track.id } });
+    expect(row!.title).toBe('Track');
+    expect(row!.updatedAt.toISOString()).toBe(track.updatedAt); // untouched
+  });
+
+  it('REV-04 PATCH Level { sortOrder: null } → 400, DB unchanged', async () => {
+    const { admin, level } = await seedChain();
+    const res = await PATCH(`${BASE}/levels/${level.id}`, admin.token, { sortOrder: null, expectedUpdatedAt: level.updatedAt });
+    expect(res.status).toBe(400);
+    const row = await prisma.level.findUnique({ where: { id: level.id } });
+    expect(row!.sortOrder).toBe(level.sortOrder);
+    expect(row!.updatedAt.toISOString()).toBe(level.updatedAt);
+  });
+
+  it('REV-05 nullable metadata clearing works (Lesson.slug → null; Track.description → null), audited + concurrency', async () => {
+    const { admin, topic } = await seedChain();
+    // Lesson slug clear
+    const lesson = (await P(`${BASE}/topics/${topic.id}/lessons`, admin.token, { contentKey: `ck-${uid()}`, sortOrder: 0, slug: `sl-${uid()}` })).body;
+    expect(lesson.slug).not.toBeNull();
+    const cleared = await PATCH(`${BASE}/lessons/${lesson.id}`, admin.token, { slug: null, expectedUpdatedAt: lesson.updatedAt });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.slug).toBeNull();
+    expect((await prisma.lesson.findUnique({ where: { id: lesson.id } }))!.slug).toBeNull();
+    expect(await prisma.staffAudit.findFirst({ where: { actionCode: 'content.lesson.update', targetId: lesson.id } })).not.toBeNull();
+    // concurrency preserved: the now-stale token conflicts
+    expect((await PATCH(`${BASE}/lessons/${lesson.id}`, admin.token, { slug: null, expectedUpdatedAt: lesson.updatedAt })).status).toBe(409);
+  });
+
+  it('REV-06 audit failure rolls the business mutation back (no entity change, no audit row)', async () => {
+    const { admin, track } = await seedChain();
+    const spy = jest.spyOn(auditRepo, 'write').mockRejectedValueOnce(new Error('audit boom'));
+    const res = await PATCH(`${BASE}/tracks/${track.id}`, admin.token, { title: 'ShouldRollBack', expectedUpdatedAt: track.updatedAt });
+    expect(res.status).toBe(500); // generic; no leak
+    expect(JSON.stringify(res.body)).not.toMatch(/audit boom|prisma/i);
+    spy.mockRestore();
+    const row = await prisma.track.findUnique({ where: { id: track.id } });
+    expect(row!.title).toBe('Track'); // business mutation rolled back
+    expect(row!.updatedAt.toISOString()).toBe(track.updatedAt);
+    expect(await prisma.staffAudit.count({ where: { actionCode: 'content.track.update', targetId: track.id } })).toBe(0);
   });
 
   // ── Bootstrap (AUTH-03..06, DB-verified) ──

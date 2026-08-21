@@ -1,5 +1,5 @@
 import { IsInt, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength } from 'class-validator';
-import { ConcurrentEditDto, CONTENT_KEY_RE, SLUG_RE, Trim } from './common.dto';
+import { ConcurrentEditDto, CONTENT_KEY_RE, OptionalPresent, SLUG_RE, Trim } from './common.dto';
 
 /**
  * POST /staff/content/topics/:topicId/lessons — DRAFT logical Lesson.
@@ -23,10 +23,12 @@ export class CreateLessonDto {
  * (or title/status/publishedRevisionId/createdBy) is REJECTED, not silently ignored (§11/12).
  */
 export class UpdateLessonDto extends ConcurrentEditDto {
+  // Lesson.slug is intentionally nullable — `null` clears it; a provided string is validated. sortOrder is NOT NULL,
+  // so an explicit `null` is rejected 400 via @OptionalPresent (§3 review correction).
   @IsOptional() @IsString() @Trim() @MinLength(1) @MaxLength(200) @Matches(SLUG_RE, { message: 'slug must be lowercase kebab-case' })
-  slug?: string;
+  slug?: string | null;
 
-  @IsOptional() @IsInt() @Min(0)
+  @OptionalPresent() @IsInt() @Min(0)
   sortOrder?: number;
 }
 

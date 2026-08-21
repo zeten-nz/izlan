@@ -54,7 +54,11 @@ export class SubjectService {
     }
   }
 
-  /** Update Subject metadata — content.author + scope, DRAFT-only, optimistic concurrency, audited (§12/13/16). */
+  /**
+   * Update Subject metadata — **content.subject.manage** (global top-level capability; NO per-subject assignment
+   * required, unlike child content). DRAFT-only, optimistic concurrency, audited (§12/13/16). Existence + status +
+   * concurrency are all resolved inside the mutation transaction.
+   */
   async updateSubject(userId: string, id: string, dto: UpdateSubjectDto) {
     const data: Prisma.SubjectUpdateManyMutationInput = {};
     if (dto.slug !== undefined) data.slug = dto.slug;
@@ -66,7 +70,6 @@ export class SubjectService {
       return await this.prisma.$transaction(async (tx) => {
         const s = await this.subjects.findSubject(id, tx);
         if (!s) throw new ContentNotFoundError('not found');
-        await this.scope.requireScope(userId, s.id, tx);
         if (s.status !== ContainerStatus.DRAFT) throw new ContentNotDraftError('not draft');
         const res = await this.subjects.updateSubjectConditional(tx, id, expected, data);
         if (res.count === 0) throw new ContentEditConflictError('edit conflict');
