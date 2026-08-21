@@ -37,9 +37,9 @@ export class SkillService {
   }
 
   async createSkill(userId: string, subjectId: string, dto: CreateSkillDto) {
-    await this.scope.requireScope(userId, subjectId); // subject exists AND actor assigned (IDOR-safe)
     try {
       return await this.prisma.$transaction(async (tx) => {
+        await this.scope.requireScope(userId, subjectId, tx); // subject exists AND actor assigned — INSIDE the tx (no pre-tx read)
         const skill = await this.skills.createSkill(tx, { subjectId, name: dto.name, code: dto.code ?? null, description: dto.description ?? null, sortOrder: dto.sortOrder ?? 0 });
         await this.audit.write(tx, { actorUserId: userId, actionCode: CONTENT_AUDIT.SKILL_CREATE, targetType: CONTENT_TARGET.SKILL, targetId: skill.id, metadata: { subjectId } });
         return presentSkill(skill);

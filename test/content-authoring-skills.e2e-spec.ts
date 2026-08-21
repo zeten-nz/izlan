@@ -10,6 +10,8 @@ import { AuthExceptionFilter } from '../src/auth/http/auth-exception.filter';
 import { SMS_PORT } from '../src/sms/sms.port';
 import { bootstrapSystemRoles } from '../src/bootstrap/system-roles';
 import { ContentAuditRepository } from '../src/content-authoring/content-audit.repository';
+import { SubjectScopeService } from '../src/content-authoring/subject-scope.service';
+import { ContentNotFoundError } from '../src/common/errors';
 import { LESSON_ACTIVITY_MARKDOWN_SCHEMA_VERSION } from '../src/content/activity/markdown-activity-payload';
 import { cleanupAuthTables } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
@@ -22,6 +24,7 @@ describe('Content authoring — skill mapping + prerequisite DAG (e2e, izlan_tes
   let prisma: PrismaService;
   let authz: AuthorizationRepository;
   let auditRepo: ContentAuditRepository;
+  let scope: SubjectScopeService;
   const sms = new TestSmsAdapter();
   let n = 0;
 
@@ -36,6 +39,7 @@ describe('Content authoring — skill mapping + prerequisite DAG (e2e, izlan_tes
     prisma = moduleRef.get(PrismaService);
     authz = moduleRef.get(AuthorizationRepository);
     auditRepo = moduleRef.get(ContentAuditRepository);
+    scope = moduleRef.get(SubjectScopeService);
     await reset();
   });
   afterAll(async () => { await reset(); await app.close(); });
@@ -100,6 +104,27 @@ describe('Content authoring — skill mapping + prerequisite DAG (e2e, izlan_tes
     for (const bad of [{ subjectId: '00000000-0000-7000-8000-000000000000' }, { status: 'ARCHIVED' }, { createdAt: '2026-01-01T00:00:00.000Z' }]) {
       expect((await P(`${BASE}/subjects/${subjectId}/skills`, admin.token, { name: `x-${uid()}`, ...bad })).status).toBe(400);
     }
+  });
+
+  it('SA3-24 Skill create enforces SubjectAssignment INSIDE the mutation transaction (tx-scoped; reject → no row/no audit)', async () => {
+    const admin = await makeAdmin();
+    const { subjectId } = await seedSubject(admin);
+    // (a) a valid create invokes requireScope with a Prisma transaction client (3rd arg present)
+    const spy = jest.spyOn(scope, 'requireScope');
+    await P(`${BASE}/subjects/${subjectId}/skills`, admin.token, { name: 'TxScoped' }).expect(201);
+    expect(spy).toHaveBeenCalled();
+    const call = spy.mock.calls[0]; // first requireScope after the spy = the skill-create scope check
+    expect(call[1]).toBe(subjectId);
+    expect(call[2]).toBeDefined(); // the transaction client
+    spy.mockRestore();
+    // (b) if scope rejects, neither the Skill row nor the StaffAudit persists (one transaction)
+    const auditsBefore = await prisma.staffAudit.count({ where: { actionCode: 'content.skill.create' } });
+    const reject = jest.spyOn(scope, 'requireScope').mockRejectedValueOnce(new ContentNotFoundError('denied'));
+    const res = await P(`${BASE}/subjects/${subjectId}/skills`, admin.token, { name: 'ShouldNotPersist' });
+    expect(res.status).toBe(404);
+    reject.mockRestore();
+    expect(await prisma.skill.count({ where: { subjectId, name: 'ShouldNotPersist' } })).toBe(0);
+    expect(await prisma.staffAudit.count({ where: { actionCode: 'content.skill.create' } })).toBe(auditsBefore);
   });
 
   it('SA3-02 another Subject assignment cannot read/create Skill (404)', async () => {
