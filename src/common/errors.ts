@@ -164,3 +164,9 @@ export class ContentActivityPayloadInvalidError extends DomainError {}
 export class ContentActivityTypeNotAuthorableError extends DomainError {}
 export class ContentReorderInvalidError extends DomainError {}
 export class ContentDeleteBlockedError extends DomainError {}
+
+// Content authoring — skill mapping + prerequisite DAG (Phase 2.2A-3). Cross-subject targets use ContentNotFoundError
+// (IDOR-safe). Cycle/lifecycle conflicts are enumeration/leak-safe.
+export class ContentSkillArchivedError extends DomainError {}
+export class ContentPrerequisiteInvalidError extends DomainError {}
+export class ContentPrerequisiteCycleError extends DomainError {}

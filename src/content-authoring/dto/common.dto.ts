@@ -33,3 +33,12 @@ export class RevisionEditDto {
   @IsISO8601({ strict: true }, { message: 'expectedRevisionUpdatedAt must be an ISO-8601 timestamp' })
   expectedRevisionUpdatedAt!: string;
 }
+
+/**
+ * Lesson-aggregate concurrency token (Phase 2.2A-3, §15): LessonSkill + prerequisite graph mutations carry the source
+ * Lesson's exact `updatedAt`. The Lesson is the aggregate concurrency boundary for those relations.
+ */
+export class LessonEditDto {
+  @IsISO8601({ strict: true }, { message: 'expectedLessonUpdatedAt must be an ISO-8601 timestamp' })
+  expectedLessonUpdatedAt!: string;
+}

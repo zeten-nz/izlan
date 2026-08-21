@@ -23,7 +23,10 @@ import {
   ContentEditConflictError,
   ContentNotDraftError,
   ContentNotFoundError,
+  ContentPrerequisiteCycleError,
+  ContentPrerequisiteInvalidError,
   ContentReorderInvalidError,
+  ContentSkillArchivedError,
   ContentUniqueConflictError,
   CsrfRejectedError,
   DailyPlanConfigurationInvalidError,
@@ -243,6 +246,9 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ContentActivityTypeNotAuthorableError) return { statusCode: 400, code: 'CONTENT_ACTIVITY_TYPE_NOT_AUTHORABLE', message: 'activity type is not authorable' };
     if (e instanceof ContentReorderInvalidError) return { statusCode: 400, code: 'CONTENT_REORDER_INVALID', message: 'invalid activity order' };
     if (e instanceof ContentDeleteBlockedError) return { statusCode: 409, code: 'CONTENT_DELETE_BLOCKED', message: 'content cannot be deleted in its current state' };
+    if (e instanceof ContentSkillArchivedError) return { statusCode: 409, code: 'CONTENT_SKILL_ARCHIVED', message: 'skill is archived' };
+    if (e instanceof ContentPrerequisiteInvalidError) return { statusCode: 400, code: 'CONTENT_PREREQUISITE_INVALID', message: 'invalid prerequisite' };
+    if (e instanceof ContentPrerequisiteCycleError) return { statusCode: 409, code: 'CONTENT_PREREQUISITE_CYCLE', message: 'prerequisite would create a cycle' };
 
     // Noma'lum (Prisma/internal) — generic 500, DETAIL LEAK YO'Q. Safe kategoriya log qilinadi.
     if (e instanceof DomainError) {
