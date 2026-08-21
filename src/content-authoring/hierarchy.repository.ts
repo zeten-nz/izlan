@@ -104,6 +104,19 @@ export class HierarchyRepository {
   moveLessonConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date, toTopicId: string) {
     return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data: { topicId: toTopicId, updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
   }
+
+  /**
+   * DRAFT lesson aggregate-token claim (Phase 2.2A-3): strictly advance `updatedAt` iff DRAFT with the expected token —
+   * no metadata change. Used as the OCC/aggregate token for LessonSkill + prerequisite graph writes.
+   */
+  touchLessonConditional(tx: Prisma.TransactionClient, id: string, expectedUpdatedAt: Date) {
+    return tx.lesson.updateMany({ where: { id, updatedAt: expectedUpdatedAt, status: LessonStatus.DRAFT }, data: { updatedAt: nextOptimisticTimestamp(expectedUpdatedAt) } });
+  }
+
+  async lessonUpdatedAt(tx: Prisma.TransactionClient, id: string): Promise<Date | null> {
+    const l = await tx.lesson.findUnique({ where: { id }, select: { updatedAt: true } });
+    return l?.updatedAt ?? null;
+  }
 }
 
 const TRACK_SELECT = { id: true, subjectId: true, slug: true, title: true, description: true, status: true, sortOrder: true, createdBy: true, createdAt: true, updatedAt: true } satisfies Prisma.TrackSelect;

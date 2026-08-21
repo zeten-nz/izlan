@@ -1,4 +1,4 @@
-import { ActivityType, ContainerStatus, ContentSource, LessonStatus, Prisma, RevisionStatus } from '@prisma/client';
+import { ActivityType, ContainerStatus, ContentSource, LessonStatus, Prisma, RevisionStatus, SkillStatus } from '@prisma/client';
 
 /**
  * Staff read projections (Phase 2.2A-1, §20). Dates are emitted as ISO-8601 strings so `updatedAt` round-trips
@@ -42,6 +42,22 @@ export const presentRevision = (r: {
   id: r.id, lessonId: r.lessonId, version: r.version, title: r.title, description: r.description, estimatedDurationMin: r.estimatedDurationMin, status: r.status,
   createdBy: r.createdBy, updatedBy: r.updatedBy, reviewedBy: r.reviewedBy, publishedBy: r.publishedBy, publishedAt: r.publishedAt ? iso(r.publishedAt) : null,
   createdAt: iso(r.createdAt), updatedAt: iso(r.updatedAt),
+});
+
+/** Staff Skill detail (Phase 2.2A-3). */
+export const presentSkill = (s: {
+  id: string; subjectId: string; name: string; code: string | null; description: string | null; status: SkillStatus; sortOrder: number; createdAt: Date; updatedAt: Date;
+}) => ({ id: s.id, subjectId: s.subjectId, name: s.name, code: s.code, description: s.description, status: s.status, sortOrder: s.sortOrder, createdAt: iso(s.createdAt), updatedAt: iso(s.updatedAt) });
+
+/** A mapped Skill in a Lesson/Activity skill list (Phase 2.2A-3) — skill identity + display metadata. */
+export const presentMappedSkill = (m: { skill: { id: string; name: string; code: string | null; sortOrder: number; status: SkillStatus } }) => ({
+  skillId: m.skill.id, name: m.skill.name, code: m.skill.code, sortOrder: m.skill.sortOrder, status: m.skill.status,
+});
+
+/** A prerequisite Lesson in a prerequisite list (Phase 2.2A-3) — safe staff metadata only (no learner data). */
+export const presentPrerequisiteLesson = (p: { prerequisiteLesson: { id: string; contentKey: string; slug: string | null; status: LessonStatus; sortOrder: number; topicId: string } }) => ({
+  prerequisiteLessonId: p.prerequisiteLesson.id, contentKey: p.prerequisiteLesson.contentKey, slug: p.prerequisiteLesson.slug,
+  status: p.prerequisiteLesson.status, sortOrder: p.prerequisiteLesson.sortOrder, topicId: p.prerequisiteLesson.topicId,
 });
 
 /**

@@ -39,6 +39,15 @@ export const CONTENT_AUDIT = {
   ACTIVITY_UPDATE: 'content.activity.update',
   ACTIVITY_DELETE: 'content.activity.delete',
   ACTIVITY_REORDER: 'content.activity.reorder',
+  // Phase 2.2A-3 — skill mapping + prerequisite DAG
+  SKILL_CREATE: 'content.skill.create',
+  SKILL_UPDATE: 'content.skill.update',
+  LESSON_SKILL_ADD: 'content.lesson_skill.add',
+  LESSON_SKILL_REMOVE: 'content.lesson_skill.remove',
+  ACTIVITY_SKILL_ADD: 'content.activity_skill.add',
+  ACTIVITY_SKILL_REMOVE: 'content.activity_skill.remove',
+  PREREQUISITE_ADD: 'content.prerequisite.add',
+  PREREQUISITE_REMOVE: 'content.prerequisite.remove',
 } as const;
 
 /** StaffAudit.targetType stable values. */
@@ -52,4 +61,5 @@ export const CONTENT_TARGET = {
   LESSON: 'Lesson',
   LESSON_REVISION: 'LessonRevision',
   ACTIVITY: 'Activity',
+  SKILL: 'Skill',
 } as const;
