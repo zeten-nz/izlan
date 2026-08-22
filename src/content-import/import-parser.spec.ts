@@ -45,4 +45,31 @@ describe('import parser (pure, TD-253)', () => {
     const badMd = parseImportDocument(validDoc({ skills: [], lessons: [{ contentKey: 'CK', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: { schemaVersion: 'lesson-activity-markdown/v1', markdown: '' } }] } }] }));
     expect(badMd.issues.some((i) => i.code === 'IMPORT_ACTIVITY_PAYLOAD_INVALID')).toBe(true);
   });
+
+  // ── Blocker B: package-local determinism (dry-run must reject what apply would reject) ──
+  it('rejects two declared skills with different codes but identical names (DB name-unique)', () => {
+    const { issues } = parseImportDocument(validDoc({ skills: [{ code: 'C1', name: 'Same' }, { code: 'C2', name: 'Same' }], lessons: [] }));
+    expect(issues.some((i) => i.code === 'IMPORT_SKILL_DUPLICATE')).toBe(true);
+  });
+
+  it('rejects duplicate items in skillCodes / prerequisiteContentKeys (no silent dedup)', () => {
+    const dupSkill = parseImportDocument(validDoc({ skills: [{ code: 'A', name: 'A' }], lessons: [{ contentKey: 'CK-1', sortOrder: 1, skillCodes: ['A', 'A'], revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(dupSkill.issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'lessons[0].skillCodes[1]')).toBe(true);
+    const dupPrereq = parseImportDocument(validDoc({ skills: [], lessons: [{ contentKey: 'CK-1', sortOrder: 1, prerequisiteContentKeys: ['CK-X', 'CK-X'], revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(dupPrereq.issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'lessons[0].prerequisiteContentKeys[1]')).toBe(true);
+  });
+
+  it('prerequisite keys follow contentKey syntax (>80 chars allowed), not the ≤80 skill-code rule', () => {
+    const longKey = `CK-${'A'.repeat(120)}`;
+    const { plan, issues } = parseImportDocument(validDoc({ skills: [], lessons: [{ contentKey: 'CK-1', sortOrder: 1, prerequisiteContentKeys: [longKey], revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(issues.filter((i) => i.path.startsWith('lessons[0].prerequisiteContentKeys'))).toEqual([]);
+    expect(plan.lessons[0].prerequisiteContentKeys).toEqual([longKey]);
+  });
+
+  it('rejects an aggregate relationship cap violation (hard 400) before any DB work', () => {
+    const codes = Array.from({ length: 100 }, (_, i) => `SK${i}`);
+    const skills = codes.map((code) => ({ code, name: code }));
+    const lessons = Array.from({ length: 101 }, (_, i) => ({ contentKey: `LSK-${i}`, sortOrder: i, skillCodes: codes, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }));
+    expect(() => parseImportDocument({ schemaVersion: 'izlan-topic-content/v1', skills, lessons })).toThrow(ContentImportError); // 101 × 100 = 10,100 > 10,000
+  });
 });

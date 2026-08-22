@@ -13,6 +13,12 @@ export const IMPORT_LIMITS = {
   maxSkillRefsPerLesson: 100,
   maxSkillRefsPerActivity: 50,
   maxPrerequisitesPerLesson: 50,
+  // Aggregate relationship safety bounds (TD-253). The per-item limits above can multiply into pathological totals
+  // (e.g. 5000 activities × 50 skill refs = 250k rows); these cap the whole package's UNIQUE relationship counts,
+  // rejected with IMPORT_LIMIT_EXCEEDED before the write transaction opens.
+  maxLessonSkillMappingsTotal: 10_000,
+  maxActivitySkillMappingsTotal: 25_000,
+  maxPrerequisitesTotal: 10_000,
 } as const;
 
 /** Stable IMPORT_* codes + their HTTP status (used by the exception filter via ContentImportError). */

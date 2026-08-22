@@ -45,12 +45,18 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
 
   const plan: ImportPlan = { skills: [], lessons: [] };
 
+  // Package-local Skill identity: reject duplicate declared CODES and duplicate declared NAMES (the DB enforces both
+  // `@@unique([subjectId, code])` and `@@unique([subjectId, name])`, so dry-run must catch these deterministically —
+  // not let apply fail on a constraint). Normalization = trim, matching the DB key and the DB-resolution comparison.
   const seenSkillCodes = new Set<string>();
+  const seenSkillNames = new Set<string>();
   skillsArr.forEach((s, i) => {
     const skill = validateSkill(s, `skills[${i}]`, issues);
     if (skill) {
       if (seenSkillCodes.has(skill.code)) issues.push({ code: 'IMPORT_SKILL_DUPLICATE', path: `skills[${i}]` });
       else seenSkillCodes.add(skill.code);
+      if (seenSkillNames.has(skill.name)) issues.push({ code: 'IMPORT_SKILL_DUPLICATE', path: `skills[${i}]` });
+      else seenSkillNames.add(skill.name);
       plan.skills.push(skill);
     }
   });
@@ -67,6 +73,25 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
     }
   });
   if (totalActivities > IMPORT_LIMITS.maxActivitiesTotal) hard('IMPORT_LIMIT_EXCEEDED');
+
+  // Aggregate relationship caps (TD-253 safety bounds). The per-item limits can multiply into pathological totals
+  // (e.g. 5000 activities × 50 skill refs). Count UNIQUE references (lists are already de-duplicated above) and reject
+  // BEFORE any write transaction — apply parses first, so validate + apply agree.
+  let lessonSkillTotal = 0;
+  let activitySkillTotal = 0;
+  let prerequisiteTotal = 0;
+  for (const l of plan.lessons) {
+    lessonSkillTotal += l.skillCodes.length;
+    prerequisiteTotal += l.prerequisiteContentKeys.length;
+    for (const a of l.revision.activities) activitySkillTotal += a.skillCodes.length;
+  }
+  if (
+    lessonSkillTotal > IMPORT_LIMITS.maxLessonSkillMappingsTotal ||
+    activitySkillTotal > IMPORT_LIMITS.maxActivitySkillMappingsTotal ||
+    prerequisiteTotal > IMPORT_LIMITS.maxPrerequisitesTotal
+  ) {
+    hard('IMPORT_LIMIT_EXCEEDED');
+  }
 
   return { plan, issues };
 }
@@ -95,8 +120,8 @@ function validateLesson(raw: unknown, path: string, issues: ImportIssue[]): Plan
     else invalid(issues, `${path}.slug`);
   }
   const sortOrder = normSortOrder(raw.sortOrder, `${path}.sortOrder`, issues, true);
-  const skillCodes = normCodeList(raw.skillCodes, `${path}.skillCodes`, IMPORT_LIMITS.maxSkillRefsPerLesson, issues);
-  const prerequisiteContentKeys = normCodeList(raw.prerequisiteContentKeys, `${path}.prerequisiteContentKeys`, IMPORT_LIMITS.maxPrerequisitesPerLesson, issues);
+  const skillCodes = normSkillCodeList(raw.skillCodes, `${path}.skillCodes`, IMPORT_LIMITS.maxSkillRefsPerLesson, issues);
+  const prerequisiteContentKeys = normContentKeyList(raw.prerequisiteContentKeys, `${path}.prerequisiteContentKeys`, IMPORT_LIMITS.maxPrerequisitesPerLesson, issues);
   const revision = validateRevision(raw.revision, `${path}.revision`, issues);
   if (!contentKey || !revision) return null;
   return { contentKey, slug, sortOrder, skillCodes, prerequisiteContentKeys, revision };
@@ -135,7 +160,7 @@ function validateActivity(raw: unknown, index: number, path: string, issues: Imp
     if (isIntGte0(raw.estimatedDurationMin) && raw.estimatedDurationMin <= MAX_DURATION_MIN) estimatedDurationMin = raw.estimatedDurationMin;
     else invalid(issues, `${path}.estimatedDurationMin`);
   }
-  const skillCodes = normCodeList(raw.skillCodes, `${path}.skillCodes`, IMPORT_LIMITS.maxSkillRefsPerActivity, issues);
+  const skillCodes = normSkillCodeList(raw.skillCodes, `${path}.skillCodes`, IMPORT_LIMITS.maxSkillRefsPerActivity, issues);
 
   if (!('payload' in raw) || !isObj(raw.payload)) {
     invalid(issues, `${path}.payload`);
@@ -168,7 +193,21 @@ function normSortOrder(v: unknown, path: string, issues: ImportIssue[], required
   invalid(issues, path);
   return 0;
 }
-function normCodeList(v: unknown, path: string, max: number, issues: ImportIssue[]): string[] {
+/** Skill-code reference list — Subject-scoped stable code syntax (≤80, NO_CONTROL). Rejects duplicates (strict; §4/5). */
+function normSkillCodeList(v: unknown, path: string, max: number, issues: ImportIssue[]): string[] {
+  return normRefList(v, path, max, issues, (t) => t.length >= 1 && t.length <= 80 && NO_CONTROL.test(t));
+}
+/** Prerequisite content-key reference list — SAME syntax as Lesson.contentKey (≤200, CONTENT_KEY_RE), NOT skill-code
+ *  rules. A valid 120-char contentKey is therefore a valid prerequisite reference. Rejects duplicates (strict; §4/5). */
+function normContentKeyList(v: unknown, path: string, max: number, issues: ImportIssue[]): string[] {
+  return normRefList(v, path, max, issues, (t) => t.length >= 1 && t.length <= 200 && CONTENT_KEY_RE.test(t));
+}
+/**
+ * Strict reference-list normalizer. Enforces the list-length limit, per-item syntax, AND package-local uniqueness:
+ * a duplicate entry is a validation issue, NOT silently collapsed — apply relies on the parser guaranteeing
+ * de-duplicated lists (no LessonSkill/ActivitySkill/LessonPrerequisite unique conflict can surface at write time).
+ */
+function normRefList(v: unknown, path: string, max: number, issues: ImportIssue[], ok: (t: string) => boolean): string[] {
   if (v === undefined || v === null) return [];
   if (!Array.isArray(v)) {
     invalid(issues, path);
@@ -176,9 +215,14 @@ function normCodeList(v: unknown, path: string, max: number, issues: ImportIssue
   }
   if (v.length > max) issues.push({ code: 'IMPORT_LIMIT_EXCEEDED', path });
   const out: string[] = [];
+  const seen = new Set<string>();
   v.forEach((item, i) => {
-    if (isStr(item) && item.trim().length > 0 && item.trim().length <= 80) out.push(item.trim());
-    else invalid(issues, `${path}[${i}]`);
+    if (!isStr(item)) return void invalid(issues, `${path}[${i}]`);
+    const t = item.trim();
+    if (!ok(t)) return void invalid(issues, `${path}[${i}]`);
+    if (seen.has(t)) return void invalid(issues, `${path}[${i}]`); // duplicate reference — strict, no silent dedup
+    seen.add(t);
+    out.push(t);
   });
   return out;
 }

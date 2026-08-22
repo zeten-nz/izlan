@@ -1,8 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { ValidationPipe } from '@nestjs/common';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { createFastifyAdapter } from '../src/bootstrap/http-adapter';
 import { PrismaService } from '../src/database/prisma.service';
 import { AuthorizationRepository } from '../src/authorization/authorization.repository';
 import { AuthExceptionFilter } from '../src/auth/http/auth-exception.filter';
@@ -29,7 +30,7 @@ describe('Topic-scoped bulk content import (e2e, izlan_test)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(SMS_PORT).useValue(sms).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app = moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter()); // SAME body-limit wiring as production
     app.setGlobalPrefix('api');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new AuthExceptionFilter());
@@ -351,5 +352,125 @@ describe('Topic-scoped bulk content import (e2e, izlan_test)', () => {
     await apply(a.token, topicId, doc({ skills: [], lessons: [{ contentKey: 'AUD-FAIL', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
     spy.mockRestore();
     expect(await prisma.staffAudit.count({ where: { actionCode: 'content.import.apply' } })).toBe(1); // unchanged
+  });
+
+  // ── Body boundary (IMP-BODY) — route-scoped 5 MiB, ordinary API stays at 1 MiB (TD-253, Blocker A) ──
+  const bigMd = (len: number) => ({ schemaVersion: 'lesson-activity-markdown/v1', markdown: 'a'.repeat(len) });
+  const bulkLessons = (count: number, mdLen: number, prefix: string) =>
+    Array.from({ length: count }, (_, i) => ({ contentKey: `${prefix}-${i}`, sortOrder: i, revision: { title: 'L', activities: [{ type: 'TEXT', payload: bigMd(mdLen) }] } }));
+
+  it('IMP-BODY-01 ordinary API route rejects a >1 MiB body with 413 (handler never processes it)', async () => {
+    // A normal login body over the 1 MiB ceiling → 413 (not 400/401), proving the business handler was never reached.
+    const res = await request(server()).post('/api/auth/login').send({ phone: '+998901112233', password: 'x'.repeat(1_200_000) });
+    expect(res.status).toBe(413);
+  });
+
+  it('IMP-BODY-02 import route accepts a >1 MiB, <=5 MiB document (reaches the parser/validator)', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    // ~30 × 40 KB markdown ≈ 1.2 MiB — above the ordinary ceiling, below the import ceiling.
+    const res = await validate(a.token, topicId, { schemaVersion: 'izlan-topic-content/v1', skills: [], lessons: bulkLessons(30, 40_000, 'BODY') });
+    expect(res.status).toBe(200); // not 413 — the ordinary ceiling did not reject it
+    expect(res.body.valid).toBe(true);
+  });
+
+  it('IMP-BODY-03 import route refuses a >5 MiB body at the boundary (ImportService never runs)', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    // ~130 × 50 KB ≈ 6.5 MiB > 5 MiB. Fastify refuses it at the body-parser boundary (Content-Length over the route
+    // limit): the server sends 413 and stops reading, so the client observes either a 413 or a mid-upload socket reset
+    // — both prove the oversized body was refused BEFORE parsing. What matters: ImportService never ran (no writes).
+    let status = 0;
+    let socketRefused = false;
+    try {
+      status = (await validate(a.token, topicId, { schemaVersion: 'izlan-topic-content/v1', skills: [], lessons: bulkLessons(130, 50_000, 'HUGE') })).status;
+    } catch {
+      socketRefused = true; // ECONNRESET — connection reset because the server refused the oversized upload
+    }
+    expect(socketRefused || status === 413).toBe(true);
+    expect(await prisma.lesson.count({ where: { contentKey: { startsWith: 'HUGE-' } } })).toBe(0);
+    expect(await prisma.staffAudit.count({ where: { actionCode: 'content.import.apply' } })).toBe(0);
+  });
+
+  // ── Dry-run/apply consistency (IMP-CONSISTENCY) — deterministic package-local conflicts rejected in dry-run (Blocker B) ──
+  it('IMP-CONSISTENCY-01 two declared skills with different codes but identical names → invalid', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await validate(a.token, topicId, doc({ skills: [{ code: 'C1', name: 'Same Name' }, { code: 'C2', name: 'Same Name' }], lessons: [] }));
+    expect(res.body.valid).toBe(false);
+    expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_SKILL_DUPLICATE')).toBe(true);
+  });
+
+  it('IMP-CONSISTENCY-02 duplicate prerequisiteContentKeys in one lesson → invalid', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await validate(a.token, topicId, doc({ skills: [], lessons: [
+      { contentKey: 'PR-A', sortOrder: 1, revision: { title: 'A', activities: [{ type: 'TEXT', payload: md() }] } },
+      { contentKey: 'PR-B', sortOrder: 2, prerequisiteContentKeys: ['PR-A', 'PR-A'], revision: { title: 'B', activities: [{ type: 'TEXT', payload: md() }] } },
+    ] }));
+    expect(res.body.valid).toBe(false);
+    expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_INVALID_DOCUMENT')).toBe(true);
+  });
+
+  it('IMP-CONSISTENCY-03 duplicate Lesson.skillCodes → invalid', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await validate(a.token, topicId, doc({ skills: [{ code: 'DS', name: 'Dup skill' }], lessons: [{ contentKey: 'LS-1', sortOrder: 1, skillCodes: ['DS', 'DS'], revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(res.body.valid).toBe(false);
+    expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_INVALID_DOCUMENT')).toBe(true);
+  });
+
+  it('IMP-CONSISTENCY-04 duplicate Activity.skillCodes → invalid', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await validate(a.token, topicId, doc({ skills: [{ code: 'DA', name: 'Dup act skill' }], lessons: [{ contentKey: 'AS-1', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'MINI_QUESTION', skillCodes: ['DA', 'DA'], payload: obj() }] } }] }));
+    expect(res.body.valid).toBe(false);
+    expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_INVALID_DOCUMENT')).toBe(true);
+  });
+
+  it('IMP-CONSISTENCY-05 a valid contentKey (>80, <=200) may be referenced as a prerequisite', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const longKey = `CK-${'A'.repeat(120)}`; // 123 chars — valid CONTENT_KEY_RE, invalid as an ≤80 skill code
+    expect(longKey.length).toBeGreaterThan(80);
+    const res = await validate(a.token, topicId, doc({ skills: [], lessons: [
+      { contentKey: longKey, sortOrder: 1, revision: { title: 'A', activities: [{ type: 'TEXT', payload: md() }] } },
+      { contentKey: 'CK-REF', sortOrder: 2, prerequisiteContentKeys: [longKey], revision: { title: 'B', activities: [{ type: 'TEXT', payload: md() }] } },
+    ] }));
+    expect(res.body.valid).toBe(true);
+    expect(res.body.summary.prerequisitesToCreate).toBe(1);
+  });
+
+  // ── Scale (IMP-SCALE) — batched persistence + aggregate caps (Blocker C) ──
+  it('IMP-SCALE-01 apply a ~500-activity / ~1000-mapping package via the batched path', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const skills = [{ code: 'S0', name: 'Skill Zero' }, { code: 'S1', name: 'Skill One' }];
+    const lessons = Array.from({ length: 50 }, (_, i) => ({
+      contentKey: `SCALE-${i}`,
+      sortOrder: i,
+      skillCodes: ['S0'],
+      prerequisiteContentKeys: i === 0 ? [] : ['SCALE-0'], // fan-in to SCALE-0 (acyclic)
+      revision: { title: `L${i}`, activities: Array.from({ length: 10 }, () => ({ type: 'MINI_QUESTION', skillCodes: ['S0', 'S1'], payload: obj() })) },
+    }));
+    const res = await apply(a.token, topicId, { schemaVersion: 'izlan-topic-content/v1', skills, lessons });
+    expect(res.status).toBe(201);
+    expect(res.body.lessons).toHaveLength(50);
+
+    const lessonIds = (await prisma.lesson.findMany({ where: { contentKey: { startsWith: 'SCALE-' } }, select: { id: true, status: true, publishedRevisionId: true } }));
+    expect(lessonIds).toHaveLength(50);
+    expect(lessonIds.every((l) => l.status === 'DRAFT' && l.publishedRevisionId === null)).toBe(true);
+    const ids = lessonIds.map((l) => l.id);
+    expect(await prisma.activity.count({ where: { revision: { lessonId: { in: ids } } } })).toBe(500);
+    expect(await prisma.activitySkill.count({ where: { activity: { revision: { lessonId: { in: ids } } } } })).toBe(1000);
+    expect(await prisma.lessonSkill.count({ where: { lessonId: { in: ids } } })).toBe(50);
+    expect(await prisma.lessonPrerequisite.count({ where: { lessonId: { in: ids } } })).toBe(49);
+    const audits = await prisma.staffAudit.findMany({ where: { actionCode: 'content.import.apply' } });
+    expect(audits).toHaveLength(1);
+    expect(audits[0].metadata).toMatchObject({ createdLessonCount: 50, createdActivityCount: 500, activitySkillCount: 1000, lessonSkillCount: 50, prerequisiteCount: 49 });
+  });
+
+  it('IMP-SCALE-02 a package exceeding an aggregate relationship cap is rejected before any write', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const skills = Array.from({ length: 100 }, (_, i) => ({ code: `SK${i}`, name: `Skill ${i}` }));
+    const codes = skills.map((s) => s.code); // 100 distinct codes
+    const lessons = Array.from({ length: 101 }, (_, i) => ({ contentKey: `LSK-${i}`, sortOrder: i, skillCodes: codes, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }));
+    // 101 lessons × 100 skill refs = 10,100 > maxLessonSkillMappingsTotal (10,000).
+    const res = await apply(a.token, topicId, { schemaVersion: 'izlan-topic-content/v1', skills, lessons });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('IMPORT_LIMIT_EXCEEDED');
+    expect(await prisma.lesson.count({ where: { contentKey: { startsWith: 'LSK-' } } })).toBe(0); // no writes
   });
 });
