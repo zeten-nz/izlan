@@ -76,7 +76,7 @@ describe('Content authoring — skill mapping + prerequisite DAG (e2e, izlan_tes
   async function makeAdmin() {
     const ph = phone();
     const req = await request(server()).post('/api/auth/otp/request').send({ phone: ph });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone: ph } });
     const admin = await prisma.role.findUnique({ where: { code: 'ADMIN' } });
     await prisma.userRole.create({ data: { userId: user!.id, roleId: admin!.id, grantedBy: null } });

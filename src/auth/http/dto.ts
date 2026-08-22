@@ -1,19 +1,55 @@
-import { IsString, IsNotEmpty, MaxLength, IsUUID, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, IsUUID, Matches, IsOptional, IsIn } from 'class-validator';
+import { PUBLIC_OTP_PURPOSES } from '../otp/otp-purpose';
 
-/** POST /auth/otp/request — purpose client tomonidan berilmaydi (LOGIN only, §18). */
+/** POST /auth/otp/request — phone verification for REGISTRATION or PASSWORD_RESET (default REGISTRATION). */
 export class RequestOtpDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(32)
   phone!: string;
+
+  @IsOptional()
+  @IsIn(PUBLIC_OTP_PURPOSES as string[])
+  purpose?: string;
 }
 
-/** POST /auth/otp/verify — phone qayta talab qilinmaydi (challenge canonical phone/purpose'ni saqlaydi, §23). */
-export class VerifyOtpDto {
+/** POST /auth/login — primary phone + password login. Password length is enforced by the policy, not here. */
+export class LoginDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  phone!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1024)
+  password!: string;
+}
+
+/** POST /auth/register — verified-phone registration (REGISTRATION OTP + chosen password). */
+export class RegisterDto {
   @IsUUID()
   challengeId!: string;
 
-  // 6 raqamli STRING — number'ga aylantirilmaydi (leading zero saqlanadi, §45).
   @Matches(/^\d{6}$/, { message: 'code must be exactly 6 digits' })
   code!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1024)
+  password!: string;
+}
+
+/** POST /auth/password/reset — verified-phone recovery (PASSWORD_RESET OTP + new password). */
+export class ResetPasswordDto {
+  @IsUUID()
+  challengeId!: string;
+
+  @Matches(/^\d{6}$/, { message: 'code must be exactly 6 digits' })
+  code!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1024)
+  password!: string;
 }

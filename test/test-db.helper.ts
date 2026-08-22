@@ -70,6 +70,7 @@ export async function cleanupAuthTables(prisma: PrismaService): Promise<void> {
   await prisma.iZLWallet.deleteMany();
   await prisma.userRole.deleteMany();
   await prisma.rolePermission.deleteMany();
+  await prisma.passwordCredential.deleteMany(); // TD-252 (FK cascades on user delete, but clear explicitly)
   await prisma.userProfile.deleteMany();
   await prisma.user.deleteMany();
 }

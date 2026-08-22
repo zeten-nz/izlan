@@ -49,7 +49,7 @@ describe('IZL wallet + reservation (e2e, izlan_test)', () => {
     const phone = `+9989011${String(10000 + np++).slice(-5)}`;
     await prisma.otpChallenge.updateMany({ where: { phone }, data: { createdAt: new Date(Date.now() - 300_000) } });
     const req = await request(server()).post('/api/auth/otp/request').send({ phone });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone } });
     return { token: verify.body.accessToken, userId: user!.id };
   }

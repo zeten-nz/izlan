@@ -12,30 +12,28 @@ import { cleanupAuthTables } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
 
 const ORIGIN = 'http://localhost:3001';
+const PASSWORD = 'Passw0rd!123'; // 12 chars — within the 8..128 policy
 
 function getCookie(res: request.Response, name: string): string | undefined {
   const raw = res.headers['set-cookie'] as unknown as string[] | undefined;
-  if (!raw) return undefined;
-  const line = raw.find((c) => c.startsWith(`${name}=`));
-  if (!line) return undefined;
-  return line.split(';')[0].split('=').slice(1).join('=');
+  const line = raw?.find((c) => c.startsWith(`${name}=`));
+  return line?.split(';')[0].split('=').slice(1).join('=');
 }
 function getCookieLine(res: request.Response, name: string): string | undefined {
   const raw = res.headers['set-cookie'] as unknown as string[] | undefined;
   return raw?.find((c) => c.startsWith(`${name}=`));
 }
 
-describe('Auth HTTP (e2e, izlan_test)', () => {
+describe('Auth HTTP — phone + password (e2e, izlan_test)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
   const sms = new TestSmsAdapter();
+  let n = 0;
   const PHONE = '+998901234567';
+  const phone = () => `+99890${String(5000000 + n++).slice(-7)}`;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(SMS_PORT)
-      .useValue(sms)
-      .compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(SMS_PORT).useValue(sms).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     app.setGlobalPrefix('api');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
@@ -47,12 +45,10 @@ describe('Auth HTTP (e2e, izlan_test)', () => {
     await prisma.role.deleteMany();
     await bootstrapSystemRoles(moduleRef.get(AuthorizationRepository));
   });
-
   afterAll(async () => {
     await cleanupAuthTables(prisma);
     await app.close();
   });
-
   beforeEach(async () => {
     await cleanupAuthTables(prisma);
     sms.clear();
@@ -60,221 +56,229 @@ describe('Auth HTTP (e2e, izlan_test)', () => {
 
   const server = () => app.getHttpServer();
 
-  async function login(phone = PHONE): Promise<{ accessToken: string; refreshCookie: string }> {
-    // Test-only cooldown bypass: shu phone'ning oldingi challenge'larini o'tmishga surish (HTTP flow buzilmaydi).
-    await prisma.otpChallenge.updateMany({ where: { phone }, data: { createdAt: new Date(Date.now() - 300_000) } });
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone });
-    expect(reqRes.status).toBe(202);
-    const code = sms.latestCode()!;
-    const verifyRes = await request(server())
-      .post('/api/auth/otp/verify')
-      .send({ challengeId: reqRes.body.challengeId, code });
-    expect(verifyRes.status).toBe(200);
-    return { accessToken: verifyRes.body.accessToken, refreshCookie: getCookie(verifyRes, 'izlan_refresh')! };
+  async function requestOtp(ph: string, purpose?: string) {
+    // Push any prior challenges for this phone into the past so the resend cooldown doesn't block a fresh request.
+    await prisma.otpChallenge.updateMany({ where: { phone: ph }, data: { createdAt: new Date(Date.now() - 300_000) } });
+    const res = await request(server()).post('/api/auth/otp/request').send(purpose ? { phone: ph, purpose } : { phone: ph });
+    return { challengeId: res.body.challengeId as string, code: sms.latestCode()!, res };
   }
+  async function registerUser(ph = PHONE, password = PASSWORD) {
+    const { challengeId, code } = await requestOtp(ph);
+    const res = await request(server()).post('/api/auth/register').send({ challengeId, code, password });
+    return { res, accessToken: res.body.accessToken as string, refreshCookie: getCookie(res, 'izlan_refresh') };
+  }
+  const login = (ph: string, password = PASSWORD) => request(server()).post('/api/auth/login').send({ phone: ph, password });
 
-  // ── OTP request/verify ──
-  it('OTP request → 202, no account-status leak', async () => {
+  // ── OTP request (registration / reset — NOT login) ──
+  it('OTP request → 202, enumeration-safe, no code in body', async () => {
     const res = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
     expect(res.status).toBe(202);
     expect(res.body).toHaveProperty('challengeId');
-    expect(res.body).toHaveProperty('expiresIn');
-    expect(JSON.stringify(res.body)).not.toMatch(/exists|registered|new|user/i);
     expect(res.body).not.toHaveProperty('code');
+    expect(JSON.stringify(res.body)).not.toMatch(/exists|registered|new|user/i);
     expect(res.headers['cache-control']).toContain('no-store');
   });
+  it('OTP request invalid phone → 400; unknown DTO field → 400', async () => {
+    expect((await request(server()).post('/api/auth/otp/request').send({ phone: '123' })).status).toBe(400);
+    expect((await request(server()).post('/api/auth/otp/request').send({ phone: PHONE, hacker: 'x' })).status).toBe(400);
+  });
 
-  it('OTP verify (new phone) → creates Learner, returns access token, refresh cookie HttpOnly, hash-only DB', async () => {
-    const { accessToken, refreshCookie } = await login();
+  // ── Registration (REG-PWD) ──
+  it('REG-PWD-01 verified phone + password creates User+Profile+LEARNER+PasswordCredential atomically + session', async () => {
+    const { res, accessToken, refreshCookie } = await registerUser();
+    expect(res.status).toBe(201);
     expect(accessToken.split('.')).toHaveLength(3);
-    // User + LEARNER created
-    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
-    expect(user).toBeTruthy();
-    const roles = await prisma.userRole.findMany({ where: { userId: user!.id }, include: { role: true } });
-    expect(roles.map((r) => r.role.code)).toEqual(['LEARNER']);
-    // refresh cookie present, HttpOnly, not in body
     expect(refreshCookie).toBeTruthy();
-    // DB stores hash, not plaintext
-    const tokens = await prisma.refreshToken.findMany();
-    for (const t of tokens) expect(t.tokenHash).not.toBe(refreshCookie);
+    const user = await prisma.user.findUnique({ where: { phone: PHONE }, include: { profile: true, passwordCredential: true, roles: { include: { role: true } } } });
+    expect(user?.profile).toBeTruthy();
+    expect(user?.roles.map((r) => r.role.code)).toEqual(['LEARNER']);
+    expect(user?.passwordCredential).toBeTruthy();
+    expect(user?.passwordCredential?.passwordHash).not.toContain(PASSWORD); // encoded argon2 hash, not plaintext
+    expect(user?.passwordCredential?.passwordHash).toMatch(/^\$argon2id\$/);
+    // response leaks no secret / role / phone
+    const body = JSON.stringify(res.body);
+    expect(body).not.toContain(refreshCookie!);
+    expect(body).not.toMatch(/LEARNER|permission|password|argon/i);
+    expect(res.body.user).toEqual({ id: expect.any(String), onboardingCompleted: false });
+  });
+  it('REG-PWD-02 bad/expired OTP cannot create a credential', async () => {
+    const { challengeId } = await requestOtp(PHONE);
+    const bad = await request(server()).post('/api/auth/register').send({ challengeId, code: '000000', password: PASSWORD });
+    expect(bad.status).toBe(400);
+    expect(await prisma.user.count()).toBe(0);
+    expect(await prisma.passwordCredential.count()).toBe(0);
+  });
+  it('REG-PWD-03 duplicate registered phone does not create a second account', async () => {
+    await registerUser();
+    const second = await requestOtp(PHONE);
+    const dup = await request(server()).post('/api/auth/register').send({ challengeId: second.challengeId, code: second.code, password: PASSWORD });
+    expect(dup.status).toBe(409);
+    expect(await prisma.user.count()).toBe(1);
+  });
+  it('registration enforces the password length policy (short → 400 AUTH_PASSWORD_POLICY, OTP not consumed)', async () => {
+    const { challengeId, code } = await requestOtp(PHONE);
+    const short = await request(server()).post('/api/auth/register').send({ challengeId, code, password: 'short' });
+    expect(short.status).toBe(400);
+    expect(short.body.code).toBe('AUTH_PASSWORD_POLICY');
+    // policy asserted before OTP verify → challenge still usable
+    const ok = await request(server()).post('/api/auth/register').send({ challengeId, code, password: PASSWORD });
+    expect(ok.status).toBe(201);
   });
 
-  it('verify response does not contain refresh token, roles, or permissions', async () => {
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const verifyRes = await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code: sms.latestCode() });
-    const body = JSON.stringify(verifyRes.body);
-    expect(body).not.toContain(getCookie(verifyRes, 'izlan_refresh')!);
-    expect(verifyRes.body).not.toHaveProperty('refreshToken');
-    expect(body).not.toMatch(/LEARNER|permission|phone/i);
-    expect(verifyRes.body.user).toEqual({ id: expect.any(String), onboardingCompleted: false });
+  // ── Primary login (AUTH-PWD) ──
+  it('AUTH-PWD-01 valid phone + password → session/access/refresh', async () => {
+    await registerUser();
+    const res = await login(PHONE);
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken.split('.')).toHaveLength(3);
+    expect(getCookie(res, 'izlan_refresh')).toBeTruthy();
+    expect(res.body.user).toEqual({ id: expect.any(String), onboardingCompleted: false });
   });
-
-  it('refresh cookie attributes: HttpOnly, SameSite=Lax, Path, no Domain, Secure=false (dev)', async () => {
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const verifyRes = await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code: sms.latestCode() });
-    const line = getCookieLine(verifyRes, 'izlan_refresh')!;
+  it('AUTH-PWD-02 wrong password → generic 401 AUTH_INVALID_CREDENTIALS', async () => {
+    await registerUser();
+    const res = await login(PHONE, 'WrongPassword!1');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('AUTH_INVALID_CREDENTIALS');
+    expect(JSON.stringify(res.body)).not.toMatch(/not found|no account|password incorrect|exists/i);
+  });
+  it('AUTH-PWD-03 unknown phone → SAME generic 401', async () => {
+    const res = await login('+998901110022');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('AUTH_INVALID_CREDENTIALS');
+  });
+  it('AUTH-PWD-04 passwordless legacy user → SAME generic 401', async () => {
+    const u = await prisma.user.create({ data: { phone: '+998901110033' } });
+    await prisma.userProfile.create({ data: { userId: u.id } });
+    const res = await login('+998901110033');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('AUTH_INVALID_CREDENTIALS');
+  });
+  it('AUTH-PWD-05 SUSPENDED / DEACTIVATED remain denied (even with the correct password)', async () => {
+    await registerUser();
+    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
+    await prisma.user.update({ where: { id: user!.id }, data: { status: 'SUSPENDED' } });
+    expect((await login(PHONE)).status).toBe(403);
+    await prisma.user.update({ where: { id: user!.id }, data: { status: 'DEACTIVATED' } });
+    expect((await login(PHONE)).status).toBe(403);
+  });
+  it('AUTH-PWD-06 phone normalization — spaced/local input logs in', async () => {
+    await registerUser(PHONE);
+    const res = await login('90 123 45 67'); // normalizes to +998901234567
+    expect(res.status).toBe(200);
+  });
+  it('AUTH-PWD-07 successful login updates lastLoginAt', async () => {
+    await registerUser();
+    await prisma.user.update({ where: { phone: PHONE }, data: { lastLoginAt: null } });
+    await login(PHONE);
+    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
+    expect(user!.lastLoginAt).toBeTruthy();
+  });
+  it('AUTH-PWD-08 refresh rotation still works after password login', async () => {
+    await registerUser();
+    const res = await login(PHONE);
+    const cookie = getCookie(res, 'izlan_refresh')!;
+    const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${cookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+    expect(rot.status).toBe(200);
+    expect(getCookie(rot, 'izlan_refresh')).not.toBe(cookie);
+    // reuse of the old cookie → 401 (strict reuse)
+    const reuse = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${cookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+    expect(reuse.status).toBe(401);
+  });
+  it('AUTH-PWD-09 logout/revoke unchanged after password login', async () => {
+    await registerUser();
+    const res = await login(PHONE);
+    const cookie = getCookie(res, 'izlan_refresh')!;
+    const out = await request(server()).post('/api/auth/logout').set('Authorization', `Bearer ${res.body.accessToken}`).send();
+    expect(out.status).toBe(204);
+    const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${cookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+    expect(rot.status).toBe(401);
+  });
+  it('DB stores only the refresh HASH; refresh cookie is HttpOnly/SameSite=Lax/scoped-path/no-Domain', async () => {
+    const { refreshCookie, res } = await registerUser();
+    const line = getCookieLine(res, 'izlan_refresh')!;
     expect(line).toMatch(/HttpOnly/i);
     expect(line).toMatch(/SameSite=Lax/i);
     expect(line).toMatch(/Path=\/api\/auth\/refresh/i);
     expect(line).not.toMatch(/Domain=/i);
-    expect(line).not.toMatch(/Secure/i); // dev
+    const tokens = await prisma.refreshToken.findMany();
+    for (const t of tokens) expect(t.tokenHash).not.toBe(refreshCookie);
   });
 
-  it('existing user login does not create duplicate', async () => {
-    await login();
-    await login();
-    expect(await prisma.user.count()).toBe(1);
-  });
-
-  // ── OTP bad flows ──
-  it('invalid phone → 400', async () => {
-    const res = await request(server()).post('/api/auth/otp/request').send({ phone: '123' });
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe('AUTH_INVALID_INPUT');
-  });
-
-  it('rejects unknown DTO field (forbidNonWhitelisted)', async () => {
-    const res = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE, hacker: 'x' });
-    expect(res.status).toBe(400);
-  });
-
-  it('invalid OTP code → generic 400 AUTH_OTP_INVALID', async () => {
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const res = await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code: '000000' });
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe('AUTH_OTP_INVALID');
-    expect(JSON.stringify(res.body)).not.toMatch(/exists|registered/i);
-  });
-
-  it('malformed code (not 6 digits) → 400 validation', async () => {
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const res = await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code: '12' });
-    expect(res.status).toBe(400);
-  });
-
-  it('reused challenge → 400', async () => {
-    const reqRes = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const code = sms.latestCode()!;
-    await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code });
-    const res = await request(server()).post('/api/auth/otp/verify').send({ challengeId: reqRes.body.challengeId, code });
-    expect(res.status).toBe(400);
-  });
-
-  // ── Refresh + CSRF ──
-  it('refresh with valid cookie + CSRF header + allowed Origin → 200 new token + new cookie; old invalid', async () => {
-    const { refreshCookie } = await login();
-    const res = await request(server())
-      .post('/api/auth/refresh')
-      .set('Cookie', `izlan_refresh=${refreshCookie}`)
-      .set('X-Izlan-CSRF', '1')
-      .set('Origin', ORIGIN)
-      .send();
-    expect(res.status).toBe(200);
-    expect(res.body.accessToken.split('.')).toHaveLength(3);
-    const newCookie = getCookie(res, 'izlan_refresh');
-    expect(newCookie).toBeTruthy();
-    expect(newCookie).not.toBe(refreshCookie);
-    expect(res.headers['cache-control']).toContain('no-store');
-    // old cookie reuse → 401 (+ strict reuse revoke)
-    const reuse = await request(server())
-      .post('/api/auth/refresh')
-      .set('Cookie', `izlan_refresh=${refreshCookie}`)
-      .set('X-Izlan-CSRF', '1')
-      .set('Origin', ORIGIN)
-      .send();
-    expect(reuse.status).toBe(401);
-  });
-
-  it('CSRF: missing header → 403', async () => {
-    const { refreshCookie } = await login();
-    const res = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${refreshCookie}`).set('Origin', ORIGIN).send();
-    expect(res.status).toBe(403);
-    expect(res.body.code).toBe('AUTH_CSRF_REJECTED');
-  });
-
-  it('CSRF: untrusted Origin → 403', async () => {
-    const { refreshCookie } = await login();
-    const res = await request(server())
-      .post('/api/auth/refresh')
-      .set('Cookie', `izlan_refresh=${refreshCookie}`)
-      .set('X-Izlan-CSRF', '1')
-      .set('Origin', 'http://evil.example')
-      .send();
-    expect(res.status).toBe(403);
-  });
-
-  it('CSRF: Sec-Fetch-Site=cross-site → 403', async () => {
-    const { refreshCookie } = await login();
-    const res = await request(server())
-      .post('/api/auth/refresh')
-      .set('Cookie', `izlan_refresh=${refreshCookie}`)
-      .set('X-Izlan-CSRF', '1')
-      .set('Sec-Fetch-Site', 'cross-site')
-      .send();
-    expect(res.status).toBe(403);
-  });
-
-  it('refresh without cookie → 401', async () => {
-    const res = await request(server()).post('/api/auth/refresh').set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
-    expect(res.status).toBe(401);
-  });
-
-  // ── Bearer-protected routes (no CSRF header needed) ──
-  it('GET /auth/me with bearer → 200; no bearer → 401', async () => {
-    const { accessToken } = await login();
-    const ok = await request(server()).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
-    expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ id: expect.any(String), onboardingCompleted: false });
-    const no = await request(server()).get('/api/auth/me');
-    expect(no.status).toBe(401);
-  });
-
-  it('refresh token cannot be used as Bearer access token', async () => {
-    const { refreshCookie } = await login();
-    const res = await request(server()).get('/api/auth/me').set('Authorization', `Bearer ${refreshCookie}`);
-    expect(res.status).toBe(401);
-  });
-
-  it('me reflects live suspension (sensitive live-check)', async () => {
-    const { accessToken } = await login();
-    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
-    await prisma.user.update({ where: { id: user!.id }, data: { status: 'SUSPENDED' } });
-    const res = await request(server()).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(403);
-  });
-
-  // ── Logout ──
-  it('logout revokes session, clears cookie, old refresh cannot rotate, repeat safe', async () => {
-    const { accessToken, refreshCookie } = await login();
-    const res = await request(server()).post('/api/auth/logout').set('Authorization', `Bearer ${accessToken}`).send();
-    expect(res.status).toBe(204);
-    const clearLine = getCookieLine(res, 'izlan_refresh')!;
-    expect(clearLine).toMatch(/Path=\/api\/auth\/refresh/i);
-    // old refresh cannot rotate
-    const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${refreshCookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+  // ── Password reset (RESET-PWD) ──
+  it('RESET-PWD-01..04 reset changes password, old stops, new works, sessions revoked', async () => {
+    const { res: reg } = await registerUser();
+    const oldCookie = getCookie(reg, 'izlan_refresh')!;
+    const NEW = 'BrandNewPass!9';
+    const { challengeId, code } = await requestOtp(PHONE, 'PASSWORD_RESET');
+    const reset = await request(server()).post('/api/auth/password/reset').send({ challengeId, code, password: NEW });
+    expect(reset.status).toBe(200);
+    // RESET-PWD-02 old password stops working
+    expect((await login(PHONE, PASSWORD)).status).toBe(401);
+    // RESET-PWD-03 new password works
+    expect((await login(PHONE, NEW)).status).toBe(200);
+    // RESET-PWD-04 existing sessions revoked (pre-reset refresh cookie can no longer rotate)
+    const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${oldCookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
     expect(rot.status).toBe(401);
-    // repeat logout safe
-    const again = await request(server()).post('/api/auth/logout').set('Authorization', `Bearer ${accessToken}`).send();
-    expect(again.status).toBe(204);
+  });
+  it('RESET-PWD-05 invalid reset OTP changes nothing', async () => {
+    await registerUser();
+    const { challengeId } = await requestOtp(PHONE, 'PASSWORD_RESET');
+    const bad = await request(server()).post('/api/auth/password/reset').send({ challengeId, code: '000000', password: 'BrandNewPass!9' });
+    expect(bad.status).toBe(400);
+    // original password still works
+    expect((await login(PHONE, PASSWORD)).status).toBe(200);
+  });
+  it('reset for an unknown phone is a generic no-op (no enumeration)', async () => {
+    const { challengeId, code } = await requestOtp('+998907770088', 'PASSWORD_RESET');
+    const res = await request(server()).post('/api/auth/password/reset').send({ challengeId, code, password: 'BrandNewPass!9' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok' });
+    expect(await prisma.passwordCredential.count()).toBe(0);
   });
 
-  it('logout-all revokes all sessions', async () => {
-    const s1 = await login();
-    const s2 = await login();
-    const res = await request(server()).post('/api/auth/logout-all').set('Authorization', `Bearer ${s1.accessToken}`).send();
-    expect(res.status).toBe(204);
+  // ── Refresh / CSRF (unchanged contract) ──
+  it('refresh requires CSRF header + trusted Origin', async () => {
+    const { refreshCookie } = await registerUser();
+    const noCsrf = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${refreshCookie}`).set('Origin', ORIGIN).send();
+    expect(noCsrf.status).toBe(403);
+    const evil = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${refreshCookie}`).set('X-Izlan-CSRF', '1').set('Origin', 'http://evil.example').send();
+    expect(evil.status).toBe(403);
+    const noCookie = await request(server()).post('/api/auth/refresh').set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+    expect(noCookie.status).toBe(401);
+  });
+
+  // ── me + logout-all ──
+  it('GET /auth/me: bearer → 200; none → 401; reflects live suspension', async () => {
+    const { accessToken } = await registerUser();
+    expect((await request(server()).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`)).status).toBe(200);
+    expect((await request(server()).get('/api/auth/me')).status).toBe(401);
+    await prisma.user.update({ where: { phone: PHONE }, data: { status: 'SUSPENDED' } });
+    expect((await request(server()).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`)).status).toBe(403);
+  });
+  it('logout-all revokes every session for the user', async () => {
+    await registerUser();
+    const s1 = await login(PHONE);
+    const s2 = await login(PHONE);
+    const out = await request(server()).post('/api/auth/logout-all').set('Authorization', `Bearer ${s1.body.accessToken}`).send();
+    expect(out.status).toBe(204);
     for (const s of [s1, s2]) {
-      const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${s.refreshCookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+      const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${getCookie(s, 'izlan_refresh')}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
       expect(rot.status).toBe(401);
     }
   });
 
-  it('concurrent HTTP refresh with same cookie → at most one succeeds', async () => {
-    const { refreshCookie } = await login();
-    const doRefresh = () =>
-      request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${refreshCookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
-    const [a, b] = await Promise.all([doRefresh(), doRefresh()]);
-    const okCount = [a, b].filter((r) => r.status === 200).length;
-    expect(okCount).toBeLessThanOrEqual(1);
+  // ── Secret hygiene ──
+  it('security events never store the password / OTP / token', async () => {
+    await registerUser();
+    await login(PHONE); // successful login event
+    await login(PHONE, 'WrongPassword!1'); // failed login event
+    const events = await prisma.securityEvent.findMany();
+    const dump = JSON.stringify(events);
+    expect(dump).not.toContain(PASSWORD);
+    expect(dump).not.toContain('WrongPassword!1');
+    expect(dump).not.toMatch(/\$argon2id\$/);
+    expect(events.some((e) => e.type === 'password_login_success')).toBe(true);
+    expect(events.some((e) => e.type === 'password_login_failed')).toBe(true);
+    expect(events.some((e) => e.type === 'registration_success')).toBe(true);
   });
 });

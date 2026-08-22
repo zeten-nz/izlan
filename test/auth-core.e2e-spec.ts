@@ -111,7 +111,7 @@ describe('Auth Core (integration, izlan_test)', () => {
   // ── OTP ──
   describe('OTP lifecycle', () => {
     it('issues challenge hash-only (no plaintext stored)', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       const row = await prisma.otpChallenge.findUnique({ where: { id: issued.challengeId } });
       expect(row!.codeHash).not.toContain(issued.code);
       expect(row!.codeHash).toMatch(/^[0-9a-f]{64}$/);
@@ -119,17 +119,17 @@ describe('Auth Core (integration, izlan_test)', () => {
     });
 
     it('resend invalidates previous active challenge', async () => {
-      const first = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      const first = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       // cooldown'ni chetlab o'tish uchun birinchini o'tmishga suramiz
       await prisma.otpChallenge.update({ where: { id: first.challengeId }, data: { createdAt: new Date(Date.now() - 120_000) } });
-      await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       const firstRow = await prisma.otpChallenge.findUnique({ where: { id: first.challengeId } });
       expect(firstRow!.invalidatedAt).toBeTruthy();
     });
 
     it('blocks resend within cooldown', async () => {
-      await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
-      await expect(otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN })).rejects.toBeInstanceOf(OtpCooldownError);
+      await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
+      await expect(otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION })).rejects.toBeInstanceOf(OtpCooldownError);
     });
 
     it('enforces per-phone hourly limit (DB-backed)', async () => {
@@ -137,22 +137,22 @@ describe('Auth Core (integration, izlan_test)', () => {
       const past = new Date(Date.now() - 300_000); // 5 min ago (cooldown o'tgan, 1h ichida)
       for (let i = 0; i < 5; i++) {
         await prisma.otpChallenge.create({
-          data: { phone: PHONE, purpose: OtpPurpose.LOGIN, codeHash, expiresAt: new Date(Date.now() + 60_000), createdAt: past },
+          data: { phone: PHONE, purpose: OtpPurpose.REGISTRATION, codeHash, expiresAt: new Date(Date.now() + 60_000), createdAt: past },
         });
       }
-      await expect(otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN })).rejects.toBeInstanceOf(OtpRateLimitError);
+      await expect(otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION })).rejects.toBeInstanceOf(OtpRateLimitError);
     });
 
     it('increments attempts on wrong code and locks at max', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       for (let i = 0; i < 4; i++) {
         await expect(
-          otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: '000000' }),
+          otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: '000000' }),
         ).rejects.toBeInstanceOf(OtpInvalidError);
       }
       // 5-inchi wrong → lock
       await expect(
-        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: '000000' }),
+        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: '000000' }),
       ).rejects.toBeInstanceOf(OtpLockedError);
       const row = await prisma.otpChallenge.findUnique({ where: { id: issued.challengeId } });
       expect(row!.attemptCount).toBe(5);
@@ -160,27 +160,27 @@ describe('Auth Core (integration, izlan_test)', () => {
     });
 
     it('rejects expired challenge', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       await prisma.otpChallenge.update({ where: { id: issued.challengeId }, data: { expiresAt: new Date(Date.now() - 1000) } });
       await expect(
-        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: issued.code }),
+        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: issued.code }),
       ).rejects.toBeInstanceOf(OtpExpiredError);
     });
 
     it('consumes on success, rejects reuse', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
-      const res = await otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: issued.code });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
+      const res = await otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: issued.code });
       expect(res.canonicalPhone).toBe(PHONE);
       const row = await prisma.otpChallenge.findUnique({ where: { id: issued.challengeId } });
       expect(row!.consumedAt).toBeTruthy();
       await expect(
-        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: issued.code }),
+        otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: issued.code }),
       ).rejects.toBeInstanceOf(OtpInvalidError);
     });
 
     it('parallel verify → only one success', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
-      const attempt = () => otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.LOGIN, code: issued.code });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
+      const attempt = () => otp.verifyChallenge({ challengeId: issued.challengeId, phone: PHONE, purpose: OtpPurpose.REGISTRATION, code: issued.code });
       const results = await Promise.allSettled([attempt(), attempt()]);
       const ok = results.filter((r) => r.status === 'fulfilled').length;
       expect(ok).toBe(1);
@@ -293,7 +293,7 @@ describe('Auth Core (integration, izlan_test)', () => {
   // ── Security event hygiene ──
   describe('security events', () => {
     it('records otp_requested / session_created without OTP or token secrets', async () => {
-      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.LOGIN });
+      const issued = await otp.issueChallenge({ phone: PHONE, purpose: OtpPurpose.REGISTRATION });
       const user = await users.createLearnerAfterVerifiedPhone(PHONE);
       const created = await sessions.createSession({ userId: user.id, platform: 'web' });
 

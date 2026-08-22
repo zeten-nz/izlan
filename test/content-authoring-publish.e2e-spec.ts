@@ -105,7 +105,7 @@ describe('Content authoring — review + publication + visibility (e2e, izlan_te
   async function makeUser() {
     const ph = phone();
     const req = await request(server()).post('/api/auth/otp/request').send({ phone: ph });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone: ph } });
     return { token: verify.body.accessToken, userId: user!.id };
   }

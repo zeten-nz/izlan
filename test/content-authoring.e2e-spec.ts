@@ -69,7 +69,7 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
   async function makeUser(): Promise<{ token: string; userId: string }> {
     const ph = phone();
     const req = await request(server()).post('/api/auth/otp/request').send({ phone: ph });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone: ph } });
     return { token: verify.body.accessToken, userId: user!.id };
   }

@@ -25,3 +25,6 @@ process.env.AUTH_COOKIE_SECURE = 'false';
 process.env.CORS_ORIGINS = 'http://localhost:3001';
 // HTTP e2e ko'p login qiladi; per-IP limiter in-memory (cleanup qilmaydi) — test uchun yuqori.
 process.env.AUTH_OTP_IP_HOURLY_LIMIT = '1000';
+// Password-login limiter is the SAME in-memory limiter (no per-test reset) — raise for the suite (within max bounds, TD-252).
+process.env.AUTH_LOGIN_IP_HOURLY_LIMIT = '1000';
+process.env.AUTH_LOGIN_PHONE_HOURLY_LIMIT = '500';

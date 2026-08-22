@@ -25,6 +25,8 @@ export interface AuthConfig {
   otpPhoneHourlyLimit: number;
   otpPhoneDailyLimit: number;
   otpIpHourlyLimit: number;
+  loginIpHourlyLimit: number; // TD-252 password-login protection (per source IP)
+  loginPhoneHourlyLimit: number; // TD-252 password-login protection (per canonical phone)
   sessionIdleTtlDays: number;
   sessionAbsoluteTtlDays: number;
   cookieSecure: boolean;
@@ -164,6 +166,8 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     otpPhoneHourlyLimit: parseIntEnv(raw, 'AUTH_OTP_PHONE_HOURLY_LIMIT', 5, 1, 100, errors),
     otpPhoneDailyLimit: parseIntEnv(raw, 'AUTH_OTP_PHONE_DAILY_LIMIT', 10, 1, 500, errors),
     otpIpHourlyLimit: parseIntEnv(raw, 'AUTH_OTP_IP_HOURLY_LIMIT', 10, 1, 1000, errors),
+    loginIpHourlyLimit: parseIntEnv(raw, 'AUTH_LOGIN_IP_HOURLY_LIMIT', 30, 1, 1000, errors),
+    loginPhoneHourlyLimit: parseIntEnv(raw, 'AUTH_LOGIN_PHONE_HOURLY_LIMIT', 10, 1, 500, errors),
     sessionIdleTtlDays: parseIntEnv(raw, 'AUTH_SESSION_IDLE_TTL_DAYS', 30, 1, 365, errors),
     sessionAbsoluteTtlDays: parseIntEnv(raw, 'AUTH_SESSION_ABSOLUTE_TTL_DAYS', 90, 1, 730, errors),
     cookieSecure,

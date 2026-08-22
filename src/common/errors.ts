@@ -31,6 +31,11 @@ export class RefreshReuseDetectedError extends DomainError {}
 export class AccountUnavailableError extends DomainError {}
 export class DuplicatePhoneError extends DomainError {}
 
+// Password auth (TD-252)
+export class PasswordPolicyError extends DomainError {}
+export class InvalidCredentialsError extends DomainError {} // generic — unknown phone / no credential / wrong password
+export class AuthRateLimitError extends DomainError {}
+
 // Access token (JWT)
 export class AccessTokenInvalidError extends DomainError {}
 

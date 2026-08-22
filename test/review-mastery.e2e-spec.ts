@@ -72,7 +72,7 @@ describe('Review mastery + merge-v2 + signal recovery (e2e, izlan_test)', () => 
   async function makeLearner(phone: string) {
     await prisma.otpChallenge.updateMany({ where: { phone }, data: { createdAt: new Date(Date.now() - 300_000) } });
     const req = await request(server()).post('/api/auth/otp/request').send({ phone });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone } });
     await prisma.userProfile.update({ where: { userId: user!.id }, data: { displayName: 'A', dateOfBirth: new Date('2005-01-01'), timezone: 'Asia/Tashkent', onboardingCompletedAt: new Date() } });
     return { token: verify.body.accessToken, userId: user!.id };
