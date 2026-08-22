@@ -13,6 +13,7 @@ export const SecurityEventType = {
   LOGIN_SUCCESS: 'login_success',
   // Password auth (TD-252)
   REGISTRATION_SUCCESS: 'registration_success',
+  PASSWORD_LOGIN_ATTEMPT: 'password_login_attempt', // one row per ALLOWED attempt — the DB-backed rate-limit counter
   PASSWORD_LOGIN_SUCCESS: 'password_login_success',
   PASSWORD_LOGIN_FAILED: 'password_login_failed',
   PASSWORD_RESET_REQUESTED: 'password_reset_requested',

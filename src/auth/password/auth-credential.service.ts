@@ -6,6 +6,8 @@ import { UsersRepository } from '../../users/users.repository';
 import { SYSTEM_ROLE } from '../../users/users.service';
 import { normalizeUzPhone } from '../../users/phone.util';
 import { DuplicatePhoneError } from '../../common/errors';
+import { SessionsService } from '../sessions/sessions.service';
+import { SecurityEventsService, SecurityEventType } from '../../security/security-events.service';
 import { PASSWORD_HASHER, type PasswordHasher } from './password-hasher';
 import { PasswordCredentialRepository } from './password-credential.repository';
 
@@ -23,6 +25,8 @@ export class AuthCredentialService {
     private readonly usersRepo: UsersRepository,
     private readonly authz: AuthorizationRepository,
     private readonly credentials: PasswordCredentialRepository,
+    private readonly sessions: SessionsService,
+    private readonly securityEvents: SecurityEventsService,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
   ) {}
 
@@ -55,17 +59,24 @@ export class AuthCredentialService {
   }
 
   /**
-   * Replace/establish the password after a verified PASSWORD_RESET OTP. Enumeration-safe: an unknown phone is a silent
-   * no-op (returns null) rather than revealing non-existence. Returns the affected userId so the caller can revoke
-   * that user's existing sessions (§11/23).
+   * ATOMIC password reset after a verified PASSWORD_RESET OTP (Blocker B, §8-11). In ONE transaction: replace the
+   * credential AND revoke ALL of the user's AuthSessions + RefreshTokens AND record the authoritative security events —
+   * all commit or roll back together (a stolen refresh must never survive a reset, and a credential change must never
+   * commit if revocation fails). Enumeration-safe: an unknown phone is a silent no-op (returns null). The password is
+   * hashed BEFORE the transaction opens.
    */
   async resetPassword(canonicalPhone: string, password: string): Promise<{ userId: string } | null> {
     const phone = normalizeUzPhone(canonicalPhone);
-    const user = await this.usersRepo.findByCanonicalPhone(phone);
-    if (!user) return null;
-    const passwordHash = await this.hasher.hash(password);
-    await this.credentials.upsert(user.id, passwordHash);
-    return { userId: user.id };
+    const passwordHash = await this.hasher.hash(password); // hashing outside the DB transaction
+    return await this.prisma.$transaction(async (tx) => {
+      const user = await this.usersRepo.findByCanonicalPhone(phone, tx);
+      if (!user) return null; // no credential change, no revocation, no event
+      await this.credentials.upsert(user.id, passwordHash, tx);
+      const revokedCount = await this.sessions.revokeAllUserSessionsInTransaction(tx, user.id, 'password_reset');
+      await this.securityEvents.record({ type: SecurityEventType.PASSWORD_RESET_SUCCESS, userId: user.id }, tx);
+      await this.securityEvents.record({ type: SecurityEventType.ALL_SESSIONS_REVOKED, userId: user.id, metadata: { reason: 'password_reset', revokedCount } }, tx);
+      return { userId: user.id };
+    });
   }
 
   /** Verify phone+password. Returns the User on success, else null. Timing-equalized + enumeration-safe. */

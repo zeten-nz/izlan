@@ -7,6 +7,7 @@ import { OtpPurpose } from '../otp/otp-purpose';
 import { SessionsService } from '../sessions/sessions.service';
 import { AccessTokenService } from '../access-token/access-token.service';
 import { AuthCredentialService } from '../password/auth-credential.service';
+import { PasswordLoginRateLimiter } from '../password/password-login-rate-limiter';
 import { assertPasswordPolicy } from '../password/password-policy';
 import { UsersService } from '../../users/users.service';
 import { normalizeUzPhone } from '../../users/phone.util';
@@ -35,9 +36,10 @@ export class AuthController {
     private readonly sessions: SessionsService,
     private readonly accessToken: AccessTokenService,
     private readonly credentials: AuthCredentialService,
+    private readonly passwordLoginLimiter: PasswordLoginRateLimiter,
     private readonly users: UsersService,
     private readonly securityEvents: SecurityEventsService,
-    private readonly rateLimiter: InMemoryAuthRateLimiter,
+    private readonly rateLimiter: InMemoryAuthRateLimiter, // legacy/non-authoritative — used only for otp/request
     @Inject(SMS_PORT) private readonly sms: SmsPort,
   ) {
     this.auth = config.getOrThrow<AuthConfig>('auth');
@@ -56,25 +58,31 @@ export class AuthController {
   @HttpCode(200)
   async login(@Body() dto: LoginDto, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
     const ip = req.ip;
-    // Password-login protection by IP + canonical phone (reuse the shared limiter; emit a security event on trip).
-    let phoneKey = 'invalid';
+    // Password-login protection by IP + canonical phone — DB-backed, CROSS-PROCESS authority (Blocker A). Invalid phone
+    // → IP-only (§6). One PASSWORD_LOGIN_ATTEMPT is consumed BEFORE Argon2 verification.
+    let canonicalPhone: string | null = null;
     try {
-      phoneKey = normalizeUzPhone(dto.phone);
+      canonicalPhone = normalizeUzPhone(dto.phone);
     } catch {
-      /* keep 'invalid' — still rate-limited, still generic failure */
+      canonicalPhone = null; // still IP-rate-limited, still generic failure
     }
-    if (
-      !this.rateLimiter.tryConsume(`login:ip:${ip}`, this.auth.loginIpHourlyLimit, HOUR_MS) ||
-      !this.rateLimiter.tryConsume(`login:phone:${phoneKey}`, this.auth.loginPhoneHourlyLimit, HOUR_MS)
-    ) {
-      await this.securityEvents.record({ type: SecurityEventType.RATE_LIMIT_TRIGGERED, ip, metadata: { scope: 'password_login', phone: maskPhone(phoneKey) } });
+    const maskedPhone = maskPhone(canonicalPhone ?? 'invalid');
+    const decision = await this.passwordLoginLimiter.consume({
+      ip,
+      canonicalPhone,
+      ipLimit: this.auth.loginIpHourlyLimit,
+      phoneLimit: this.auth.loginPhoneHourlyLimit,
+      windowMs: HOUR_MS,
+    });
+    if (!decision.allowed) {
+      await this.securityEvents.record({ type: SecurityEventType.RATE_LIMIT_TRIGGERED, ip, metadata: { scope: 'password_login', phone: maskedPhone } });
       throw new AuthRateLimitError('login rate limit reached');
     }
 
     const user = await this.credentials.verifyCredentials(dto.phone, dto.password);
     if (!user) {
       // Unknown phone / no credential / wrong password → ONE generic 401 (no enumeration, §7).
-      await this.securityEvents.record({ type: SecurityEventType.PASSWORD_LOGIN_FAILED, ip, metadata: { phone: maskPhone(phoneKey) } });
+      await this.securityEvents.record({ type: SecurityEventType.PASSWORD_LOGIN_FAILED, ip, metadata: { phone: maskedPhone } });
       throw new InvalidCredentialsError('invalid credentials');
     }
 
@@ -148,12 +156,9 @@ export class AuthController {
     assertPasswordPolicy(dto.password);
     const { canonicalPhone } = await this.otp.verifyChallenge({ challengeId: dto.challengeId, purpose: OtpPurpose.PASSWORD_RESET, code: dto.code });
 
-    const result = await this.credentials.resetPassword(canonicalPhone, dto.password);
-    if (result) {
-      // A stolen refresh session must NOT survive a password reset (§11/23).
-      await this.sessions.revokeAllUserSessions(result.userId, 'password_reset');
-      await this.securityEvents.record({ type: SecurityEventType.PASSWORD_RESET_SUCCESS, userId: result.userId });
-    }
+    // ATOMIC (Blocker B): credential replacement + revoke-all sessions/tokens + events commit or roll back together.
+    // A stolen refresh must NOT survive a reset. Enumeration-safe: unknown phone is a silent no-op inside the service.
+    await this.credentials.resetPassword(canonicalPhone, dto.password);
     // Generic response either way — never reveal whether the phone had an account.
     return { status: 'ok' };
   }

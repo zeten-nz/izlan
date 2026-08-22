@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { AuthConfig } from '../../config/env.validation';
 import {
@@ -143,12 +144,19 @@ export class SessionsService {
     }
   }
 
+  /**
+   * Revoke ALL of a user's AuthSessions + their RefreshTokens within a CALLER-SUPPLIED transaction (§10). Preserves the
+   * revokedAt/reason + token-revoke semantics; emits NO event (the caller owns event atomicity). Returns the revoked
+   * session count. Reused by logout-all AND the atomic password-reset (so credential change + revocation commit together).
+   */
+  async revokeAllUserSessionsInTransaction(tx: Prisma.TransactionClient, userId: string, reason: string): Promise<number> {
+    const r = await this.sessions.revokeAllForUser(userId, reason, tx);
+    await this.tokens.revokeAllForUser(userId, tx);
+    return r.count;
+  }
+
   async revokeAllUserSessions(userId: string, reason: string): Promise<void> {
-    const count = await this.prisma.$transaction(async (tx) => {
-      const r = await this.sessions.revokeAllForUser(userId, reason, tx);
-      await this.tokens.revokeAllForUser(userId, tx);
-      return r.count;
-    });
+    const count = await this.prisma.$transaction((tx) => this.revokeAllUserSessionsInTransaction(tx, userId, reason));
     await this.securityEvents.record({
       type: SecurityEventType.ALL_SESSIONS_REVOKED,
       userId,

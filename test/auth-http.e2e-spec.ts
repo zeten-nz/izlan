@@ -7,6 +7,7 @@ import { PrismaService } from '../src/database/prisma.service';
 import { AuthorizationRepository } from '../src/authorization/authorization.repository';
 import { AuthExceptionFilter } from '../src/auth/http/auth-exception.filter';
 import { SMS_PORT } from '../src/sms/sms.port';
+import { SessionsService } from '../src/auth/sessions/sessions.service';
 import { bootstrapSystemRoles } from '../src/bootstrap/system-roles';
 import { cleanupAuthTables } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
@@ -27,6 +28,7 @@ function getCookieLine(res: request.Response, name: string): string | undefined 
 describe('Auth HTTP — phone + password (e2e, izlan_test)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
+  let sessions: SessionsService;
   const sms = new TestSmsAdapter();
   let n = 0;
   const PHONE = '+998901234567';
@@ -41,6 +43,7 @@ describe('Auth HTTP — phone + password (e2e, izlan_test)', () => {
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     prisma = moduleRef.get(PrismaService);
+    sessions = moduleRef.get(SessionsService);
     await cleanupAuthTables(prisma);
     await prisma.role.deleteMany();
     await bootstrapSystemRoles(moduleRef.get(AuthorizationRepository));
@@ -52,6 +55,7 @@ describe('Auth HTTP — phone + password (e2e, izlan_test)', () => {
   beforeEach(async () => {
     await cleanupAuthTables(prisma);
     sms.clear();
+    jest.restoreAllMocks();
   });
 
   const server = () => app.getHttpServer();
@@ -234,6 +238,53 @@ describe('Auth HTTP — phone + password (e2e, izlan_test)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
     expect(await prisma.passwordCredential.count()).toBe(0);
+  });
+
+  it('RESET-ATOMIC-01 credential change ROLLS BACK when session/token revocation fails', async () => {
+    const { res: reg } = await registerUser();
+    const oldCookie = getCookie(reg, 'izlan_refresh')!;
+    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
+    const oldHash = (await prisma.passwordCredential.findUnique({ where: { userId: user!.id } }))!.passwordHash;
+
+    // Inject a failure INSIDE the reset transaction (revoke-all step).
+    const spy = jest.spyOn(sessions, 'revokeAllUserSessionsInTransaction').mockRejectedValueOnce(new Error('revoke boom'));
+    const { challengeId, code } = await requestOtp(PHONE, 'PASSWORD_RESET');
+    const NEW = 'BrandNewPass!9';
+    const failed = await request(server()).post('/api/auth/password/reset').send({ challengeId, code, password: NEW });
+    expect(failed.status).toBe(500);
+    spy.mockRestore();
+
+    // Credential rolled back to the OLD hash → old password still works, new does NOT.
+    expect((await prisma.passwordCredential.findUnique({ where: { userId: user!.id } }))!.passwordHash).toBe(oldHash);
+    expect((await login(PHONE, PASSWORD)).status).toBe(200);
+    expect((await login(PHONE, NEW)).status).toBe(401);
+    // Session/token state unchanged (pre-reset refresh cookie still rotates); no success event persisted.
+    const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${oldCookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+    expect(rot.status).toBe(200);
+    expect(await prisma.securityEvent.count({ where: { type: 'password_reset_success', userId: user!.id } })).toBe(0);
+  });
+
+  it('RESET-ATOMIC-02 successful reset atomically replaces the credential AND revokes all sessions + tokens', async () => {
+    const { res: reg } = await registerUser();
+    const regCookie = getCookie(reg, 'izlan_refresh')!;
+    const login2 = await login(PHONE);
+    const login2Cookie = getCookie(login2, 'izlan_refresh')!;
+    const user = await prisma.user.findUnique({ where: { phone: PHONE } });
+
+    const NEW = 'FreshSecret!7';
+    const { challengeId, code } = await requestOtp(PHONE, 'PASSWORD_RESET');
+    expect((await request(server()).post('/api/auth/password/reset').send({ challengeId, code, password: NEW })).status).toBe(200);
+
+    expect((await login(PHONE, NEW)).status).toBe(200); // new works
+    expect((await login(PHONE, PASSWORD)).status).toBe(401); // old fails
+    // ALL pre-existing sessions revoked in the DB + their refresh cookies can no longer rotate.
+    expect(await prisma.authSession.count({ where: { userId: user!.id, revokedAt: null } })).toBe(1); // only the fresh post-reset login session
+    for (const cookie of [regCookie, login2Cookie]) {
+      const rot = await request(server()).post('/api/auth/refresh').set('Cookie', `izlan_refresh=${cookie}`).set('X-Izlan-CSRF', '1').set('Origin', ORIGIN).send();
+      expect(rot.status).toBe(401);
+    }
+    expect(await prisma.securityEvent.count({ where: { type: 'password_reset_success', userId: user!.id } })).toBe(1);
+    expect(await prisma.securityEvent.count({ where: { type: 'all_sessions_revoked', userId: user!.id } })).toBe(1);
   });
 
   // ── Refresh / CSRF (unchanged contract) ──
