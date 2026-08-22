@@ -8,6 +8,7 @@ import { listSubjects } from '@/lib/api/content';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useTheme } from '@/lib/theme/theme-context';
 import { useT } from '@/lib/i18n/i18n-context';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { dialogPanel, overlayFade } from '@/lib/motion/motion';
 
 interface Command {
@@ -30,12 +31,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Focus containment + restoration: initial focus to the search input, Tab trapped, focus restored to the opener.
+  useFocusTrap(panelRef, open, inputRef);
 
   useEffect(() => {
     if (open) {
       setQ('');
       setActive(0);
-      setTimeout(() => inputRef.current?.focus(), 40);
     }
   }, [open]);
 
@@ -93,6 +97,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         <div className="fixed inset-0 z-[90] flex items-start justify-center p-4 pt-[12vh]">
           <motion.div variants={overlayFade} initial="initial" animate="animate" exit="exit" className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
           <motion.div
+            ref={panelRef}
             variants={dialogPanel}
             initial="initial"
             animate="animate"

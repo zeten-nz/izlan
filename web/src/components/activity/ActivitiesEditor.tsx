@@ -17,10 +17,12 @@ import { AddActivityDialog, defaultPayloadFor } from './AddActivityDialog';
 import { describeError } from '@/lib/ui/error-text';
 
 function Sortable({ id, dragLabel, children }: { id: string; dragLabel: string; children: (handle: React.ReactNode) => React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  // Canonical dnd-kit handle pattern: setNodeRef marks the sortable ELEMENT; setActivatorNodeRef + attributes/listeners
+  // mark the drag HANDLE only (so the whole card isn't a drag surface). Never attach setNodeRef to the handle.
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
   const handle = (
-    <button ref={setNodeRef as unknown as React.Ref<HTMLButtonElement>} {...attributes} {...listeners} aria-label={dragLabel} className="cursor-grab touch-none text-muted hover:text-text">
+    <button ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={dragLabel} className="cursor-grab touch-none text-muted hover:text-text">
       <FiMove aria-hidden />
     </button>
   );

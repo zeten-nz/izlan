@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { Button, IconButton } from './primitives';
 import { useT } from '@/lib/i18n/i18n-context';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { dialogPanel, overlayFade } from '@/lib/motion/motion';
 
 /**
@@ -29,6 +30,9 @@ export function Dialog({
   const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Focus containment + restoration (initial focus, Tab wrap, restore to trigger on close).
+  useFocusTrap(panelRef, open);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -37,14 +41,9 @@ export function Dialog({
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const timer = setTimeout(() => {
-      const focusable = panelRef.current?.querySelector<HTMLElement>('input,textarea,select,button,[tabindex]:not([tabindex="-1"])');
-      focusable?.focus();
-    }, 30);
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
-      clearTimeout(timer);
     };
   }, [open, onClose]);
 
