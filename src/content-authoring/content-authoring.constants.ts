@@ -59,6 +59,8 @@ export const CONTENT_AUDIT = {
   REVISION_RETURN_DRAFT: 'content.revision.return_draft',
   REVISION_PUBLISH: 'content.revision.publish',
   LESSON_ARCHIVE: 'content.lesson.archive',
+  // Phase 2.2D — topic-scoped bulk content import (one aggregate event per applied batch)
+  IMPORT_APPLY: 'content.import.apply',
 } as const;
 
 /** StaffAudit.targetType stable values. */

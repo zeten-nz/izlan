@@ -3,19 +3,19 @@ import 'dotenv/config'; // .env → process.env (bootstrap validateEnv ConfigMod
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { validateEnv } from './config/env.validation';
 import { AuthExceptionFilter } from './auth/http/auth-exception.filter';
+import { createFastifyAdapter } from './bootstrap/http-adapter';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const env = validateEnv(process.env); // fail-fast (§11)
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({ trustProxy: env.trustProxy }),
-  );
+  // Ordinary API body ceiling stays at 1 MiB; ONLY the two bulk-import routes are raised to 5 MiB at the Fastify
+  // body-parser boundary (TD-253). One shared factory keeps production and e2e wiring identical.
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, createFastifyAdapter({ trustProxy: env.trustProxy }));
   const config = app.get(ConfigService);
 
   // Refresh cookie `cookie` paketi bilan controller boundary'da o'qiladi/yoziladi (cookie.util).

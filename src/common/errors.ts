@@ -182,3 +182,15 @@ export class ContentReviewNotReadyError extends DomainError {}
 export class ContentPublishNotReadyError extends DomainError {}
 export class ContentLifecycleConflictError extends DomainError {}
 export class ContentPublicationStateInvalidError extends DomainError {}
+
+// Phase 2.2D — Topic-scoped bulk content import (TD-253). Carries the specific stable IMPORT_* code + its HTTP status
+// so the exception filter maps it generically (no per-code class explosion). Never carries payload / answerKey / body.
+export class ContentImportError extends DomainError {
+  constructor(
+    readonly importCode: string,
+    readonly httpStatus: number,
+    message = 'import failed',
+  ) {
+    super(message);
+  }
+}

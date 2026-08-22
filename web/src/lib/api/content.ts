@@ -1,5 +1,7 @@
 import { apiRequest } from './client';
 import type {
+  ImportValidateResponse,
+  ImportApplyResponse,
   Activity,
   ActivityDeleteResult,
   ActivityMutationResult,
@@ -166,3 +168,9 @@ export const publishRevision = (revisionId: string, body: { expectedRevisionUpda
   apiRequest<PublicationView>(`${B}/revisions/${revisionId}/publish`, { method: 'POST', body });
 export const archiveLesson = (lessonId: string, body: { expectedLessonUpdatedAt: string; reason: string }) =>
   apiRequest<ArchiveView>(`${B}/lessons/${lessonId}/archive`, { method: 'POST', body });
+
+// ── Bulk import (Phase 2.2D, TD-253) — topic-scoped. The document is sent as-is; the backend owns all validation. ──
+export const validateImport = (topicId: string, document: unknown) =>
+  apiRequest<ImportValidateResponse>(`${B}/topics/${topicId}/import/validate`, { method: 'POST', body: document });
+export const applyImport = (topicId: string, document: unknown) =>
+  apiRequest<ImportApplyResponse>(`${B}/topics/${topicId}/import/apply`, { method: 'POST', body: document });

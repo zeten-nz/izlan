@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "skills": [
+    { "code": "DEMO-BE", "name": "Demo: verb to be", "description": "Fake demo skill — not pilot content.", "sortOrder": 10 },
+    { "code": "DEMO-HAVE", "name": "Demo: verb to have", "sortOrder": 20 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "DEMO-A1-0001",
+      "slug": "demo-verb-to-be",
+      "sortOrder": 10,
+      "skillCodes": ["DEMO-BE"],
+      "revision": {
+        "title": "Demo — verb to be",
+        "description": "Demonstration lesson for the bulk-import contract.",
+        "activities": [
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**to be** — am / is / are. This is fake demo content." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["DEMO-BE"],
+            "payload": {
+              "schemaVersion": "lesson-activity-objective/v1",
+              "format": "single_choice",
+              "prompt": "I ___ a student.",
+              "options": [
+                { "id": "a", "text": "am" },
+                { "id": "b", "text": "is" }
+              ],
+              "answerKey": { "correctOptionIds": ["a"] }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "DEMO-A1-0002",
+      "slug": "demo-verb-to-have",
+      "sortOrder": 20,
+      "skillCodes": ["DEMO-HAVE"],
+      "prerequisiteContentKeys": ["DEMO-A1-0001"],
+      "revision": {
+        "title": "Demo — verb to have",
+        "activities": [
+          {
+            "type": "TEXT",
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**to have** — have / has. Fake demo content." }
+          }
+        ]
+      }
+    }
+  ]
+}

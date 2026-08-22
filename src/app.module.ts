@@ -23,6 +23,7 @@ import { XpModule } from './xp/xp.module';
 import { FinanceModule } from './finance/finance.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ContentAuthoringModule } from './content-authoring/content-authoring.module';
+import { ContentImportModule } from './content-import/content-import.module';
 
 /**
  * AppModule — foundational (Config/Database/Health) + auth core + learner flow (…/LearningProgress/
@@ -55,6 +56,7 @@ import { ContentAuthoringModule } from './content-authoring/content-authoring.mo
     FinanceModule,
     PaymentsModule,
     ContentAuthoringModule,
+    ContentImportModule,
   ],
 })
 export class AppModule {}

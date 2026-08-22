@@ -26,6 +26,7 @@ import {
   ContentEditConflictError,
   ContentNotDraftError,
   ContentNotFoundError,
+  ContentImportError,
   ContentPrerequisiteCycleError,
   ContentPrerequisiteInvalidError,
   ContentLifecycleConflictError,
@@ -263,6 +264,9 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ContentPublishNotReadyError) return { statusCode: 409, code: 'CONTENT_PUBLISH_NOT_READY', message: 'revision is not ready to publish' };
     if (e instanceof ContentLifecycleConflictError) return { statusCode: 409, code: 'CONTENT_LIFECYCLE_CONFLICT', message: 'invalid lifecycle transition' };
     if (e instanceof ContentPublicationStateInvalidError) return { statusCode: 409, code: 'CONTENT_PUBLICATION_STATE_INVALID', message: 'publication state is invalid' };
+
+    // Phase 2.2D — bulk import: the specific IMPORT_* code + status travel on the error (leak-safe; no payload/body).
+    if (e instanceof ContentImportError) return { statusCode: e.httpStatus, code: e.importCode, message: 'import failed' };
 
     // Noma'lum (Prisma/internal) — generic 500, DETAIL LEAK YO'Q. Safe kategoriya log qilinadi.
     if (e instanceof DomainError) {
