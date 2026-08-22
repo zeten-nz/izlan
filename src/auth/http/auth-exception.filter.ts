@@ -3,6 +3,9 @@ import type { FastifyReply } from 'fastify';
 import {
   AccessTokenInvalidError,
   AccountUnavailableError,
+  AuthRateLimitError,
+  InvalidCredentialsError,
+  PasswordPolicyError,
   ActivityAttemptRequestConflictError,
   ActivityInvalidResponseError,
   ActivityNotFoundError,
@@ -147,9 +150,12 @@ export class AuthExceptionFilter implements ExceptionFilter {
       return { statusCode: 400, code: 'AUTH_OTP_INVALID', message: 'invalid or expired code' };
     }
     if (e instanceof OtpLockedError) return { statusCode: 429, code: 'AUTH_OTP_LOCKED', message: 'too many attempts' };
-    if (e instanceof OtpCooldownError || e instanceof OtpRateLimitError) {
+    if (e instanceof OtpCooldownError || e instanceof OtpRateLimitError || e instanceof AuthRateLimitError) {
       return { statusCode: 429, code: 'AUTH_RATE_LIMITED', message: 'too many requests' };
     }
+    // Password auth (TD-252): one generic 401 for unknown phone / no credential / wrong password (no enumeration).
+    if (e instanceof InvalidCredentialsError) return { statusCode: 401, code: 'AUTH_INVALID_CREDENTIALS', message: 'invalid phone or password' };
+    if (e instanceof PasswordPolicyError) return { statusCode: 400, code: 'AUTH_PASSWORD_POLICY', message: 'password must be 8 to 128 characters' };
     if (e instanceof AccountUnavailableError) {
       return { statusCode: 403, code: 'AUTH_ACCOUNT_UNAVAILABLE', message: 'account not available' };
     }

@@ -15,6 +15,7 @@ model User {
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
   profile            UserProfile?
+  passwordCredential PasswordCredential? // primary-login secret, separate from identity (TD-252)
   roles              UserRole[]
   subjectAssignments SubjectAssignment[] @relation("AssignmentMethodist")
   assignmentsGranted SubjectAssignment[] @relation("AssignmentGrantedBy")
@@ -170,6 +171,20 @@ model SubjectAssignment {
 // ============================================================================
 // AUTH (Phase 1.1) — TD-08..13. Sensitive secretlar faqat hash sifatida.
 // ============================================================================
+
+// Phone + password primary login (TD-252). Authentication SECRET kept out of the User identity row so future
+// Passkey/TOTP expansion stays clean. One-to-one with User; stores ONLY the Argon2id encoded hash (algo/params/salt
+// embedded by the library) — never plaintext, never a separate plaintext salt. Legacy users may have NO row.
+model PasswordCredential {
+  userId       String   @id @map("user_id") @db.Uuid
+  passwordHash String   @map("password_hash") // Argon2id encoded hash (PHC string) — TD-252
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_credential")
+}
 
 model AuthSession {
   id            String    @id @default(uuid(7)) @db.Uuid

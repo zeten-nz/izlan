@@ -76,4 +76,9 @@ export class UsersService {
     }
     return user;
   }
+
+  /** Stamp lastLoginAt on a successful authentication (TD-252). Best-effort; never blocks the login response. */
+  async recordLogin(userId: string): Promise<void> {
+    await this.repo.updateLastLogin(userId);
+  }
 }

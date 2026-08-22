@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Izlan Studio design tokens. Colors are RGB channel triplets ("R G B") so Tailwind's
+ * `rgb(var(--token) / <alpha-value>)` applies opacity. ONE token set defines light (:root) and dark (.dark).
+ * Both themes are intentionally designed (not an auto-inversion): calm, premium, content-first, restrained contrast.
+ */
+:root {
+  --radius-card: 0.875rem;
+
+  --color-bg: 247 247 249;
+  --color-surface: 255 255 255;
+  --color-surface-2: 243 244 247;
+  --color-border: 228 230 236;
+  --color-text: 24 27 34;
+  --color-muted: 107 114 128;
+  --color-primary: 91 79 244;
+  --color-primary-fg: 255 255 255;
+  --color-danger: 220 38 38;
+  --color-warning: 202 120 12;
+  --color-success: 21 148 68;
+  --color-info: 8 133 190;
+
+  --ring: var(--color-primary);
+  --shadow-color: 20 22 40;
+  --shadow-strength: 0.06;
+}
+
+.dark {
+  --color-bg: 12 13 18;
+  --color-surface: 22 24 31;
+  --color-surface-2: 31 34 43;
+  --color-border: 44 48 59;
+  --color-text: 233 236 242;
+  --color-muted: 150 158 172;
+  --color-primary: 141 132 255;
+  --color-primary-fg: 12 13 18;
+  --color-danger: 248 113 113;
+  --color-warning: 245 179 66;
+  --color-success: 74 222 128;
+  --color-info: 56 189 248;
+
+  --shadow-color: 0 0 0;
+  --shadow-strength: 0.35;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  border-color: rgb(var(--color-border));
+}
+
+/* Visible keyboard focus everywhere; suppressed for mouse users via :focus-visible. */
+:focus-visible {
+  outline: 2px solid rgb(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion: neutralize transitions/animations for users who ask for it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Elevation — a single restrained shadow scale (no shadow soup). */
+.izl-elevate {
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 1)), 0 8px 24px -8px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 1.4));
+}
+.izl-elevate-sm {
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(var(--shadow-strength) * 1));
+}
+
+/* Slim, unobtrusive scrollbars in scroll regions. */
+.izl-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-border)) transparent;
+}
+.izl-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.izl-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Subtle grid texture for large empty canvases (used sparingly). */
+.izl-grid-bg {
+  background-image: radial-gradient(rgb(var(--color-border) / 0.5) 1px, transparent 1px);
+  background-size: 22px 22px;
+}

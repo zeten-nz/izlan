@@ -11,6 +11,13 @@ export const SecurityEventType = {
   OTP_VERIFY_FAILED: 'otp_verify_failed',
   OTP_CHALLENGE_LOCKED: 'otp_challenge_locked',
   LOGIN_SUCCESS: 'login_success',
+  // Password auth (TD-252)
+  REGISTRATION_SUCCESS: 'registration_success',
+  PASSWORD_LOGIN_ATTEMPT: 'password_login_attempt', // one row per ALLOWED attempt — the DB-backed rate-limit counter
+  PASSWORD_LOGIN_SUCCESS: 'password_login_success',
+  PASSWORD_LOGIN_FAILED: 'password_login_failed',
+  PASSWORD_RESET_REQUESTED: 'password_reset_requested',
+  PASSWORD_RESET_SUCCESS: 'password_reset_success',
   SESSION_CREATED: 'session_created',
   SESSION_REVOKED: 'session_revoked',
   ALL_SESSIONS_REVOKED: 'all_sessions_revoked',

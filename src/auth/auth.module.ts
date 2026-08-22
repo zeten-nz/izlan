@@ -11,6 +11,10 @@ import { AuthSessionRepository } from './sessions/auth-session.repository';
 import { RefreshTokenRepository } from './sessions/refresh-token.repository';
 import { SessionsService } from './sessions/sessions.service';
 import { AccessTokenService } from './access-token/access-token.service';
+import { PASSWORD_HASHER, Argon2PasswordHasher } from './password/password-hasher';
+import { PasswordCredentialRepository } from './password/password-credential.repository';
+import { PasswordLoginRateLimiter } from './password/password-login-rate-limiter';
+import { AuthCredentialService } from './password/auth-credential.service';
 import { AuthController } from './http/auth.controller';
 import { AuthGuard } from './http/auth.guard';
 import { PermissionsGuard } from './http/permissions.guard';
@@ -31,9 +35,13 @@ import { PermissionsGuard } from './http/permissions.guard';
     RefreshTokenRepository,
     SessionsService,
     AccessTokenService,
+    { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
+    PasswordCredentialRepository,
+    PasswordLoginRateLimiter,
+    AuthCredentialService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
-  exports: [OtpService, SessionsService, AccessTokenService],
+  exports: [OtpService, SessionsService, AccessTokenService, PASSWORD_HASHER, PasswordCredentialRepository, PasswordLoginRateLimiter, AuthCredentialService],
 })
 export class AuthModule {}

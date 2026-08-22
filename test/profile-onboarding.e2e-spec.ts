@@ -56,7 +56,7 @@ describe('Profile + Onboarding (e2e, izlan_test)', () => {
   async function login(): Promise<{ token: string; userId: string }> {
     await prisma.otpChallenge.updateMany({ where: { phone: PHONE }, data: { createdAt: new Date(Date.now() - 300_000) } });
     const req = await request(server()).post('/api/auth/otp/request').send({ phone: PHONE });
-    const verify = await request(server()).post('/api/auth/otp/verify').send({ challengeId: req.body.challengeId, code: sms.latestCode() });
+    const verify = await request(server()).post('/api/auth/register').send({ challengeId: req.body.challengeId, code: sms.latestCode(), password: 'Passw0rd!123' });
     const user = await prisma.user.findUnique({ where: { phone: PHONE } });
     return { token: verify.body.accessToken, userId: user!.id };
   }
