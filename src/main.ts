@@ -14,7 +14,10 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: env.trustProxy }),
+    // bodyLimit is the Fastify request-boundary cap. Raised to the bulk-import ceiling (5 MiB, Phase 2.2D / TD-253);
+    // Fastify rejects a larger body with 413 before it is fully buffered. The import contract's per-document count
+    // limits (skills/lessons/activities) remain the real bound; ordinary endpoints send far smaller bodies.
+    new FastifyAdapter({ trustProxy: env.trustProxy, bodyLimit: 5 * 1024 * 1024 }),
   );
   const config = app.get(ConfigService);
 

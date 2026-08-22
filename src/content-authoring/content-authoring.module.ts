@@ -50,5 +50,10 @@ import './content-authoring.constants'; // side-effect: register permission code
     HierarchyPublishService, PublicationService, PublicationReadinessService,
     SubjectRepository, HierarchyRepository, RevisionRepository, ActivityRepository, SkillRepository, MappingRepository, PrerequisiteRepository, ContentAuditRepository, PublishRepository,
   ],
+  // Phase 2.2D: the bulk-import module reuses these authoring primitives (subject scope + entity repos + DAG writer).
+  exports: [
+    SubjectScopeService,
+    HierarchyRepository, RevisionRepository, ActivityRepository, SkillRepository, MappingRepository, PrerequisiteRepository, ContentAuditRepository,
+  ],
 })
 export class ContentAuthoringModule {}

@@ -252,3 +252,34 @@ export interface PreviewResponse {
   estimatedDurationMin: number | null;
   activities: PreviewActivity[];
 }
+
+// ── Bulk import (Phase 2.2D, TD-253) ──
+export interface ImportIssue {
+  code: string;
+  path: string;
+  contentKey?: string;
+}
+export interface ImportSummary {
+  skillsToCreate: number;
+  skillsReused: number;
+  lessonsToCreate: number;
+  revisionsToCreate: number;
+  activitiesToCreate: number;
+  lessonSkillMappings: number;
+  activitySkillMappings: number;
+  prerequisitesToCreate: number;
+}
+export interface ImportValidateResponse {
+  schemaVersion: string;
+  documentHash: string;
+  valid: boolean;
+  summary: ImportSummary;
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+}
+export interface ImportApplyResponse {
+  schemaVersion: string;
+  documentHash: string;
+  summary: ImportSummary;
+  lessons: { contentKey: string; lessonId: string; revisionId: string }[];
+}

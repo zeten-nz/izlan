@@ -3,7 +3,8 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FiChevronRight, FiPlus } from 'react-icons/fi';
+import { FiChevronRight, FiPlus, FiUploadCloud } from 'react-icons/fi';
+import { ImportDialog } from '@/components/import/ImportDialog';
 import { createLesson, listLessons } from '@/lib/api/content';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
@@ -22,6 +23,7 @@ export function LessonsColumn({ topicId }: { topicId: string }) {
   const { toast } = useToast();
   const res = useResource(useCallback(() => listLessons(topicId), [topicId]), [topicId]);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   async function onCreate(v: FormValues) {
     await createLesson(topicId, { contentKey: (v.contentKey ?? '').trim(), sortOrder: Number(v.sortOrder ?? '0') || 0, slug: v.slug?.trim() ? v.slug.trim() : undefined });
@@ -34,9 +36,14 @@ export function LessonsColumn({ topicId }: { topicId: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('hierarchy.lessons')}</h3>
         {caps.author && (
-          <Button size="sm" variant="secondary" leftIcon={<FiPlus aria-hidden />} onClick={() => setCreating(true)}>
-            {t('hierarchy.addLesson')}
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" leftIcon={<FiUploadCloud aria-hidden />} onClick={() => setImporting(true)}>
+              {t('import.open')}
+            </Button>
+            <Button size="sm" variant="secondary" leftIcon={<FiPlus aria-hidden />} onClick={() => setCreating(true)}>
+              {t('hierarchy.addLesson')}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -85,6 +92,8 @@ export function LessonsColumn({ topicId }: { topicId: string }) {
         onSubmit={onCreate}
         onClose={() => setCreating(false)}
       />
+
+      <ImportDialog topicId={topicId} open={importing} onClose={() => setImporting(false)} onImported={res.reload} />
     </div>
   );
 }
