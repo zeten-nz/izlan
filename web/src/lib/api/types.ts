@@ -283,3 +283,72 @@ export interface ImportApplyResponse {
   summary: ImportSummary;
   lessons: { contentKey: string; lessonId: string; revisionId: string }[];
 }
+
+// ── Learner product (Phase 3.0) ──
+export interface LearnerProfile {
+  id: string;
+  displayName: string | null;
+  dateOfBirth: string | null; // YYYY-MM-DD
+  timezone: string | null;
+  preferredLanguage: string | null;
+  onboarding: { completed: boolean; completedAt: string | null };
+}
+
+export interface OnboardingStatus {
+  completed: boolean;
+  canComplete: boolean;
+  missing: string[]; // e.g. 'displayName' | 'dateOfBirth' | 'timezone' | 'learningIntent'
+}
+
+export interface OnboardingSubject {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+}
+export type OnboardingTrack = OnboardingSubject;
+
+export interface LearningIntent {
+  id: string;
+  subject: { id: string; slug: string; title: string };
+  track: { id: string; slug: string; title: string } | null;
+}
+
+export interface RoadmapItem {
+  id: string;
+  position: number;
+  state: 'COMPLETED' | 'UNAVAILABLE' | 'IN_PROGRESS' | 'BLOCKED' | 'AVAILABLE';
+  skillId: string | null;
+  lesson: { id: string | null; title: string | null };
+}
+export interface RoadmapProgress {
+  id: string;
+  subjectId: string;
+  trackId: string;
+  status: string;
+  sourceAssessmentAttemptId: string | null;
+  progress: { total: number; completed: number; inProgress: number; available: number; blocked: number; unavailable: number; progressBp: number };
+  nextItemId: string | null;
+  items: RoadmapItem[];
+}
+
+export interface DailyPlanItem {
+  id: string;
+  kind: string;
+  itemType: string;
+  position: number;
+  state: string | null;
+  lesson: { id: string | null; title: string | null };
+  skill?: { id: string; name: string | null };
+}
+export interface DailyPlan {
+  id: string;
+  localDate: string;
+  timezone: string;
+  generationNo: number;
+  status: string;
+  topic: { id: string; title: string } | null;
+  done: boolean;
+  progress: { total: number; completed: number; progressBp: number };
+  items: DailyPlanItem[];
+}

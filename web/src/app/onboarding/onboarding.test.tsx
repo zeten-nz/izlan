@@ -1,0 +1,115 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/theme/theme-context';
+import { I18nProvider } from '@/lib/i18n/i18n-context';
+import OnboardingPage from './page';
+
+const h = vi.hoisted(() => ({
+  replace: vi.fn(), setUser: vi.fn(),
+  fetchProfile: vi.fn(), updateProfile: vi.fn(),
+  fetchStatus: vi.fn(), fetchSubjects: vi.fn(), fetchTracks: vi.fn(), fetchIntents: vi.fn(),
+  saveIntent: vi.fn(), complete: vi.fn(),
+}));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: h.replace, push: vi.fn() }) }));
+vi.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ user: { id: 'u1', onboardingCompleted: false }, setAuthenticatedUser: h.setUser }) }));
+vi.mock('@/lib/api/profile', () => ({ fetchProfile: h.fetchProfile, updateProfile: h.updateProfile }));
+vi.mock('@/lib/api/onboarding', () => ({
+  fetchOnboardingStatus: h.fetchStatus, fetchOnboardingSubjects: h.fetchSubjects, fetchOnboardingTracks: h.fetchTracks,
+  fetchLearningIntents: h.fetchIntents, saveLearningIntent: h.saveIntent, completeOnboarding: h.complete,
+}));
+
+const profile = (over = {}) => ({ id: 'u1', displayName: null, dateOfBirth: null, timezone: 'Asia/Tashkent', preferredLanguage: 'uz', onboarding: { completed: false, completedAt: null }, ...over });
+const SUBJECT = { id: 's1', slug: 'english', title: 'English', description: null };
+const TRACK = { id: 't1', slug: 'general', title: 'General English', description: null };
+const intent = (over = {}) => ({ id: 'i1', subject: { id: 's1', slug: 'english', title: 'English' }, track: null, ...over });
+
+function setup(cfg: { profile?: object; missing?: string[]; completed?: boolean; canComplete?: boolean; subjects?: object[]; intents?: object[] }) {
+  h.fetchProfile.mockResolvedValue(cfg.profile ?? profile());
+  h.fetchStatus.mockResolvedValue({ completed: cfg.completed ?? false, canComplete: cfg.canComplete ?? false, missing: cfg.missing ?? [] });
+  h.fetchSubjects.mockResolvedValue(cfg.subjects ?? [SUBJECT]);
+  h.fetchIntents.mockResolvedValue(cfg.intents ?? []);
+  h.fetchTracks.mockResolvedValue([TRACK]);
+  return render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
+}
+
+describe('Learner onboarding (WEB-ONB)', () => {
+  beforeEach(() => { Object.values(h).forEach((f) => f.mockReset()); });
+
+  it('WEB-ONB-01 an incomplete backend state shows onboarding (profile step)', async () => {
+    setup({ missing: ['displayName', 'dateOfBirth'] });
+    await waitFor(() => expect(screen.getByText('O‘zingiz haqingizda')).toBeInTheDocument());
+  });
+
+  it('WEB-ONB-02 profile fields hydrate from GET /profile/me', async () => {
+    setup({ profile: profile({ displayName: 'Ali', dateOfBirth: '2005-01-02' }), missing: ['dateOfBirth'] });
+    await waitFor(() => expect(screen.getByLabelText('Ism')).toHaveValue('Ali'));
+  });
+
+  it('WEB-ONB-03 profile save calls PATCH /profile/me', async () => {
+    h.updateProfile.mockResolvedValue(profile({ displayName: 'Ali' }));
+    setup({ profile: profile({ displayName: 'Ali', dateOfBirth: '2005-01-02' }), missing: ['timezone'] });
+    await waitFor(() => expect(screen.getByText('O‘zingiz haqingizda')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash va davom etish' }));
+    await waitFor(() => expect(h.updateProfile).toHaveBeenCalled());
+  });
+
+  it('WEB-ONB-04 published subjects render on the subject step', async () => {
+    setup({ subjects: [SUBJECT], intents: [] }); // profile fields ok, no intent → subject step
+    await waitFor(() => expect(screen.getByText('English')).toBeInTheDocument());
+  });
+
+  it('WEB-ONB-05 zero subjects produces an intentional empty state', async () => {
+    setup({ subjects: [], intents: [] });
+    await waitFor(() => expect(screen.getByText('Hozircha o‘rganish uchun ochiq fan mavjud emas.')).toBeInTheDocument());
+  });
+
+  it('WEB-ONB-06 selecting a subject saves a subject-only intent', async () => {
+    h.saveIntent.mockResolvedValue([intent()]);
+    setup({ subjects: [SUBJECT], intents: [] });
+    await waitFor(() => expect(screen.getByText('English')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('English').closest('button')!);
+    await waitFor(() => expect(h.saveIntent).toHaveBeenCalledWith('s1'));
+  });
+
+  it('WEB-ONB-07/08 track list loads for the subject and selection persists a complete intent', async () => {
+    h.saveIntent.mockResolvedValue([intent({ track: { id: 't1', slug: 'general', title: 'General English' } })]);
+    setup({ intents: [intent()] }); // subject set, no track → track step
+    await waitFor(() => expect(h.fetchTracks).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(screen.getByText('General English')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('General English').closest('button')!);
+    await waitFor(() => expect(h.saveIntent).toHaveBeenCalledWith('s1', 't1'));
+  });
+
+  it('WEB-ONB-09 cannot complete until backend canComplete=true', async () => {
+    h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: true, missing: [] }); // initial load → review step
+    h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: false, missing: ['learningIntent'] }); // re-check at finish
+    h.fetchProfile.mockResolvedValue(profile({ displayName: 'Ali' }));
+    h.fetchSubjects.mockResolvedValue([SUBJECT]);
+    h.fetchIntents.mockResolvedValue([intent({ track: { id: 't1', slug: 'general', title: 'General English' } })]);
+    h.fetchTracks.mockResolvedValue([TRACK]);
+    render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
+    await waitFor(() => expect(screen.getByText('Tayyormisiz?')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'O‘rganishni boshlash' }));
+    await waitFor(() => expect(h.fetchStatus).toHaveBeenCalledTimes(2));
+    expect(h.complete).not.toHaveBeenCalled();
+  });
+
+  it('WEB-ONB-10 completing onboarding redirects to /learn', async () => {
+    h.complete.mockResolvedValue({ completed: true, completedAt: '2026-01-01T00:00:00Z' });
+    h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: true, missing: [] });
+    h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: true, missing: [] });
+    h.fetchProfile.mockResolvedValue(profile({ displayName: 'Ali' }));
+    h.fetchSubjects.mockResolvedValue([SUBJECT]);
+    h.fetchIntents.mockResolvedValue([intent({ track: { id: 't1', slug: 'general', title: 'General English' } })]);
+    render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
+    await waitFor(() => expect(screen.getByText('Tayyormisiz?')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'O‘rganishni boshlash' }));
+    await waitFor(() => expect(h.complete).toHaveBeenCalled());
+    expect(h.replace).toHaveBeenCalledWith('/learn');
+  });
+
+  it('WEB-ONB-11 already-completed onboarding redirects to /learn (resumes from backend, not local state)', async () => {
+    setup({ completed: true, canComplete: true, intents: [intent({ track: { id: 't1', slug: 'general', title: 'General English' } })], profile: profile({ displayName: 'Ali', onboarding: { completed: true, completedAt: '2026-01-01T00:00:00Z' } }) });
+    await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/learn'));
+  });
+});

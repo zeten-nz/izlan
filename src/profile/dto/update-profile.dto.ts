@@ -1,8 +1,9 @@
 import { IsOptional, IsString, MinLength, MaxLength, Matches, IsIn } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-/** UI locale registry (§15). UI tili ≠ learning subject tili. Product'da to'liq final emas — minimal. */
-export const ALLOWED_UI_LOCALES = ['uz', 'en'] as const;
+/** UI locale registry (§15; extended uz/ru/en in Phase 3.0 to match the learner web chrome). UI tili ≠ learning
+ *  subject tili. String field — no schema change. */
+export const ALLOWED_UI_LOCALES = ['uz', 'ru', 'en'] as const;
 
 /**
  * PATCH /api/profile/me — partial self-edit (§16/17/18).

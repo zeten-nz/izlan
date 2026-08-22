@@ -8,9 +8,16 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Izlan Studio — Kontent CMS',
-  description: 'Izlan metodist kontent boshqaruv tizimi',
-  robots: { index: false, follow: false },
+  title: { default: 'Izlan — Shaxsiy o‘rganish', template: '%s · Izlan' },
+  description: 'Izlan — shaxsiylashtirilgan mustaqil o‘rganish. Darajangizni aniqlaymiz, sizga mos yo‘l xaritasi tuzamiz va har kuni aniq qadamlar bilan olg‘a boramiz.',
+  applicationName: 'Izlan',
+  openGraph: {
+    title: 'Izlan — Shaxsiy o‘rganish',
+    description: 'Shaxsiylashtirilgan mustaqil o‘rganish platformasi.',
+    siteName: 'Izlan',
+    type: 'website',
+    locale: 'uz',
+  },
 };
 
 export const viewport: Viewport = {
