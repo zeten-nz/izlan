@@ -386,6 +386,15 @@ describe('Topic-scoped bulk content import (e2e, izlan_test)', () => {
     expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_INVALID_DOCUMENT')).toBe(true);
   });
 
+  it('IMP-PROV-06 provenance null is rejected and never applied as HUMAN', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    expect((await validate(a.token, topicId, doc({ provenance: null }))).body.valid).toBe(false);
+    const res = await apply(a.token, topicId, doc({ provenance: null, skills: [], lessons: [{ contentKey: 'PROV-NULL', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('IMPORT_INVALID_DOCUMENT');
+    expect(await prisma.lesson.count({ where: { contentKey: 'PROV-NULL' } })).toBe(0); // never persisted (not as HUMAN)
+  });
+
   // ── Body boundary (IMP-BODY) — route-scoped 5 MiB, ordinary API stays at 1 MiB (TD-253, Blocker A) ──
   const bigMd = (len: number) => ({ schemaVersion: 'lesson-activity-markdown/v1', markdown: 'a'.repeat(len) });
   const bulkLessons = (count: number, mdLen: number, prefix: string) =>

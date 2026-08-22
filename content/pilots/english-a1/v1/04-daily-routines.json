@@ -179,7 +179,7 @@
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
-            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE", "ENG-A1-PERSONAL-INFO"],
+            "skillCodes": ["ENG-A1-BE-QUESTIONS", "ENG-A1-PERSONAL-INFO", "ENG-A1-POSSESSIVE-ADJECTIVES", "ENG-A1-HAVE-HAS", "ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "multiple_choice", "prompt": "Qaysi gaplar grammatik jihatdan to'g'ri? (bir nechta javob bo'lishi mumkin)", "options": [ { "id": "a", "text": "Where are you from?" }, { "id": "b", "text": "Her brother is a doctor." }, { "id": "c", "text": "She has two sisters." }, { "id": "d", "text": "He don't work here." }, { "id": "e", "text": "I have 20 years." } ], "answerKey": { "correctOptionIds": ["a", "b", "c"] } }
           },
           {

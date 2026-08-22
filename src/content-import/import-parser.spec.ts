@@ -85,6 +85,12 @@ describe('import parser (pure, TD-253)', () => {
     expect(parseImportDocument(validDoc({ provenance: { source: 'HUMAN', model: 'x' } })).issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'provenance.model')).toBe(true);
   });
 
+  it('IMP-PROV-06 provenance: null → IMPORT_INVALID_DOCUMENT (present-but-null is NOT silently HUMAN)', () => {
+    expect(parseImportDocument(validDoc({ provenance: null })).issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'provenance')).toBe(true);
+    // omitted stays HUMAN (backward compatibility preserved)
+    expect(parseImportDocument(validDoc()).issues.filter((i) => i.path === 'provenance')).toEqual([]);
+  });
+
   it('IMP-PROV-05 documentHash differs between HUMAN and AI_ASSISTED', () => {
     const h1 = documentHash(parseImportDocument(validDoc({ provenance: { source: 'HUMAN' } })).plan);
     const h2 = documentHash(parseImportDocument(validDoc({ provenance: { source: 'AI_ASSISTED' } })).plan);

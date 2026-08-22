@@ -105,9 +105,9 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
  * is NOT accepted in v1. On any violation the doc is invalid; the plan still normalizes to a safe default so hashing works.
  */
 function validateProvenance(raw: unknown, issues: ImportIssue[]): { source: ImportProvenanceSource } {
-  if (raw === undefined || raw === null) return { source: 'HUMAN' };
+  if (raw === undefined) return { source: 'HUMAN' }; // OMITTED → HUMAN (backward compatible)
   if (!isObj(raw)) {
-    invalid(issues, 'provenance');
+    invalid(issues, 'provenance'); // present but null / non-object → invalid, NOT silently HUMAN
     return { source: 'HUMAN' };
   }
   checkExactKeys(raw, ['source'], 'provenance', issues);

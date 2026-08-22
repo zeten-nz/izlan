@@ -1,6 +1,7 @@
 import { ActivityType } from '@prisma/client';
 import {
   EXPECTED,
+  LESSON_12_CUMULATIVE_SKILLS,
   PILOT_CONTENT_KEYS,
   PILOT_PREREQUISITE_CHAIN,
   loadManifest,
@@ -26,6 +27,12 @@ describe('English A1 pilot content (Phase 2.2E, PILOT-*)', () => {
 
   it('PILOT-PROV-01 all four packages declare AI_ASSISTED provenance', () => {
     for (const p of packages) expect({ file: p.file, source: p.plan.provenance.source }).toEqual({ file: p.file, source: 'AI_ASSISTED' });
+  });
+
+  it('PILOT-12-CUMULATIVE the Lesson 12 cumulative multiple_choice maps every skill it measures', () => {
+    const l12 = lessons.find((l) => l.contentKey === 'ENG-A1-012-PRESENT-SIMPLE-QUESTIONS')!;
+    const mc = l12.revision.activities.find((a) => a.type === ActivityType.MASTERY_TEST && (a.payload as { format?: string }).format === 'multiple_choice')!;
+    for (const code of LESSON_12_CUMULATIVE_SKILLS) expect(mc.skillCodes).toContain(code);
   });
 
   it('PILOT-01 manifest describes 4 topics and 12 lessons', () => {

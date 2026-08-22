@@ -67,6 +67,8 @@ export const EXPECTED = {
 const BE_OR_PERSONAL_INFO = new Set(['ENG-A1-BE-AFFIRMATIVE', 'ENG-A1-BE-NEGATIVE', 'ENG-A1-BE-QUESTIONS', 'ENG-A1-PERSONAL-INFO']);
 const POSSESSIVE_OR_FAMILY = new Set(['ENG-A1-POSSESSIVE-ADJECTIVES', 'ENG-A1-FAMILY-VOCAB']);
 const PRESENT_SIMPLE = new Set(['ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-PRESENT-SIMPLE-QUESTIONS']);
+/** The Lesson 12 cumulative multiple_choice item measures each of these — its ActivitySkill mapping must not regress. */
+export const LESSON_12_CUMULATIVE_SKILLS = ['ENG-A1-BE-QUESTIONS', 'ENG-A1-PERSONAL-INFO', 'ENG-A1-POSSESSIVE-ADJECTIVES', 'ENG-A1-HAVE-HAS', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE'] as const;
 
 const MARKDOWN_TYPES = new Set<ActivityType>([ActivityType.TEXT, ActivityType.EXPLANATION, ActivityType.EXAMPLE]);
 const OBJECTIVE_TYPES = new Set<ActivityType>([ActivityType.MINI_QUESTION, ActivityType.PRACTICE, ActivityType.MASTERY_TEST]);
@@ -268,6 +270,11 @@ export function validatePilot(): PilotValidation {
     if (![...objectiveSkills].some((c) => BE_OR_PERSONAL_INFO.has(c))) issues.push('ENG-A1-012: no objective retrieval of a to-be/personal-info skill');
     if (![...objectiveSkills].some((c) => POSSESSIVE_OR_FAMILY.has(c))) issues.push('ENG-A1-012: no objective retrieval of a possessive/family skill');
     if (![...objectiveSkills].some((c) => PRESENT_SIMPLE.has(c))) issues.push('ENG-A1-012: no objective Present Simple activity');
+
+    // The cumulative multiple_choice item must map every material skill it measures (granular evidence, no silent regression).
+    const cumulative = l12.revision.activities.find((a) => a.type === ActivityType.MASTERY_TEST && (a.payload as { format?: string }).format === 'multiple_choice');
+    if (!cumulative) issues.push('ENG-A1-012: missing cumulative multiple_choice MASTERY_TEST');
+    else for (const code of LESSON_12_CUMULATIVE_SKILLS) if (!cumulative.skillCodes.includes(code)) issues.push(`ENG-A1-012 cumulative item: missing ActivitySkill ${code}`);
   }
 
   const ok = issues.length === 0;

@@ -15,9 +15,10 @@ This is a **pilot** curriculum. It does **not** freeze the full future English c
 - **Pedagogical status:** **AI-assisted draft — OWNER / METHODIST PEDAGOGICAL REVIEW PENDING.** The content is not yet
   pedagogically approved and is **not** "CEFR certified" or "production content finalized". A human must review the actual
   lessons before any real import or publication.
-- **Provenance:** these are AI-assisted authoring drafts. Import v1 records `ContentSource = HUMAN` (the importing staff
-  member takes responsibility); real publication is always a manual human step through the CMS after review. See the
-  ENGLISH_A1_PILOT.md doc and TD-253 / TD-20 (`ContentSource`) for details.
+- **Provenance (TD-254):** these are AI-assisted authoring drafts, and they declare it — all four packages set
+  `provenance.source = AI_ASSISTED`, so every imported Activity persists with `source = AI_ASSISTED` (`aiMetadata = null`).
+  Human review does **not** rewrite provenance; real publication is always a manual human step through the CMS after
+  review. See the ENGLISH_A1_PILOT.md doc, TD-254, and DATA_MODEL_CORE.md §20 (AI provenance) for details.
 
 ## Languages
 
@@ -78,7 +79,7 @@ they must be imported in the order above so each lesson's prerequisite already e
 - **Objective** (`lesson-activity-objective/v1`): `MINI_QUESTION`, `PRACTICE`, `MASTERY_TEST` — `single_choice` /
   `multiple_choice` / `true_false`.
 
-Each lesson has 8 activities (96 total; 48 objective). No media (`IMAGE`/`AUDIO`/`VIDEO`), no `SPEAKING`/`WRITING`/
+Lessons 1–11 have 8 activities each and Lesson 12 has 10 (98 total; 51 objective; ~176 min). No media (`IMAGE`/`AUDIO`/`VIDEO`), no `SPEAKING`/`WRITING`/
 `LISTENING`/`AI_INTERACTION`.
 
 ## Safety
