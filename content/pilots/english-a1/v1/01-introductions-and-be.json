@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "skills": [
+    { "code": "ENG-A1-GREETINGS", "name": "Salomlashish va tanishuv", "sortOrder": 10 },
+    { "code": "ENG-A1-SUBJECT-PRONOUNS", "name": "Kishilik olmoshlari", "sortOrder": 20 },
+    { "code": "ENG-A1-BE-AFFIRMATIVE", "name": "To be: tasdiq shakli", "sortOrder": 30 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-001-GREETINGS",
+      "slug": "eng-a1-001-greetings",
+      "sortOrder": 10,
+      "skillCodes": ["ENG-A1-GREETINGS"],
+      "prerequisiteContentKeys": [],
+      "revision": {
+        "title": "Salomlashish va tanishuv",
+        "description": "Inglizcha salomlashish, xayrlashish va o'zini tanishtirish.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda inglizcha **salomlashish**, **xayrlashish** va o'zingizni **tanishtirish**ni o'rganasiz. Dars oxirida ilk bor uchrashgan odam bilan qisqa suhbatni ingliz tilida boshlay olasiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Salomlashishning bir necha yo'li bor.\n\n- **Hello** — har doim ishlatsa bo'ladigan, xushmuomala salom.\n- **Hi** — bu ham salom, lekin biroz samimiyroq (do'stlar bilan).\n\nKun vaqtiga qarab:\n\n- **Good morning** — ertalab\n- **Good afternoon** — tushdan keyin\n- **Good evening** — kechqurun\n\nXayrlashish:\n\n- **Goodbye** — biroz rasmiy xayrlashuv\n- **Bye** — oddiy, kundalik xayrlashuv\n\nO'zini tanishtirish (ikkalasining ma'nosi bir xil):\n\n- **My name is Aziz.**\n- **I am Aziz.** — qisqartma: **I'm Aziz.**\n\nKimdir tanishganda odatda shunday deydi: **Nice to meet you.** Javoban: **Nice to meet you, too.**" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Tabiiy suhbat namunalari:\n\n- **A:** Hello! **B:** Hi!\n- **A:** Good morning, Aziz. **B:** Good morning, Laylo.\n- **A:** My name is Bekzod. Nice to meet you. **B:** Nice to meet you, too.\n- **A:** Goodbye! **B:** Bye! See you tomorrow." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-GREETINGS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Ertalab soat 9:00 da kimnidir uchratdingiz. Qaysi biri eng mos keladi?", "options": [ { "id": "a", "text": "Good morning!" }, { "id": "b", "text": "Good night!" }, { "id": "c", "text": "Goodbye!" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Diqqat:** *Good night* — bu salom emas. U kechqurun **xayrlashayotganda** yoki uxlashdan oldin ishlatiladi.\n\nKechqurun kimnidir **uchratganda** *Good evening* deyiladi:\n\n- To'g'ri: Good evening! — kechqurun salomlashish\n- To'g'ri: Good night! — kechqurun xayrlashish\n\nShuning uchun kimnidir ko'rganingizda *Good night* deb salom bermang." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-GREETINGS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Kechqurun do'stingiznikiga bordingiz va eshik oldida uni ko'rdingiz. Nima deysiz?", "options": [ { "id": "a", "text": "Good evening!" }, { "id": "b", "text": "Good night!" }, { "id": "c", "text": "Good afternoon!" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-GREETINGS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Birov shunday dedi: \"My name is Dilnoza. Nice to meet you.\" Eng tabiiy javob qaysi?", "options": [ { "id": "a", "text": "Nice to meet you, too." }, { "id": "b", "text": "Good night." }, { "id": "c", "text": "My name is name." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-GREETINGS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Tushdan keyin (soat 15:00) do'konga kirdingiz va sotuvchi bilan salomlashmoqchisiz. Qaysi biri to'g'ri?", "options": [ { "id": "a", "text": "Good afternoon!" }, { "id": "b", "text": "Good morning!" }, { "id": "c", "text": "Good night!" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-002-SUBJECT-PRONOUNS",
+      "slug": "eng-a1-002-subject-pronouns",
+      "sortOrder": 20,
+      "skillCodes": ["ENG-A1-SUBJECT-PRONOUNS"],
+      "prerequisiteContentKeys": ["ENG-A1-001-GREETINGS"],
+      "revision": {
+        "title": "Kishilik olmoshlari",
+        "description": "I, you, he, she, it, we, they olmoshlari.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda inglizcha **kishilik olmoshlari**ni o'rganasiz: gapda kim yoki nima haqida gapirayotganingizni ko'rsatuvchi so'zlar." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Kishilik olmoshlari:\n\n- **I** — men\n- **you** — sen / siz\n- **he** — u (erkak)\n- **she** — u (ayol)\n- **it** — u (narsa yoki hayvon)\n- **we** — biz\n- **they** — ular\n\nMuhim:\n\n- **I** har doim bosh harf bilan yoziladi — hatto gap o'rtasida ham.\n- **you** ham \"sen\", ham \"siz\", ham \"sizlar\" ma'nosini beradi.\n- Odam haqida bo'lsa **he** (erkak) yoki **she** (ayol); narsa yoki hayvon haqida bo'lsa **it**." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- Aziz is a student. → **He** is a student.\n- Laylo is a teacher. → **She** is a teacher.\n- The book is new. → **It** is new.\n- Aziz and Laylo are friends. → **They** are friends.\n- Sardor and I are brothers. → **We** are brothers." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-SUBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"Laylo\" so'zining o'rniga qaysi olmosh keladi?", "options": [ { "id": "a", "text": "he" }, { "id": "b", "text": "she" }, { "id": "c", "text": "it" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** odam haqida gapirganda **it** ishlatilmaydi.\n\n- Noto'g'ri: *It is a teacher.* (odam haqida)\n- To'g'ri: **He is a teacher.** yoki **She is a teacher.**\n\n**it** faqat narsa yoki hayvon uchun:\n\n- The phone is new. → **It** is new." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-SUBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"Aziz and Laylo\" so'zlarining o'rniga qaysi olmosh keladi?", "options": [ { "id": "a", "text": "we" }, { "id": "b", "text": "they" }, { "id": "c", "text": "you" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-SUBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"The car\" so'zining o'rniga qaysi olmosh keladi?", "options": [ { "id": "a", "text": "he" }, { "id": "b", "text": "she" }, { "id": "c", "text": "it" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-SUBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"Sardor and I\" so'zlarining o'rniga qaysi olmosh keladi?", "options": [ { "id": "a", "text": "they" }, { "id": "b", "text": "we" }, { "id": "c", "text": "you" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-003-BE-AFFIRMATIVE",
+      "slug": "eng-a1-003-be-affirmative",
+      "sortOrder": 30,
+      "skillCodes": ["ENG-A1-BE-AFFIRMATIVE", "ENG-A1-SUBJECT-PRONOUNS"],
+      "prerequisiteContentKeys": ["ENG-A1-002-SUBJECT-PRONOUNS"],
+      "revision": {
+        "title": "To be: am, is, are",
+        "description": "am / is / are va ularning qisqartma shakllari.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **to be** fe'lining tasdiq shakli — **am**, **is**, **are** — bilan oddiy gaplar tuzishni o'rganasiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**to be** fe'li olmoshga qarab o'zgaradi:\n\n- **I am** — men ...man\n- **you are** — sen ...san\n- **he is / she is / it is** — u ...\n- **we are** — biz ...miz\n- **they are** — ular ...\n\nQisqartma shakllar tabiiy nutqda ko'p ishlatiladi:\n\n- I am → **I'm**\n- you are → **you're**\n- he is → **he's**, she is → **she's**, it is → **it's**\n- we are → **we're**, they are → **they're**" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- **I am** a student. = **I'm** a student.\n- **You are** a teacher. = **You're** a teacher.\n- **She is** from Uzbekistan. = **She's** from Uzbekistan.\n- **It is** a big city. = **It's** a big city.\n- **We are** friends. = **We're** friends.\n- **They are** at home. = **They're** at home." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-BE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ a doctor.", "options": [ { "id": "a", "text": "am" }, { "id": "b", "text": "is" }, { "id": "c", "text": "are" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** olmosh va **to be** shaklini aralashtirib yubormang.\n\n- Noto'g'ri: *I is a student.*\n- To'g'ri: **I am a student.**\n\n- Noto'g'ri: *He are a student.*\n- To'g'ri: **He is a student.**\n\nEsda tuting: **am** faqat **I** bilan ishlatiladi." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-BE-AFFIRMATIVE", "ENG-A1-SUBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We ___ from Samarkand.", "options": [ { "id": "a", "text": "is" }, { "id": "b", "text": "am" }, { "id": "c", "text": "are" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-BE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Qaysi qisqartma \"he is\" ga mos keladi?", "options": [ { "id": "a", "text": "he's" }, { "id": "b", "text": "his" }, { "id": "c", "text": "hes" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-BE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I ___ a teacher.", "options": [ { "id": "a", "text": "am" }, { "id": "b", "text": "is" }, { "id": "c", "text": "are" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "skills": [
+    { "code": "ENG-A1-POSSESSIVE-ADJECTIVES", "name": "Egalik sifatlari", "sortOrder": 80 },
+    { "code": "ENG-A1-FAMILY-VOCAB", "name": "Oila a'zolari", "sortOrder": 90 },
+    { "code": "ENG-A1-HAVE-HAS", "name": "Have va has", "sortOrder": 100 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-007-POSSESSIVE-ADJECTIVES",
+      "slug": "eng-a1-007-possessive-adjectives",
+      "sortOrder": 10,
+      "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+      "prerequisiteContentKeys": ["ENG-A1-006-NUMBERS-PERSONAL-INFO"],
+      "revision": {
+        "title": "Egalik sifatlari",
+        "description": "my, your, his, her, its, our, their.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **egalik sifatlari**ni o'rganasiz — biror narsa kimga tegishli ekanini ko'rsatuvchi so'zlar: *my, your, his, her ...*" }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Egalik sifatlari otdan **oldin** keladi:\n\n- **my** — mening\n- **your** — sening / sizning\n- **his** — uning (erkak)\n- **her** — uning (ayol)\n- **its** — uning (narsa / hayvon)\n- **our** — bizning\n- **their** — ularning\n\nMasalan: **my** book (mening kitobim), **her** name (uning ismi)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **my** phone.\n- What is **your** name?\n- Aziz is happy. **His** job is interesting.\n- Laylo is a teacher. **Her** students are young.\n- We have a car. **Our** car is blue.\n- They have a house. **Their** house is big." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "This is ___ book. (mening)", "options": [ { "id": "a", "text": "my" }, { "id": "b", "text": "I" }, { "id": "c", "text": "me" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** olmosh (*he, she*) va egalik sifatini (*his, her*) aralashtirmang.\n\n- Noto'g'ri: *He name is Aziz.*\n- To'g'ri: **His name is Aziz.**\n\n- Noto'g'ri: *She brother is a doctor.*\n- To'g'ri: **Her brother is a doctor.**\n\n**his** — erkak uchun, **her** — ayol uchun." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Aziz is a student. ___ teacher is Mr. Karimov. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "He" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Laylo has a cat. ___ cat is black. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "She" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We have a house. ___ house is big. (bizning)", "options": [ { "id": "a", "text": "Our" }, { "id": "b", "text": "Their" }, { "id": "c", "text": "We" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-008-FAMILY",
+      "slug": "eng-a1-008-family",
+      "sortOrder": 20,
+      "skillCodes": ["ENG-A1-FAMILY-VOCAB", "ENG-A1-POSSESSIVE-ADJECTIVES"],
+      "prerequisiteContentKeys": ["ENG-A1-007-POSSESSIVE-ADJECTIVES"],
+      "revision": {
+        "title": "Oila a'zolari",
+        "description": "mother, father, sister, brother va boshqa oila so'zlari.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **oila a'zolari**ning inglizcha nomlarini o'rganasiz va o'z oilangiz haqida oddiy gaplar tuza olasiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Asosiy oila so'zlari:\n\n- **mother** — ona, **father** — ota\n- **parents** — ota-ona (ikkalasi)\n- **sister** — opa / singil, **brother** — aka / uka\n- **husband** — er (turmush o'rtog'i, erkak), **wife** — xotin (turmush o'rtog'i, ayol)\n- **son** — o'g'il, **daughter** — qiz (farzand)\n- **child** — bola (bitta), **children** — bolalar (ko'plik)\n\n**Diqqat:** *children* — *child* so'zining ko'plik shakli (qoidasiz)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- My **mother** is a doctor.\n- I have one **brother** and two **sisters**.\n- Their **parents** are teachers.\n- She has a **son** and a **daughter**.\n- We have two **children**." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-FAMILY-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My father and my mother are my ___.", "options": [ { "id": "a", "text": "parents" }, { "id": "b", "text": "children" }, { "id": "c", "text": "sisters" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xatolar:**\n\n1. *child* ning ko'pligi **children**, *childs* emas.\n   - Noto'g'ri: *two childs* → To'g'ri: **two children**\n\n2. Egaga bitta ega yetarli — otni takrorlamang.\n   - Noto'g'ri: *My mother she is a doctor.*\n   - To'g'ri: **My mother is a doctor.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FAMILY-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I have two ___. (bola, ko'plik)", "options": [ { "id": "a", "text": "childs" }, { "id": "b", "text": "children" }, { "id": "c", "text": "childrens" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FAMILY-VOCAB", "ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Qaysi gap to'g'ri?", "options": [ { "id": "a", "text": "My mother is a teacher." }, { "id": "b", "text": "My mother she is a teacher." }, { "id": "c", "text": "My mother are a teacher." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-FAMILY-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"parents\" so'zi kimlarni bildiradi?", "options": [ { "id": "a", "text": "mother and father" }, { "id": "b", "text": "sister and brother" }, { "id": "c", "text": "son and daughter" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-009-HAVE-HAS",
+      "slug": "eng-a1-009-have-has",
+      "sortOrder": 30,
+      "skillCodes": ["ENG-A1-HAVE-HAS", "ENG-A1-FAMILY-VOCAB"],
+      "prerequisiteContentKeys": ["ENG-A1-008-FAMILY"],
+      "revision": {
+        "title": "Have va has",
+        "description": "have / has bilan egalikni ifodalash.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **have** va **has** yordamida biror narsaga ega ekaningizni aytishni o'rganasiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Egalikni **have / has** bilan ifodalaymiz:\n\n- **I / you / we / they have** — menda / senda / bizda / ularda bor\n- **he / she / it has** — unda bor\n\nYa'ni **he, she, it** bilan **has**, qolganlari bilan **have**.\n\nMisol: I **have** a brother. She **has** a car." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **have** a brother.\n- She **has** two sisters.\n- We **have** a big family.\n- He **has** a new phone.\n- They **have** three children." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-HAVE-HAS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ two sisters.", "options": [ { "id": "a", "text": "have" }, { "id": "b", "text": "has" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he, she, it* bilan **has** ishlatiladi, **have** emas. *haves* degan so'z esa umuman yo'q.\n\n- Noto'g'ri: *He have a car.*\n- To'g'ri: **He has a car.**\n\n- Noto'g'ri: *She haves a car.*\n- To'g'ri: **She has a car.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-HAVE-HAS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I ___ a big family.", "options": [ { "id": "a", "text": "has" }, { "id": "b", "text": "have" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HAVE-HAS", "ENG-A1-FAMILY-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My brother ___ a new phone.", "options": [ { "id": "a", "text": "have" }, { "id": "b", "text": "has" }, { "id": "c", "text": "is have" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HAVE-HAS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "They ___ three children.", "options": [ { "id": "a", "text": "has" }, { "id": "b", "text": "have" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          }
+        ]
+      }
+    }
+  ]
+}

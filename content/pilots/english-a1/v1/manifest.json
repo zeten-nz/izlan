@@ -1,0 +1,95 @@
+{
+  "pilotVersion": "english-a1-pilot/v1",
+  "subject": "English",
+  "track": "General English",
+  "level": "A1",
+  "module": "A1 Foundations",
+  "teachingLanguage": "uz",
+  "targetLanguage": "en",
+  "status": "AI_ASSISTED_DRAFT",
+  "reviewStatus": "PEDAGOGICAL_OWNER_METHODIST_REVIEW_PENDING",
+  "lessonCount": 12,
+  "topicCount": 4,
+  "skillCount": 13,
+  "importOrder": [
+    "01-introductions-and-be.json",
+    "02-personal-information.json",
+    "03-family-and-possession.json",
+    "04-daily-routines.json"
+  ],
+  "topics": [
+    {
+      "order": 10,
+      "title": "Tanishuv va asosiy gaplar",
+      "description": "Salomlashish, kishilik olmoshlari va to be fe'lining tasdiq shakli.",
+      "importFile": "01-introductions-and-be.json",
+      "lessonContentKeys": [
+        "ENG-A1-001-GREETINGS",
+        "ENG-A1-002-SUBJECT-PRONOUNS",
+        "ENG-A1-003-BE-AFFIRMATIVE"
+      ]
+    },
+    {
+      "order": 20,
+      "title": "Savollar va shaxsiy ma'lumot",
+      "description": "To be inkori va savollari, sonlar hamda oddiy shaxsiy ma'lumot.",
+      "importFile": "02-personal-information.json",
+      "lessonContentKeys": [
+        "ENG-A1-004-BE-NEGATIVE",
+        "ENG-A1-005-BE-QUESTIONS",
+        "ENG-A1-006-NUMBERS-PERSONAL-INFO"
+      ]
+    },
+    {
+      "order": 30,
+      "title": "Oila va egalik",
+      "description": "Egalik sifatlari, oila a'zolari va have / has.",
+      "importFile": "03-family-and-possession.json",
+      "lessonContentKeys": [
+        "ENG-A1-007-POSSESSIVE-ADJECTIVES",
+        "ENG-A1-008-FAMILY",
+        "ENG-A1-009-HAVE-HAS"
+      ]
+    },
+    {
+      "order": 40,
+      "title": "Kundalik hayot",
+      "description": "Present Simple tasdiq, inkor va savollari; yakuniy takrorlash.",
+      "importFile": "04-daily-routines.json",
+      "lessonContentKeys": [
+        "ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE",
+        "ENG-A1-011-PRESENT-SIMPLE-NEGATIVE",
+        "ENG-A1-012-PRESENT-SIMPLE-QUESTIONS"
+      ]
+    }
+  ],
+  "skills": [
+    { "code": "ENG-A1-GREETINGS", "name": "Salomlashish va tanishuv" },
+    { "code": "ENG-A1-SUBJECT-PRONOUNS", "name": "Kishilik olmoshlari" },
+    { "code": "ENG-A1-BE-AFFIRMATIVE", "name": "To be: tasdiq shakli" },
+    { "code": "ENG-A1-BE-NEGATIVE", "name": "To be: inkor shakli" },
+    { "code": "ENG-A1-BE-QUESTIONS", "name": "To be: savollar" },
+    { "code": "ENG-A1-NUMBERS", "name": "Sonlar (0-100)" },
+    { "code": "ENG-A1-PERSONAL-INFO", "name": "Shaxsiy ma'lumot" },
+    { "code": "ENG-A1-POSSESSIVE-ADJECTIVES", "name": "Egalik sifatlari" },
+    { "code": "ENG-A1-FAMILY-VOCAB", "name": "Oila a'zolari" },
+    { "code": "ENG-A1-HAVE-HAS", "name": "Have va has" },
+    { "code": "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE", "name": "Present Simple: tasdiq" },
+    { "code": "ENG-A1-PRESENT-SIMPLE-NEGATIVE", "name": "Present Simple: inkor" },
+    { "code": "ENG-A1-PRESENT-SIMPLE-QUESTIONS", "name": "Present Simple: savollar" }
+  ],
+  "prerequisiteChain": [
+    { "lesson": "ENG-A1-001-GREETINGS", "requires": null },
+    { "lesson": "ENG-A1-002-SUBJECT-PRONOUNS", "requires": "ENG-A1-001-GREETINGS" },
+    { "lesson": "ENG-A1-003-BE-AFFIRMATIVE", "requires": "ENG-A1-002-SUBJECT-PRONOUNS" },
+    { "lesson": "ENG-A1-004-BE-NEGATIVE", "requires": "ENG-A1-003-BE-AFFIRMATIVE" },
+    { "lesson": "ENG-A1-005-BE-QUESTIONS", "requires": "ENG-A1-004-BE-NEGATIVE" },
+    { "lesson": "ENG-A1-006-NUMBERS-PERSONAL-INFO", "requires": "ENG-A1-005-BE-QUESTIONS" },
+    { "lesson": "ENG-A1-007-POSSESSIVE-ADJECTIVES", "requires": "ENG-A1-006-NUMBERS-PERSONAL-INFO" },
+    { "lesson": "ENG-A1-008-FAMILY", "requires": "ENG-A1-007-POSSESSIVE-ADJECTIVES" },
+    { "lesson": "ENG-A1-009-HAVE-HAS", "requires": "ENG-A1-008-FAMILY" },
+    { "lesson": "ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE", "requires": "ENG-A1-009-HAVE-HAS" },
+    { "lesson": "ENG-A1-011-PRESENT-SIMPLE-NEGATIVE", "requires": "ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE" },
+    { "lesson": "ENG-A1-012-PRESENT-SIMPLE-QUESTIONS", "requires": "ENG-A1-011-PRESENT-SIMPLE-NEGATIVE" }
+  ]
+}
