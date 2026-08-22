@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE", "name": "Present Simple: tasdiq", "sortOrder": 110 },
+    { "code": "ENG-A1-PRESENT-SIMPLE-NEGATIVE", "name": "Present Simple: inkor", "sortOrder": 120 },
+    { "code": "ENG-A1-PRESENT-SIMPLE-QUESTIONS", "name": "Present Simple: savollar", "sortOrder": 130 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE",
+      "slug": "eng-a1-010-present-simple-affirmative",
+      "sortOrder": 10,
+      "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+      "prerequisiteContentKeys": ["ENG-A1-009-HAVE-HAS"],
+      "revision": {
+        "title": "Present Simple: tasdiq gaplar",
+        "description": "Kundalik ish-harakatlar; he/she/it uchun -s.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **Present Simple** (hozirgi oddiy zamon) tasdiq gaplarini o'rganasiz — kundalik odatlar va faktlarni ifodalash uchun." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple kundalik odat va faktlar uchun ishlatiladi.\n\n- **I / you / we / they** bilan fe'l o'zgarmaydi: I **work**, they **live**.\n- **he / she / it** bilan fe'lga **-s** qo'shiladi: he **works**, she **lives**.\n\nAyrim fe'llarda yozilishi biroz o'zgaradi:\n\n- study → **studies** (undosh + y → -ies)\n- go → **goes**, watch → **watches** (-o, -ch, -sh dan keyin -es)" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **work** in an office.\n- We **live** in a small town.\n- He **lives** in Tashkent.\n- She **studies** English every day.\n- My father **works** in a school." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ English every day.", "options": [ { "id": "a", "text": "study" }, { "id": "b", "text": "studies" }, { "id": "c", "text": "studys" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he / she / it* bilan fe'lga **-s** ni unutmang, lekin yozilishiga e'tibor bering.\n\n- Noto'g'ri: *He work in a bank.* → To'g'ri: **He works in a bank.**\n- Noto'g'ri: *She studys English.* → To'g'ri: **She studies English.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "He ___ in a bank. (work)", "options": [ { "id": "a", "text": "work" }, { "id": "b", "text": "works" }, { "id": "c", "text": "working" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I ___ in Samarkand. (live)", "options": [ { "id": "a", "text": "live" }, { "id": "b", "text": "lives" }, { "id": "c", "text": "living" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My sister ___ in a hospital. (work)", "options": [ { "id": "a", "text": "work" }, { "id": "b", "text": "works" }, { "id": "c", "text": "is work" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-011-PRESENT-SIMPLE-NEGATIVE",
+      "slug": "eng-a1-011-present-simple-negative",
+      "sortOrder": 20,
+      "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE", "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+      "prerequisiteContentKeys": ["ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Present Simple: inkor gaplar",
+        "description": "don't / doesn't; doesn't dan keyin asosiy fe'l.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda Present Simple **inkor** gaplarini o'rganasiz: *don't* va *doesn't* yordamida biror ish qilinmasligini aytish." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Inkor uchun **don't** yoki **doesn't** ishlatiladi:\n\n- **I / you / we / they** → **don't** + asosiy fe'l\n- **he / she / it** → **doesn't** + asosiy fe'l\n\n**Eng muhim qoida:** *doesn't* dan keyin fe'l **asosiy shakl**da bo'ladi (-s **qo'shilmaydi**).\n\n- To'g'ri: **doesn't work**\n- Noto'g'ri: *doesn't works*\n\nSababi: -s allaqachon *does* ichida bor." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **don't work** on Sunday.\n- We **don't live** here.\n- She **doesn't drink** coffee.\n- He **doesn't like** tea.\n- They **don't study** on Saturday." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ coffee. (drink, inkor)", "options": [ { "id": "a", "text": "don't drink" }, { "id": "b", "text": "doesn't drink" }, { "id": "c", "text": "doesn't drinks" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *doesn't* dan keyin fe'lga **-s** qo'shmang.\n\n- Noto'g'ri: *She doesn't works.*\n- To'g'ri: **She doesn't work.**\n\nShuningdek, *he / she / it* bilan **don't** emas, **doesn't** ishlatiladi.\n\n- Noto'g'ri: *He don't like tea.*\n- To'g'ri: **He doesn't like tea.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I ___ on Sunday. (work, inkor)", "options": [ { "id": "a", "text": "don't work" }, { "id": "b", "text": "doesn't work" }, { "id": "c", "text": "don't works" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "He ___ tea. (like, inkor)", "options": [ { "id": "a", "text": "doesn't likes" }, { "id": "b", "text": "doesn't like" }, { "id": "c", "text": "don't like" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "They ___ in Tashkent. (live, inkor)", "options": [ { "id": "a", "text": "doesn't live" }, { "id": "b", "text": "don't live" }, { "id": "c", "text": "don't lives" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-012-PRESENT-SIMPLE-QUESTIONS",
+      "slug": "eng-a1-012-present-simple-questions",
+      "sortOrder": 30,
+      "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS", "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE", "ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+      "prerequisiteContentKeys": ["ENG-A1-011-PRESENT-SIMPLE-NEGATIVE"],
+      "revision": {
+        "title": "Present Simple: savollar va yakuniy takrorlash",
+        "description": "Do / Does savollari, qisqa javoblar va A1 pilotining yakuniy takrori.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu — yakuniy dars. Present Simple **savollari**ni o'rganasiz va oldingi mavzularni (have/has, egalik sifatlari, to be) **amalda** takrorlaysiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple savollari **Do / Does** bilan boshlanadi:\n\n- **I / you / we / they** → **Do** + ega + asosiy fe'l: *Do you work here?*\n- **he / she / it** → **Does** + ega + asosiy fe'l: *Does she live here?*\n\n**Qisqa javoblar:**\n\n- Do you ...? → **Yes, I do.** / **No, I don't.**\n- Does he ...? → **Yes, he does.** / **No, he doesn't.**\n\n**Diqqat:** *Does* dan keyin fe'l asosiy shaklda bo'ladi.\n\n- Noto'g'ri: *Does he works?* → To'g'ri: **Does he work?**\n\nQuyidagi mashqlarda oldingi mavzular ham qaytadan uchraydi." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- **A:** Do you speak English? **B:** Yes, I do.\n- **A:** Does she live in Tashkent? **B:** No, she doesn't.\n- **A:** Do they study on Sunday? **B:** No, they don't.\n- **A:** Does he like coffee? **B:** Yes, he does." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ he like tea?", "options": [ { "id": "a", "text": "Do" }, { "id": "b", "text": "Does" }, { "id": "c", "text": "Is" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-HAVE-HAS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (have/has): She ___ two brothers.", "options": [ { "id": "a", "text": "have" }, { "id": "b", "text": "has" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (egalik): This is Aziz. ___ sister is a nurse. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "He" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-BE-QUESTIONS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (to be): ___ you from Bukhara?", "options": [ { "id": "a", "text": "Are" }, { "id": "b", "text": "Do" }, { "id": "c", "text": "Is" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS", "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Does she ___ English? — bo'sh joyga qaysi to'g'ri?", "options": [ { "id": "a", "text": "speak" }, { "id": "b", "text": "speaks" }, { "id": "c", "text": "speaking" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-BE-QUESTIONS", "ENG-A1-PERSONAL-INFO", "ENG-A1-POSSESSIVE-ADJECTIVES", "ENG-A1-HAVE-HAS", "ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "multiple_choice", "prompt": "Qaysi gaplar grammatik jihatdan to'g'ri? (bir nechta javob bo'lishi mumkin)", "options": [ { "id": "a", "text": "Where are you from?" }, { "id": "b", "text": "Her brother is a doctor." }, { "id": "c", "text": "She has two sisters." }, { "id": "d", "text": "He don't work here." }, { "id": "e", "text": "I have 20 years." } ], "answerKey": { "correctOptionIds": ["a", "b", "c"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS", "ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"Does he work here?\" savoliga qisqa inkor javob qaysi?", "options": [ { "id": "a", "text": "No, he doesn't." }, { "id": "b", "text": "No, he don't." }, { "id": "c", "text": "No, he isn't." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          }
+        ]
+      }
+    }
+  ]
+}

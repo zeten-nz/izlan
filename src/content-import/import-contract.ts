@@ -89,7 +89,12 @@ export interface PlanSkill {
   description: string | null;
   sortOrder: number;
 }
+/** Package-level Activity provenance (TD-254). Optional in the document; omitted → HUMAN (2.2D backward compatibility).
+ *  Every Activity in a package inherits this source. `aiMetadata` is NOT accepted in v1 and stays null. */
+export type ImportProvenanceSource = 'HUMAN' | 'AI_ASSISTED' | 'AI_GENERATED';
+
 export interface ImportPlan {
+  provenance: { source: ImportProvenanceSource }; // normalized; participates in documentHash
   skills: PlanSkill[];
   lessons: PlanLesson[];
 }

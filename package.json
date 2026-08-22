@@ -16,7 +16,8 @@
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "generate:jwt-keys": "ts-node scripts/generate-jwt-keys.ts"
+    "generate:jwt-keys": "ts-node scripts/generate-jwt-keys.ts",
+    "content:pilot:a1:validate": "ts-node scripts/validate-english-a1-pilot.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.1",
