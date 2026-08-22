@@ -72,4 +72,22 @@ describe('import parser (pure, TD-253)', () => {
     const lessons = Array.from({ length: 101 }, (_, i) => ({ contentKey: `LSK-${i}`, sortOrder: i, skillCodes: codes, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }));
     expect(() => parseImportDocument({ schemaVersion: 'izlan-topic-content/v1', skills, lessons })).toThrow(ContentImportError); // 101 × 100 = 10,100 > 10,000
   });
+
+  // ── Provenance (TD-254) ──
+  it('provenance omitted → HUMAN (backward compatible); explicit sources accepted', () => {
+    expect(parseImportDocument(validDoc()).plan.provenance.source).toBe('HUMAN');
+    expect(parseImportDocument(validDoc({ provenance: { source: 'AI_ASSISTED' } })).plan.provenance.source).toBe('AI_ASSISTED');
+    expect(parseImportDocument(validDoc({ provenance: { source: 'AI_GENERATED' } })).plan.provenance.source).toBe('AI_GENERATED');
+  });
+
+  it('IMP-PROV-04 invalid source or unknown provenance field → IMPORT_INVALID_DOCUMENT', () => {
+    expect(parseImportDocument(validDoc({ provenance: { source: 'ROBOT' } })).issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'provenance.source')).toBe(true);
+    expect(parseImportDocument(validDoc({ provenance: { source: 'HUMAN', model: 'x' } })).issues.some((i) => i.code === 'IMPORT_INVALID_DOCUMENT' && i.path === 'provenance.model')).toBe(true);
+  });
+
+  it('IMP-PROV-05 documentHash differs between HUMAN and AI_ASSISTED', () => {
+    const h1 = documentHash(parseImportDocument(validDoc({ provenance: { source: 'HUMAN' } })).plan);
+    const h2 = documentHash(parseImportDocument(validDoc({ provenance: { source: 'AI_ASSISTED' } })).plan);
+    expect(h1).not.toBe(h2);
+  });
 });

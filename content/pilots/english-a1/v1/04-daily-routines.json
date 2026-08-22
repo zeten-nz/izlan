@@ -1,5 +1,6 @@
 {
   "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
   "skills": [
     { "code": "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE", "name": "Present Simple: tasdiq", "sortOrder": 110 },
     { "code": "ENG-A1-PRESENT-SIMPLE-NEGATIVE", "name": "Present Simple: inkor", "sortOrder": 120 },
@@ -133,12 +134,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu — yakuniy dars. Present Simple **savollari**ni o'rganasiz va shu bilan birga butun A1 pilotning asosiy mavzularini qisqacha eslaymiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu — yakuniy dars. Present Simple **savollari**ni o'rganasiz va oldingi mavzularni (have/has, egalik sifatlari, to be) **amalda** takrorlaysiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple savollari **Do / Does** bilan boshlanadi:\n\n- **I / you / we / they** → **Do** + ega + asosiy fe'l: *Do you work here?*\n- **he / she / it** → **Does** + ega + asosiy fe'l: *Does she live here?*\n\n**Qisqa javoblar:**\n\n- Do you ...? → **Yes, I do.** / **No, I don't.**\n- Does he ...? → **Yes, he does.** / **No, he doesn't.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple savollari **Do / Does** bilan boshlanadi:\n\n- **I / you / we / they** → **Do** + ega + asosiy fe'l: *Do you work here?*\n- **he / she / it** → **Does** + ega + asosiy fe'l: *Does she live here?*\n\n**Qisqa javoblar:**\n\n- Do you ...? → **Yes, I do.** / **No, I don't.**\n- Does he ...? → **Yes, he does.** / **No, he doesn't.**\n\n**Diqqat:** *Does* dan keyin fe'l asosiy shaklda bo'ladi.\n\n- Noto'g'ri: *Does he works?* → To'g'ri: **Does he work?**\n\nQuyidagi mashqlarda oldingi mavzular ham qaytadan uchraydi." }
           },
           {
             "type": "EXAMPLE",
@@ -152,21 +153,34 @@
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ he like tea?", "options": [ { "id": "a", "text": "Do" }, { "id": "b", "text": "Does" }, { "id": "c", "text": "Is" } ], "answerKey": { "correctOptionIds": ["b"] } }
           },
           {
-            "type": "EXPLANATION",
-            "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Yakuniy takrorlash — A1 pilotning asosiy mavzulari:**\n\n- **to be:** I am, she is, they are; inkor: isn't / aren't; savol: Are you ...?\n- **Shaxsiy ma'lumot:** I am 20 years old. I am from Uzbekistan.\n- **Egalik va oila:** my, his, her; mother, father, brother, sister.\n- **have / has:** I have a brother. She has a car.\n- **Present Simple:** He works. She doesn't work. Do you work?\n\n**Diqqat:** *Does / doesn't* dan keyin fe'l asosiy shaklda bo'ladi.\n\n- Noto'g'ri: *Does he works?* → To'g'ri: **Does he work?**" }
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-HAVE-HAS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (have/has): She ___ two brothers.", "options": [ { "id": "a", "text": "have" }, { "id": "b", "text": "has" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
           },
           {
             "type": "PRACTICE",
             "estimatedDurationMin": 1,
-            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ you live in Tashkent?", "options": [ { "id": "a", "text": "Do" }, { "id": "b", "text": "Does" }, { "id": "c", "text": "Are" } ], "answerKey": { "correctOptionIds": ["a"] } }
+            "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (egalik): This is Aziz. ___ sister is a nurse. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "He" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-BE-QUESTIONS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Takrorlash (to be): ___ you from Bukhara?", "options": [ { "id": "a", "text": "Are" }, { "id": "b", "text": "Do" }, { "id": "c", "text": "Is" } ], "answerKey": { "correctOptionIds": ["a"] } }
           },
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS", "ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Does she ___ English? — bo'sh joyga qaysi to'g'ri?", "options": [ { "id": "a", "text": "speak" }, { "id": "b", "text": "speaks" }, { "id": "c", "text": "speaking" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE", "ENG-A1-PERSONAL-INFO"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "multiple_choice", "prompt": "Qaysi gaplar grammatik jihatdan to'g'ri? (bir nechta javob bo'lishi mumkin)", "options": [ { "id": "a", "text": "Where are you from?" }, { "id": "b", "text": "Her brother is a doctor." }, { "id": "c", "text": "She has two sisters." }, { "id": "d", "text": "He don't work here." }, { "id": "e", "text": "I have 20 years." } ], "answerKey": { "correctOptionIds": ["a", "b", "c"] } }
           },
           {
             "type": "MASTERY_TEST",

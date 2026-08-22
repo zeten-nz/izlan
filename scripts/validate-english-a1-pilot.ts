@@ -17,6 +17,7 @@ function main(): void {
   console.log(`Lessons:    ${summary.lessons}`);
   console.log(`Activities: ${summary.activities} (objective: ${summary.objectiveActivities})`);
   console.log(`Skills:     ${summary.skills}`);
+  console.log(`Estimated duration: ${summary.estimatedDurationMin} min`);
   console.log(`Status:     ${ok ? 'VALID' : 'INVALID'}`);
 
   if (!ok) {

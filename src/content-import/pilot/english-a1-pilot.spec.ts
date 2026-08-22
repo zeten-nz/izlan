@@ -21,6 +21,11 @@ describe('English A1 pilot content (Phase 2.2E, PILOT-*)', () => {
     expect(issues).toEqual([]);
     expect(ok).toBe(true);
     expect(summary).toMatchObject({ topics: EXPECTED.topics, lessons: EXPECTED.lessons, activities: EXPECTED.activities, skills: EXPECTED.skills });
+    expect(summary.estimatedDurationMin).toBeGreaterThan(0);
+  });
+
+  it('PILOT-PROV-01 all four packages declare AI_ASSISTED provenance', () => {
+    for (const p of packages) expect({ file: p.file, source: p.plan.provenance.source }).toEqual({ file: p.file, source: 'AI_ASSISTED' });
   });
 
   it('PILOT-01 manifest describes 4 topics and 12 lessons', () => {

@@ -179,6 +179,9 @@ export class ImportService {
     const revisionIdForKey = (contentKey: string) => revisionIdByLessonId.get(lessonIdByKey.get(contentKey)!)!;
 
     // 4. Activities — bulk/chunked; resolve ids by (revisionId, position) which is @@unique.
+    // Provenance (TD-254): every Activity in the package inherits the normalized package source (default HUMAN).
+    // aiMetadata is NOT accepted in v1 and is omitted → SQL NULL. Human review does not rewrite the origin.
+    const source = plan.provenance.source as ContentSource;
     const activityData: Prisma.ActivityCreateManyInput[] = [];
     for (const l of plan.lessons) {
       const revId = revisionIdForKey(l.contentKey);
@@ -189,7 +192,7 @@ export class ImportService {
           position: pos,
           payload: a.payload as Prisma.InputJsonValue,
           estimatedDurationMin: a.estimatedDurationMin,
-          source: ContentSource.HUMAN, // aiMetadata omitted → SQL NULL (matches the single-item authoring path)
+          source, // aiMetadata omitted → SQL NULL
         });
       });
     }

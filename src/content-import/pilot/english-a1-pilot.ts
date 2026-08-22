@@ -57,11 +57,16 @@ export const PILOT_PREREQUISITE_CHAIN: { lesson: string; requires: string | null
 
 export const EXPECTED = {
   pilotVersion: 'english-a1-pilot/v1',
+  provenanceSource: 'AI_ASSISTED',
   topics: 4,
   lessons: 12,
-  activities: 96,
+  activities: 98,
   skills: 13,
 } as const;
+
+const BE_OR_PERSONAL_INFO = new Set(['ENG-A1-BE-AFFIRMATIVE', 'ENG-A1-BE-NEGATIVE', 'ENG-A1-BE-QUESTIONS', 'ENG-A1-PERSONAL-INFO']);
+const POSSESSIVE_OR_FAMILY = new Set(['ENG-A1-POSSESSIVE-ADJECTIVES', 'ENG-A1-FAMILY-VOCAB']);
+const PRESENT_SIMPLE = new Set(['ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-PRESENT-SIMPLE-QUESTIONS']);
 
 const MARKDOWN_TYPES = new Set<ActivityType>([ActivityType.TEXT, ActivityType.EXPLANATION, ActivityType.EXAMPLE]);
 const OBJECTIVE_TYPES = new Set<ActivityType>([ActivityType.MINI_QUESTION, ActivityType.PRACTICE, ActivityType.MASTERY_TEST]);
@@ -115,7 +120,7 @@ export function parsePackages(): PackageParse[] {
       return { file, raw, plan, issues: issues.map((i) => `${file}: ${i.code} @ ${i.path}`) };
     } catch (e) {
       const code = (e as { importCode?: string }).importCode ?? 'PARSE_ERROR';
-      return { file, raw, plan: { skills: [], lessons: [] }, issues: [`${file}: HARD ${code}`] };
+      return { file, raw, plan: { provenance: { source: 'HUMAN' }, skills: [], lessons: [] }, issues: [`${file}: HARD ${code}`] };
     }
   });
 }
@@ -127,6 +132,7 @@ export interface PilotSummary {
   activities: number;
   objectiveActivities: number;
   skills: number;
+  estimatedDurationMin: number; // SUM(Activity.estimatedDurationMin) across the actual normalized packages
   valid: boolean;
 }
 
@@ -150,19 +156,29 @@ export function validatePilot(): PilotValidation {
 
   const allLessons: { key: string; lesson: PlanLesson; file: string }[] = [];
   const skillNameByCode = new Map<string, string>();
+  const availableCodes = new Set<string>(); // codes declared in this-or-an-earlier package (import-order resolvability)
   let activityCount = 0;
   let objectiveActivityCount = 0;
+  let estimatedDurationMin = 0;
 
   for (const p of packages) {
+    // Provenance (TD-254): the whole pilot is AI-assisted, not HUMAN.
+    if (p.plan.provenance.source !== EXPECTED.provenanceSource) {
+      issues.push(`${p.file}: provenance.source is "${p.plan.provenance.source}", expected ${EXPECTED.provenanceSource}`);
+    }
     for (const s of p.plan.skills) {
       const prev = skillNameByCode.get(s.code);
       if (prev !== undefined && prev !== s.name) issues.push(`Skill code ${s.code} has inconsistent names: "${prev}" vs "${s.name}"`);
       else skillNameByCode.set(s.code, s.name);
+      availableCodes.add(s.code);
     }
     for (const lesson of p.plan.lessons) {
       allLessons.push({ key: lesson.contentKey, lesson, file: p.file });
       const acts = lesson.revision.activities;
       activityCount += acts.length;
+
+      // Every referenced skill code must be declared in this or an earlier package (import order resolves it).
+      for (const code of lesson.skillCodes) if (!availableCodes.has(code)) issues.push(`${lesson.contentKey}: skillCode ${code} not declared in this or an earlier package`);
 
       // Per-lesson pedagogical/structural invariants.
       if (lesson.skillCodes.length < 1) issues.push(`${lesson.contentKey}: no LessonSkill mapping`);
@@ -178,8 +194,10 @@ export function validatePilot(): PilotValidation {
         if (OBJECTIVE_TYPES.has(a.type)) {
           objectiveActivityCount++;
           if (a.skillCodes.length < 1) issues.push(`${lesson.contentKey}[${i}] (${a.type}): objective activity has no skillCode`);
+          for (const code of a.skillCodes) if (!availableCodes.has(code)) issues.push(`${lesson.contentKey}[${i}]: activity skillCode ${code} not declared in this or an earlier package`);
         }
         if (a.estimatedDurationMin == null) issues.push(`${lesson.contentKey}[${i}]: missing estimatedDurationMin`);
+        else estimatedDurationMin += a.estimatedDurationMin;
         if (MARKDOWN_TYPES.has(a.type)) {
           const md = (a.payload as { markdown?: unknown }).markdown;
           if (typeof md === 'string') {
@@ -233,6 +251,25 @@ export function validatePilot(): PilotValidation {
     }
   }
 
+  // Lesson 06 — mastery must cover BOTH numbers and personal-info skills.
+  const l06 = lessonByKey.get('ENG-A1-006-NUMBERS-PERSONAL-INFO');
+  if (l06) {
+    const masterySkills = new Set(l06.revision.activities.filter((a) => a.type === ActivityType.MASTERY_TEST).flatMap((a) => a.skillCodes));
+    if (!masterySkills.has('ENG-A1-NUMBERS')) issues.push('ENG-A1-006: mastery does not cover ENG-A1-NUMBERS');
+    if (!masterySkills.has('ENG-A1-PERSONAL-INFO')) issues.push('ENG-A1-006: mastery does not cover ENG-A1-PERSONAL-INFO');
+  }
+
+  // Lesson 12 — objective activities must retrieve prior knowledge (have/has, be/personal-info, possessive/family) in
+  // addition to Present Simple (§14). ActivitySkill is the granular evidence authority.
+  const l12 = lessonByKey.get('ENG-A1-012-PRESENT-SIMPLE-QUESTIONS');
+  if (l12) {
+    const objectiveSkills = new Set(l12.revision.activities.filter((a) => OBJECTIVE_TYPES.has(a.type)).flatMap((a) => a.skillCodes));
+    if (!objectiveSkills.has('ENG-A1-HAVE-HAS')) issues.push('ENG-A1-012: no objective retrieval of ENG-A1-HAVE-HAS');
+    if (![...objectiveSkills].some((c) => BE_OR_PERSONAL_INFO.has(c))) issues.push('ENG-A1-012: no objective retrieval of a to-be/personal-info skill');
+    if (![...objectiveSkills].some((c) => POSSESSIVE_OR_FAMILY.has(c))) issues.push('ENG-A1-012: no objective retrieval of a possessive/family skill');
+    if (![...objectiveSkills].some((c) => PRESENT_SIMPLE.has(c))) issues.push('ENG-A1-012: no objective Present Simple activity');
+  }
+
   const ok = issues.length === 0;
   return {
     ok,
@@ -244,6 +281,7 @@ export function validatePilot(): PilotValidation {
       activities: activityCount,
       objectiveActivities: objectiveActivityCount,
       skills: skillNameByCode.size,
+      estimatedDurationMin,
       valid: ok,
     },
   };

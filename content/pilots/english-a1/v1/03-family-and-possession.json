@@ -1,5 +1,6 @@
 {
   "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
   "skills": [
     { "code": "ENG-A1-POSSESSIVE-ADJECTIVES", "name": "Egalik sifatlari", "sortOrder": 80 },
     { "code": "ENG-A1-FAMILY-VOCAB", "name": "Oila a'zolari", "sortOrder": 90 },
@@ -29,7 +30,7 @@
           {
             "type": "EXAMPLE",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **my** phone.\n- What is **your** name?\n- Aziz is happy. **His** job is interesting.\n- Laylo is a teacher. **Her** students are young.\n- We have a car. **Our** car is blue.\n- They have a house. **Their** house is big." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **my** phone.\n- What is **your** name?\n- Aziz is happy. **His** job is interesting.\n- Laylo is a teacher. **Her** students are young.\n- This is **our** car. **Our** car is blue.\n- This is **their** house. **Their** house is big." }
           },
           {
             "type": "MINI_QUESTION",
@@ -52,13 +53,13 @@
             "type": "PRACTICE",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Laylo has a cat. ___ cat is black. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "She" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "This is Laylo. ___ cat is black. (uning)", "options": [ { "id": "a", "text": "His" }, { "id": "b", "text": "Her" }, { "id": "c", "text": "She" } ], "answerKey": { "correctOptionIds": ["b"] } }
           },
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We have a house. ___ house is big. (bizning)", "options": [ { "id": "a", "text": "Our" }, { "id": "b", "text": "Their" }, { "id": "c", "text": "We" } ], "answerKey": { "correctOptionIds": ["a"] } }
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We are a family. ___ house is big. (bizning)", "options": [ { "id": "a", "text": "Our" }, { "id": "b", "text": "Their" }, { "id": "c", "text": "We" } ], "answerKey": { "correctOptionIds": ["a"] } }
           }
         ]
       }
@@ -81,12 +82,12 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Asosiy oila so'zlari:\n\n- **mother** — ona, **father** — ota\n- **parents** — ota-ona (ikkalasi)\n- **sister** — opa / singil, **brother** — aka / uka\n- **husband** — er (turmush o'rtog'i, erkak), **wife** — xotin (turmush o'rtog'i, ayol)\n- **son** — o'g'il, **daughter** — qiz (farzand)\n- **child** — bola (bitta), **children** — bolalar (ko'plik)\n\n**Diqqat:** *children* — *child* so'zining ko'plik shakli (qoidasiz)." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Asosiy oila so'zlari:\n\n- **mother** — ona, **father** — ota\n- **parents** — ota-ona (ikkalasi)\n- **sister** — opa / singil, **brother** — aka / uka\n- **husband** — turmush o'rtog'i (erkak), **wife** — rafiqa / turmush o'rtog'i (ayol)\n- **son** — o'g'il, **daughter** — qiz (farzand)\n- **child** — bola (bitta), **children** — bolalar (ko'plik)\n\n**Diqqat:** *children* — *child* so'zining ko'plik shakli (qoidasiz)." }
           },
           {
             "type": "EXAMPLE",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- My **mother** is a doctor.\n- I have one **brother** and two **sisters**.\n- Their **parents** are teachers.\n- She has a **son** and a **daughter**.\n- We have two **children**." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- My **mother** is a doctor.\n- This is my **brother**. His name is Sardor.\n- My **sister** is a student.\n- Their **parents** are teachers.\n- These are my **children**." }
           },
           {
             "type": "MINI_QUESTION",
@@ -103,7 +104,7 @@
             "type": "PRACTICE",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-FAMILY-VOCAB"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I have two ___. (bola, ko'plik)", "options": [ { "id": "a", "text": "childs" }, { "id": "b", "text": "children" }, { "id": "c", "text": "childrens" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"child\" so'zining ko'plik shakli qaysi?", "options": [ { "id": "a", "text": "childs" }, { "id": "b", "text": "children" }, { "id": "c", "text": "childrens" } ], "answerKey": { "correctOptionIds": ["b"] } }
           },
           {
             "type": "PRACTICE",
@@ -154,7 +155,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he, she, it* bilan **has** ishlatiladi, **have** emas. *haves* degan so'z esa umuman yo'q.\n\n- Noto'g'ri: *He have a car.*\n- To'g'ri: **He has a car.**\n\n- Noto'g'ri: *She haves a car.*\n- To'g'ri: **She has a car.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he, she, it* bilan **has** ishlatiladi, **have** emas. *have* fe'lining he/she/it shakli **has**; \"haves\" bu yerda fe'l shakli sifatida ishlatilmaydi.\n\n- Noto'g'ri: *He have a car.*\n- To'g'ri: **He has a car.**\n\n- Noto'g'ri: *She haves a car.*\n- To'g'ri: **She has a car.**" }
           },
           {
             "type": "PRACTICE",

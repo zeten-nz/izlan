@@ -2,7 +2,9 @@ import { ActivityType } from '@prisma/client';
 import { ContentActivityPayloadInvalidError, ContentActivityTypeNotAuthorableError, ContentImportError } from '../common/errors';
 import { validateActivityPayloadForAuthoring } from '../content/activity/authoring-payload';
 import { CONTENT_KEY_RE, NO_CONTROL, SLUG_RE } from '../content-authoring/dto/common.dto';
-import { IMPORT_LIMITS, IMPORT_SCHEMA_VERSION, IMPORT_STATUS, IMPORT_SUPPORTED_ACTIVITY_TYPES, type ImportIssue, type ImportPlan, type PlanActivity, type PlanLesson, type PlanSkill } from './import-contract';
+import { IMPORT_LIMITS, IMPORT_SCHEMA_VERSION, IMPORT_STATUS, IMPORT_SUPPORTED_ACTIVITY_TYPES, type ImportIssue, type ImportPlan, type ImportProvenanceSource, type PlanActivity, type PlanLesson, type PlanSkill } from './import-contract';
+
+const PROVENANCE_SOURCES: ReadonlySet<string> = new Set<ImportProvenanceSource>(['HUMAN', 'AI_ASSISTED', 'AI_GENERATED']);
 
 const MAX_DURATION_MIN = 100_000;
 const ACTIVITY_TYPES = new Set<string>(Object.values(ActivityType));
@@ -32,8 +34,9 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
   if (body.schemaVersion !== IMPORT_SCHEMA_VERSION) hard('IMPORT_SCHEMA_UNSUPPORTED');
 
   const issues: ImportIssue[] = [];
-  checkExactKeys(body, ['schemaVersion', 'skills', 'lessons'], '', issues);
+  checkExactKeys(body, ['schemaVersion', 'provenance', 'skills', 'lessons'], '', issues);
 
+  const provenance = validateProvenance(body.provenance, issues);
   const skillsRaw = body.skills;
   const lessonsRaw = body.lessons;
   if (skillsRaw !== undefined && !Array.isArray(skillsRaw)) invalid(issues, 'skills');
@@ -43,7 +46,7 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
 
   if (skillsArr.length > IMPORT_LIMITS.maxSkills || lessonsArr.length > IMPORT_LIMITS.maxLessons) hard('IMPORT_LIMIT_EXCEEDED');
 
-  const plan: ImportPlan = { skills: [], lessons: [] };
+  const plan: ImportPlan = { provenance, skills: [], lessons: [] };
 
   // Package-local Skill identity: reject duplicate declared CODES and duplicate declared NAMES (the DB enforces both
   // `@@unique([subjectId, code])` and `@@unique([subjectId, name])`, so dry-run must catch these deterministically —
@@ -94,6 +97,26 @@ export function parseImportDocument(body: unknown): { plan: ImportPlan; issues: 
   }
 
   return { plan, issues };
+}
+
+/**
+ * Optional package-level provenance (TD-254). Omitted → HUMAN (2.2D backward compatibility). STRICT: the ONLY field is
+ * `source`, whose value must be an exact ContentSource enum (HUMAN / AI_ASSISTED / AI_GENERATED). Arbitrary aiMetadata
+ * is NOT accepted in v1. On any violation the doc is invalid; the plan still normalizes to a safe default so hashing works.
+ */
+function validateProvenance(raw: unknown, issues: ImportIssue[]): { source: ImportProvenanceSource } {
+  if (raw === undefined || raw === null) return { source: 'HUMAN' };
+  if (!isObj(raw)) {
+    invalid(issues, 'provenance');
+    return { source: 'HUMAN' };
+  }
+  checkExactKeys(raw, ['source'], 'provenance', issues);
+  const source = isStr(raw.source) ? raw.source : '';
+  if (!PROVENANCE_SOURCES.has(source)) {
+    invalid(issues, 'provenance.source');
+    return { source: 'HUMAN' };
+  }
+  return { source: source as ImportProvenanceSource };
 }
 
 function validateSkill(raw: unknown, path: string, issues: ImportIssue[]): PlanSkill | null {

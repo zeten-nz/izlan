@@ -1,5 +1,6 @@
 {
   "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
   "skills": [
     { "code": "ENG-A1-GREETINGS", "name": "Salomlashish va tanishuv", "sortOrder": 10 },
     { "code": "ENG-A1-SUBJECT-PRONOUNS", "name": "Kishilik olmoshlari", "sortOrder": 20 },

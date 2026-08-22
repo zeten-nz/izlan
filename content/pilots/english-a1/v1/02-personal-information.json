@@ -1,5 +1,6 @@
 {
   "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
   "skills": [
     { "code": "ENG-A1-BE-AFFIRMATIVE", "name": "To be: tasdiq shakli", "sortOrder": 30 },
     { "code": "ENG-A1-BE-NEGATIVE", "name": "To be: inkor shakli", "sortOrder": 40 },
@@ -26,7 +27,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Inkor qilish uchun **to be** dan keyin **not** qo'shiladi:\n\n- **I am not** — men ...emasman\n- **you are not** — sen ...emassan\n- **he / she / it is not** — u ...emas\n- **we / they are not** — biz / ular ...emas\n\nQisqartma shakllar:\n\n- is not → **isn't**\n- are not → **aren't**\n\n**Diqqat:** *am not* uchun qisqartma yo'q — \"amn't\" degan so'z yo'q. Odatda **I'm not** deyiladi." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Inkor qilish uchun **to be** dan keyin **not** qo'shiladi:\n\n- **I am not** — men ...emasman\n- **you are not** — sen ...emassan\n- **he / she / it is not** — u ...emas\n- **we / they are not** — biz / ular ...emas\n\nQisqartma shakllar:\n\n- is not → **isn't**\n- are not → **aren't**\n\n**Diqqat:** standart ingliz tilida *amn't* odatda ishlatilmaydi; buning o'rniga **I'm not** ishlatiladi." }
           },
           {
             "type": "EXAMPLE",
@@ -140,12 +141,12 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Sonlar bir necha guruhga bo'linadi:\n\n- 1-12 alohida so'zlar: one, two, three ... ten, eleven, twelve.\n- 13-19 oxirida **-teen**: thir**teen** (13), four**teen** (14), fif**teen** (15) ...\n- 20, 30, 40 ... oxirida **-ty**: twen**ty** (20), thir**ty** (30), for**ty** (40) ...\n- Qo'shma sonlar chiziqcha bilan: twenty-**one** (21), thirty-**five** (35), forty-**two** (42).\n\nEsda tuting: **thirteen** (13) va **thirty** (30) — bular boshqa sonlar." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Sonlar:\n\n- **0** = zero, **1** = one, **2** = two ... **10** = ten, **11** = eleven, **12** = twelve.\n- 13-19 oxirida **-teen**: thir**teen** (13), four**teen** (14), fif**teen** (15) ... nine**teen** (19).\n- 20, 30, 40 ... oxirida **-ty**: twen**ty** (20), thir**ty** (30), for**ty** (40) ... nine**ty** (90).\n- Qo'shma sonlar chiziqcha bilan: twenty-**one** (21), thirty-**five** (35), forty-**two** (42).\n- **100** = one hundred.\n\nEsda tuting: **thirteen** (13) va **thirty** (30) — bular boshqa sonlar.\n\n**Telefon raqamlari** odatda **raqamma-raqam** (birma-bir) o'qiladi, bitta katta son sifatida emas. Masalan, `4 7 2` → **four seven two**." }
           },
           {
             "type": "EXAMPLE",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Shaxsiy ma'lumot namunalari (barchasi o'ylab topilgan):\n\n- **I am 20 years old.**\n- **My phone number is 90 123 45 67.**\n- **I am from Uzbekistan.**\n- **A:** How old are you? **B:** I am twenty-one.\n- **A:** Where are you from? **B:** I am from Namangan." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Shaxsiy ma'lumot namunalari (barchasi o'ylab topilgan):\n\n- **I am 20 years old.**\n- **I am from Uzbekistan.**\n- **A:** How old are you? **B:** I am twenty-one.\n- **A:** Where are you from? **B:** I am from Namangan.\n- Telefon raqami raqamma-raqam o'qiladi: `9 0 — 1 2 3` → **nine zero, one two three**." }
           },
           {
             "type": "MINI_QUESTION",
@@ -156,13 +157,13 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** yoshni aytishda *have* ishlatilmaydi.\n\n- Noto'g'ri: *I have 25 years.*\n- To'g'ri: **I am 25 years old.**\n\nIngliz tilida yosh **to be** (am/is/are) bilan aytiladi va **years old** iborasi ishlatiladi." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xatolar:**\n\n1. Yoshni aytishda *have* ishlatilmaydi.\n   - Noto'g'ri: *I have 25 years.* → To'g'ri: **I am 25 years old.**\n2. Telefon raqamini bitta katta son qilib o'qimang — har bir raqamni alohida ayting.\n   - `4 7 2` → **four seven two**, *four hundred seventy-two* emas." }
           },
           {
             "type": "PRACTICE",
             "estimatedDurationMin": 1,
             "skillCodes": ["ENG-A1-NUMBERS"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"thirty\" soni nechchi?", "options": [ { "id": "a", "text": "13" }, { "id": "b", "text": "30" }, { "id": "c", "text": "3" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Telefon raqamidagi `4 7 2` qanday o'qiladi?", "options": [ { "id": "a", "text": "four seven two" }, { "id": "b", "text": "forty-seven two" }, { "id": "c", "text": "four hundred seventy-two" } ], "answerKey": { "correctOptionIds": ["a"] } }
           },
           {
             "type": "PRACTICE",
@@ -173,8 +174,8 @@
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
-            "skillCodes": ["ENG-A1-NUMBERS"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"forty-two\" soni nechchi?", "options": [ { "id": "a", "text": "24" }, { "id": "b", "text": "42" }, { "id": "c", "text": "402" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "skillCodes": ["ENG-A1-NUMBERS", "ENG-A1-PERSONAL-INFO"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "multiple_choice", "prompt": "Qaysi gaplar to'g'ri? (bir nechta javob bo'lishi mumkin)", "options": [ { "id": "a", "text": "forty-two = 42" }, { "id": "b", "text": "I am 25 years old." }, { "id": "c", "text": "I have 25 years." }, { "id": "d", "text": "one hundred = 10" } ], "answerKey": { "correctOptionIds": ["a", "b"] } }
           }
         ]
       }

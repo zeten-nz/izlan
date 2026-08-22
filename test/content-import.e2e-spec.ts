@@ -354,6 +354,38 @@ describe('Topic-scoped bulk content import (e2e, izlan_test)', () => {
     expect(await prisma.staffAudit.count({ where: { actionCode: 'content.import.apply' } })).toBe(1); // unchanged
   });
 
+  // ── Provenance (IMP-PROV) — package-level Activity provenance (TD-254) ──
+  it('IMP-PROV-01 no provenance → imported Activity.source = HUMAN (backward compatible)', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    await apply(a.token, topicId, doc({ skills: [], lessons: [{ contentKey: 'PROV-H', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }, { type: 'EXAMPLE', payload: md('ex') }] } }] })).expect(201);
+    const acts = await prisma.activity.findMany({ where: { revision: { lesson: { contentKey: 'PROV-H' } } } });
+    expect(acts.length).toBe(2);
+    expect(acts.every((x) => x.source === 'HUMAN' && x.aiMetadata === null)).toBe(true);
+  });
+
+  it('IMP-PROV-02 provenance AI_ASSISTED → every imported Activity.source = AI_ASSISTED, aiMetadata null', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    await apply(a.token, topicId, doc({ provenance: { source: 'AI_ASSISTED' }, skills: [], lessons: [{ contentKey: 'PROV-AI', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }, { type: 'EXPLANATION', payload: md('why') }] } }] })).expect(201);
+    const acts = await prisma.activity.findMany({ where: { revision: { lesson: { contentKey: 'PROV-AI' } } } });
+    expect(acts.length).toBe(2);
+    expect(acts.every((x) => x.source === 'AI_ASSISTED' && x.aiMetadata === null)).toBe(true);
+  });
+
+  it('IMP-PROV-03 provenance AI_GENERATED is structurally accepted and persisted', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await apply(a.token, topicId, doc({ provenance: { source: 'AI_GENERATED' }, skills: [], lessons: [{ contentKey: 'PROV-GEN', sortOrder: 1, revision: { title: 'L', activities: [{ type: 'TEXT', payload: md() }] } }] }));
+    expect(res.status).toBe(201);
+    const acts = await prisma.activity.findMany({ where: { revision: { lesson: { contentKey: 'PROV-GEN' } } } });
+    expect(acts.every((x) => x.source === 'AI_GENERATED')).toBe(true);
+  });
+
+  it('IMP-PROV-04 invalid provenance → not valid (dry-run)', async () => {
+    const a = await makeAdmin(); const { topicId } = await seedTopic(a);
+    const res = await validate(a.token, topicId, doc({ provenance: { source: 'ROBOT' } }));
+    expect(res.body.valid).toBe(false);
+    expect(res.body.errors.some((e: { code: string }) => e.code === 'IMPORT_INVALID_DOCUMENT')).toBe(true);
+  });
+
   // ── Body boundary (IMP-BODY) — route-scoped 5 MiB, ordinary API stays at 1 MiB (TD-253, Blocker A) ──
   const bigMd = (len: number) => ({ schemaVersion: 'lesson-activity-markdown/v1', markdown: 'a'.repeat(len) });
   const bulkLessons = (count: number, mdLen: number, prefix: string) =>
