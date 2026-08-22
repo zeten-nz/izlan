@@ -3,13 +3,16 @@
 import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { FiChevronRight, FiEye, FiCheckSquare } from 'react-icons/fi';
 import { getLesson, getRevision } from '@/lib/api/content';
 import { resolveLessonSubjectId } from '@/lib/api/hierarchy-helpers';
 import type { Revision } from '@/lib/api/types';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
+import { useT } from '@/lib/i18n/i18n-context';
 import { RevisionEditorProvider, useRevisionEditor } from '@/lib/cms/revision-editor-context';
+import { fadeInUp } from '@/lib/motion/motion';
 import { Card } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Tabs } from '@/components/ui/tabs';
@@ -23,6 +26,7 @@ import { WorkflowActions } from '@/components/revision/WorkflowActions';
 function EditorInner() {
   const { revision, setRevision } = useRevisionEditor();
   const caps = useCapabilities();
+  const t = useT();
   const lessonRes = useResource(useCallback(() => getLesson(revision.lessonId), [revision.lessonId]), [revision.lessonId]);
   const subjectRes = useResource(
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,19 +44,19 @@ function EditorInner() {
   const subjectId = subjectRes.data ?? '';
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
-      <nav aria-label="Yo‘l" className="flex flex-wrap items-center gap-1 text-sm text-muted">
-        <Link href="/staff/content" className="hover:text-text">
-          Fanlar
+    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="mx-auto max-w-6xl space-y-5">
+      <nav aria-label={t('hierarchy.breadcrumbLabel')} className="flex flex-wrap items-center gap-1 text-sm text-muted">
+        <Link href="/staff/content" className="transition-colors hover:text-text">
+          {t('nav.subjects')}
         </Link>
         <FiChevronRight aria-hidden />
-        <Link href={`/staff/content/lessons/${revision.lessonId}`} className="hover:text-text">
-          {lessonRes.data?.contentKey ?? 'Dars'}
+        <Link href={`/staff/content/lessons/${revision.lessonId}`} className="transition-colors hover:text-text">
+          {lessonRes.data?.contentKey ?? t('hierarchy.lessons')}
         </Link>
         <FiChevronRight aria-hidden />
         <span className="font-semibold text-text">v{revision.version}</span>
         <StatusBadge status={revision.status} />
-        {!editable && revision.status !== 'DRAFT' && <span className="ml-2 text-xs text-muted">(faqat o‘qish — muharrirlik muzlatilgan)</span>}
+        {!editable && revision.status !== 'DRAFT' && <span className="ml-2 text-xs text-muted">{t('revision.freezeNote')}</span>}
       </nav>
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -68,8 +72,8 @@ function EditorInner() {
           <Card className="p-4">
             <Tabs
               tabs={[
-                { key: 'readiness', label: 'Tayyorlik', icon: <FiCheckSquare aria-hidden /> },
-                { key: 'preview', label: 'Ko‘rinish', icon: <FiEye aria-hidden /> },
+                { key: 'readiness', label: t('tabs.readiness'), icon: <FiCheckSquare aria-hidden /> },
+                { key: 'preview', label: t('tabs.preview'), icon: <FiEye aria-hidden /> },
               ]}
               active={rail}
               onChange={setRail}
@@ -81,7 +85,7 @@ function EditorInner() {
           </Card>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

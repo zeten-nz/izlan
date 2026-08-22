@@ -5,6 +5,7 @@ import { FiPlus, FiTrash2, FiUser } from 'react-icons/fi';
 import { assignUser, listAssignments, removeAssignment } from '@/lib/api/content';
 import type { Assignment } from '@/lib/api/types';
 import { useResource } from '@/lib/hooks/use-resource';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Card, IconButton, Input, useToast } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { ResourceView, EmptyState } from '@/components/ui/states';
@@ -13,6 +14,7 @@ import { formatDateTime } from '@/lib/ui/format';
 
 /** Subject assignment management (content.subject.manage only). MVP: add by userId, remove with confirm. */
 export function AssignmentsManager({ subjectId }: { subjectId: string }) {
+  const t = useT();
   const { toast } = useToast();
   const res = useResource(useCallback(() => listAssignments(subjectId), [subjectId]), [subjectId]);
   const [userId, setUserId] = useState('');
@@ -24,11 +26,11 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
     setAdding(true);
     try {
       await assignUser(subjectId, userId.trim());
-      toast('Biriktirildi', 'success');
+      toast(t('assignments.added'), 'success');
       setUserId('');
       res.reload();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
     } finally {
       setAdding(false);
     }
@@ -38,10 +40,10 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
     setBusy(true);
     try {
       await removeAssignment(subjectId, a.userId);
-      toast('Olib tashlandi', 'success');
+      toast(t('assignments.removed'), 'success');
       res.reload();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
     } finally {
       setBusy(false);
       setRemoving(null);
@@ -50,11 +52,11 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Biriktirmalar</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('assignments.title')}</h3>
       <div className="flex gap-2">
-        <Input placeholder="Foydalanuvchi ID (UUID)" value={userId} onChange={(e) => setUserId(e.target.value)} aria-label="Foydalanuvchi ID" />
+        <Input placeholder={t('assignments.userIdPlaceholder')} value={userId} onChange={(e) => setUserId(e.target.value)} aria-label={t('assignments.userIdLabel')} />
         <Button leftIcon={<FiPlus aria-hidden />} onClick={onAdd} loading={adding} disabled={userId.trim().length === 0}>
-          Qo‘shish
+          {t('common.add')}
         </Button>
       </div>
 
@@ -64,7 +66,7 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
         data={res.data}
         onRetry={res.reload}
         isEmpty={(d) => d.length === 0}
-        empty={<EmptyState title="Biriktirma yo‘q" message="Bu fanga hali hech kim biriktirilmagan." />}
+        empty={<EmptyState title={t('assignments.emptyTitle')} message={t('assignments.emptyBody')} />}
       >
         {(items) => (
           <ul className="space-y-2">
@@ -78,7 +80,7 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
                       <p className="text-xs text-muted">{formatDateTime(a.assignedAt)}</p>
                     </div>
                   </div>
-                  <IconButton label="Olib tashlash" variant="danger" onClick={() => setRemoving(a)}>
+                  <IconButton label={t('common.remove')} variant="danger" onClick={() => setRemoving(a)}>
                     <FiTrash2 aria-hidden />
                   </IconButton>
                 </Card>
@@ -92,9 +94,9 @@ export function AssignmentsManager({ subjectId }: { subjectId: string }) {
         open={removing !== null}
         onClose={() => setRemoving(null)}
         onConfirm={() => removing && onRemove(removing)}
-        title="Biriktirmani olib tashlash"
-        message={`Foydalanuvchi ${removing?.userId ?? ''} ushbu fandan olib tashlansinmi?`}
-        confirmLabel="Olib tashlash"
+        title={t('assignments.removeTitle')}
+        message={t('assignments.removeBody', { id: removing?.userId ?? '' })}
+        confirmLabel={t('assignments.remove')}
         danger
         busy={busy}
       />

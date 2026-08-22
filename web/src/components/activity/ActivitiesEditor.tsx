@@ -8,6 +8,7 @@ import { FiChevronDown, FiChevronUp, FiMove, FiPlus } from 'react-icons/fi';
 import type { Activity, ActivityType } from '@/lib/api/types';
 import { createActivity, listActivities, reorderActivities } from '@/lib/api/content';
 import { useRevisionEditor } from '@/lib/cms/revision-editor-context';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, IconButton, useToast } from '@/components/ui';
 import { ResourceView, EmptyState } from '@/components/ui/states';
 import { useResource } from '@/lib/hooks/use-resource';
@@ -15,11 +16,11 @@ import { ActivityCard } from './ActivityCard';
 import { AddActivityDialog, defaultPayloadFor } from './AddActivityDialog';
 import { describeError } from '@/lib/ui/error-text';
 
-function Sortable({ id, children }: { id: string; children: (handle: React.ReactNode) => React.ReactNode }) {
+function Sortable({ id, dragLabel, children }: { id: string; dragLabel: string; children: (handle: React.ReactNode) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
   const handle = (
-    <button ref={setNodeRef as unknown as React.Ref<HTMLButtonElement>} {...attributes} {...listeners} aria-label="Tartibni o‘zgartirish (sudrab)" className="cursor-grab touch-none text-muted hover:text-text">
+    <button ref={setNodeRef as unknown as React.Ref<HTMLButtonElement>} {...attributes} {...listeners} aria-label={dragLabel} className="cursor-grab touch-none text-muted hover:text-text">
       <FiMove aria-hidden />
     </button>
   );
@@ -33,6 +34,7 @@ function Sortable({ id, children }: { id: string; children: (handle: React.React
 export function ActivitiesEditor({ revisionId, subjectId, editable }: { revisionId: string; subjectId: string; editable: boolean }) {
   const { revision, setRevisionToken } = useRevisionEditor();
   const { toast } = useToast();
+  const t = useT();
   const res = useResource(useCallback(() => listActivities(revisionId), [revisionId]), [revisionId]);
   const [items, setItems] = useState<Activity[]>([]);
   const [adding, setAdding] = useState(false);
@@ -49,10 +51,11 @@ export function ActivitiesEditor({ revisionId, subjectId, editable }: { revision
     try {
       const r = await reorderActivities(revisionId, { expectedRevisionUpdatedAt: revision.updatedAt, orderedActivityIds: ordered.map((a) => a.id) });
       setRevisionToken(r.revisionUpdatedAt);
+      toast(t('activity.reordered'), 'success');
       res.reload(); // adopt canonical positions from server
     } catch (e) {
       setItems(prev); // rollback optimistic order
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
       res.reload(); // reload canonical server order (never leave a rejected optimistic order)
     }
   }
@@ -77,11 +80,11 @@ export function ActivitiesEditor({ revisionId, subjectId, editable }: { revision
     try {
       const r = await createActivity(revisionId, { expectedRevisionUpdatedAt: revision.updatedAt, type, position: items.length, payload: defaultPayloadFor(type) });
       setRevisionToken(r.revisionUpdatedAt);
-      toast('Faoliyat qo‘shildi', 'success');
+      toast(t('activity.added'), 'success');
       setAdding(false);
       res.reload();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
     } finally {
       setCreating(false);
     }
@@ -90,15 +93,15 @@ export function ActivitiesEditor({ revisionId, subjectId, editable }: { revision
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Faoliyatlar</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('activity.title')}</h3>
         {editable && (
           <Button size="sm" variant="secondary" leftIcon={<FiPlus aria-hidden />} onClick={() => setAdding(true)}>
-            Faoliyat qo‘shish
+            {t('activity.add')}
           </Button>
         )}
       </div>
 
-      <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload} isEmpty={() => items.length === 0} empty={<EmptyState title="Faoliyat yo‘q" message="Bu versiyada hali faoliyat yo‘q." />}>
+      <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload} isEmpty={() => items.length === 0} empty={<EmptyState title={t('activity.emptyTitle')} message={t('activity.emptyBody')} />}>
         {() => (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={items.map((a) => a.id)} strategy={verticalListSortingStrategy}>
@@ -106,7 +109,7 @@ export function ActivitiesEditor({ revisionId, subjectId, editable }: { revision
                 {items.map((a, i) => (
                   <li key={a.id}>
                     {editable ? (
-                      <Sortable id={a.id}>
+                      <Sortable id={a.id} dragLabel={t('activity.dragReorder')}>
                         {(handle) => (
                           <div className="relative">
                             <ActivityCard
@@ -117,10 +120,10 @@ export function ActivitiesEditor({ revisionId, subjectId, editable }: { revision
                                 <span className="flex items-center gap-1">
                                   {handle}
                                   <span className="flex flex-col">
-                                    <IconButton label="Yuqoriga" onClick={() => move(i, -1)} className="h-5 w-5">
+                                    <IconButton label={t('activity.moveUp')} onClick={() => move(i, -1)} className="h-5 w-5">
                                       <FiChevronUp aria-hidden />
                                     </IconButton>
-                                    <IconButton label="Pastga" onClick={() => move(i, 1)} className="h-5 w-5">
+                                    <IconButton label={t('activity.moveDown')} onClick={() => move(i, 1)} className="h-5 w-5">
                                       <FiChevronDown aria-hidden />
                                     </IconButton>
                                   </span>

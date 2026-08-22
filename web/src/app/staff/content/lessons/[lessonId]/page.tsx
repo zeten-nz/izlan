@@ -2,22 +2,14 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { FiArchive, FiEdit2, FiMove } from 'react-icons/fi';
-import {
-  addLessonSkill,
-  addPrerequisite,
-  archiveLesson,
-  getLesson,
-  listLessonSkills,
-  moveLesson,
-  removeLessonSkill,
-  removePrerequisite,
-  updateLesson,
-} from '@/lib/api/content';
+import { addLessonSkill, addPrerequisite, archiveLesson, getLesson, listLessonSkills, moveLesson, removeLessonSkill, removePrerequisite, updateLesson } from '@/lib/api/content';
 import { resolveLessonSubjectId } from '@/lib/api/hierarchy-helpers';
 import type { Lesson } from '@/lib/api/types';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Card, useToast } from '@/components/ui';
 import { StatusBadge, Badge } from '@/components/ui/status-badge';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -28,6 +20,7 @@ import { PrerequisitesPanel } from '@/components/lesson/PrerequisitesPanel';
 import { MappedSkillsPanel } from '@/components/skills/MappedSkillsPanel';
 import { describeError } from '@/lib/ui/error-text';
 import { formatDateTime } from '@/lib/ui/format';
+import { fadeInUp } from '@/lib/motion/motion';
 
 const s = (v?: string) => (v ?? '').trim();
 
@@ -35,6 +28,7 @@ export default function LessonWorkspace() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId;
   const caps = useCapabilities();
+  const t = useT();
   const { toast } = useToast();
   const res = useResource(useCallback(() => getLesson(lessonId), [lessonId]), [lessonId]);
   const lessonRef = useRef<Lesson | null>(null);
@@ -65,7 +59,7 @@ export default function LessonWorkspace() {
   // ONE Lesson.updatedAt aggregate token authority for LessonSkill + Prerequisite mutations.
   const setLessonToken = (updatedAt: string) => {
     res.setData((prev) => (prev ? { ...prev, updatedAt } : prev));
-    setTokenTick((t) => t + 1);
+    setTokenTick((n) => n + 1);
   };
   const currentUpdatedAt = lesson.updatedAt;
   const token = () => lessonRef.current?.updatedAt ?? currentUpdatedAt;
@@ -74,10 +68,10 @@ export default function LessonWorkspace() {
     setArchiveBusy(true);
     try {
       await archiveLesson(lessonId, { expectedLessonUpdatedAt: token(), reason });
-      toast('Dars arxivlandi (o‘quvchi kirishi olib tashlandi)', 'success');
+      toast(t('lesson.archivedToast'), 'success');
       res.reload();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
       res.reload();
     } finally {
       setArchiveBusy(false);
@@ -86,37 +80,37 @@ export default function LessonWorkspace() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="mx-auto max-w-5xl space-y-5">
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="truncate text-xl font-bold text-text">{lesson.contentKey}</h1>
               <StatusBadge status={lesson.status} />
-              {lesson.publishedRevisionId && <Badge tone="success">Joriy nashr bor</Badge>}
+              {lesson.publishedRevisionId && <Badge tone="success">{t('lesson.currentPublication')}</Badge>}
             </div>
-            <p className="text-sm text-muted">{lesson.slug ? `/${lesson.slug}` : 'slug yo‘q'} · tartib {lesson.sortOrder}</p>
-            <p className="mt-1 text-xs text-muted">Yangilangan: {formatDateTime(lesson.updatedAt)}</p>
-            {lesson.status === 'ARCHIVED' && (
-              <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
-                Dars arxivlangan — o‘quvchilar kira olmaydi. Tarixiy ma’lumotlar saqlanadi.
-              </p>
-            )}
+            <p className="text-sm text-muted">
+              {lesson.slug ? `/${lesson.slug}` : t('hierarchy.noSlug')} · {t('hierarchy.metaOrder', { n: lesson.sortOrder })}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {t('common.updatedAt')}: {formatDateTime(lesson.updatedAt)}
+            </p>
+            {lesson.status === 'ARCHIVED' && <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">{t('lesson.archivedNotice')}</p>}
           </div>
           <div className="flex flex-wrap gap-2">
             {editable && (
               <>
                 <Button variant="secondary" size="sm" leftIcon={<FiEdit2 aria-hidden />} onClick={() => setEditing(true)}>
-                  Tahrirlash
+                  {t('common.edit')}
                 </Button>
                 <Button variant="secondary" size="sm" leftIcon={<FiMove aria-hidden />} onClick={() => setMoving(true)}>
-                  Ko‘chirish
+                  {t('lesson.move')}
                 </Button>
               </>
             )}
             {caps.publish && lesson.status === 'PUBLISHED' && (
               <Button variant="danger" size="sm" leftIcon={<FiArchive aria-hidden />} onClick={() => setArchiving(true)}>
-                Takedown
+                {t('lesson.takedown')}
               </Button>
             )}
           </div>
@@ -131,7 +125,7 @@ export default function LessonWorkspace() {
           <Card className="p-4">
             {subjectId ? (
               <MappedSkillsPanel
-                label="Dars ko‘nikmalari"
+                label={t('lesson.skillsLabel')}
                 subjectId={subjectId}
                 editable={editable}
                 reloadKey={`ls:${lessonId}:${tokenTick}`}
@@ -146,7 +140,7 @@ export default function LessonWorkspace() {
                 }}
               />
             ) : (
-              <p className="text-xs text-muted">Fan aniqlanmoqda…</p>
+              <p className="text-xs text-muted">{t('lesson.subjectResolving')}</p>
             )}
           </Card>
           <Card className="p-4">
@@ -172,15 +166,15 @@ export default function LessonWorkspace() {
 
       <EntityFormDialog
         open={editing}
-        title="Darsni tahrirlash"
+        title={t('lesson.editTitle')}
         fields={[
-          { name: 'slug', label: 'Slug', type: 'text', hint: 'bo‘sh qoldirilsa tozalanadi' },
-          { name: 'sortOrder', label: 'Tartib', type: 'number' },
+          { name: 'slug', label: t('subjects.slug'), type: 'text', hint: t('lesson.slugHint') },
+          { name: 'sortOrder', label: t('common.order'), type: 'number' },
         ]}
         initial={{ slug: lesson.slug ?? '', sortOrder: String(lesson.sortOrder) }}
         onSubmit={async (v: FormValues) => {
           await updateLesson(lessonId, { expectedUpdatedAt: token(), slug: s(v.slug) ? s(v.slug) : null, sortOrder: v.sortOrder ? Number(v.sortOrder) : undefined });
-          toast('Saqlandi', 'success');
+          toast(t('common.saved'), 'success');
           res.reload();
         }}
         onClose={() => setEditing(false)}
@@ -189,11 +183,11 @@ export default function LessonWorkspace() {
 
       <EntityFormDialog
         open={moving}
-        title="Darsni boshqa mavzuga ko‘chirish"
-        fields={[{ name: 'toTopicId', label: 'Mavzu ID (UUID, shu fan ichida)', type: 'text', required: true }]}
+        title={t('lesson.moveTitle')}
+        fields={[{ name: 'toTopicId', label: t('lesson.moveField'), type: 'text', required: true }]}
         onSubmit={async (v: FormValues) => {
           await moveLesson(lessonId, { expectedUpdatedAt: token(), toTopicId: s(v.toTopicId) });
-          toast('Ko‘chirildi', 'success');
+          toast(t('lesson.moved'), 'success');
           res.reload();
         }}
         onClose={() => setMoving(false)}
@@ -204,19 +198,14 @@ export default function LessonWorkspace() {
         open={archiving}
         onClose={() => setArchiving(false)}
         onConfirm={onArchive}
-        title="Darsni takedown qilish"
-        message={
-          <span>
-            Bu darsni <strong>arxivlaydi</strong>: o‘quvchilar kirishi darhol olib tashlanadi (bajarish, yakunlash, review-session).
-            Nashr ko‘rsatkichi va tarixiy ma’lumotlar saqlanadi. Sabab majburiy.
-          </span>
-        }
-        confirmLabel="Takedown"
+        title={t('lesson.takedownTitle')}
+        message={t('lesson.takedownBody')}
+        confirmLabel={t('lesson.takedown')}
         danger
         requireReason
-        reasonLabel="Sabab"
+        reasonLabel={t('common.reason')}
         busy={archiveBusy}
       />
-    </div>
+    </motion.div>
   );
 }

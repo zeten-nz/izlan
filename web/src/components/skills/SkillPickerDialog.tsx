@@ -8,6 +8,7 @@ import { Button, Input } from '@/components/ui';
 import { EmptyState, ResourceView } from '@/components/ui/states';
 import { describeError } from '@/lib/ui/error-text';
 import { useToast } from '@/components/ui';
+import { useT } from '@/lib/i18n/i18n-context';
 
 /** Pick ONE ACTIVE same-Subject skill not already mapped. Backend enforces same-subject/active/idempotency. */
 export function SkillPickerDialog({
@@ -24,6 +25,8 @@ export function SkillPickerDialog({
   onClose: () => void;
 }) {
   const { toast } = useToast();
+  const t = useT();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const res = useResource(useCallback(() => listSkills(subjectId), [subjectId]), [subjectId, open]);
   const [q, setQ] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -33,25 +36,25 @@ export function SkillPickerDialog({
     setBusyId(id);
     try {
       await onPick(id);
-      toast('Biriktirildi', 'success');
+      toast(t('skill.mapped'), 'success');
       onClose();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Ko‘nikma biriktirish">
+    <Dialog open={open} onClose={onClose} title={t('skill.mapTitle')}>
       <div className="space-y-3">
-        <Input placeholder="Qidirish…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Ko‘nikma qidirish" />
+        <Input placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t('skill.title')} />
         <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload}>
           {(skills) => {
             const candidates = skills.filter(
-              (s) => s.status === 'ACTIVE' && !exclude.has(s.id) && (q.trim() === '' || s.name.toLowerCase().includes(q.trim().toLowerCase())),
+              (sk) => sk.status === 'ACTIVE' && !exclude.has(sk.id) && (q.trim() === '' || sk.name.toLowerCase().includes(q.trim().toLowerCase())),
             );
-            if (candidates.length === 0) return <EmptyState title="Mos ko‘nikma yo‘q" message="Barcha faol ko‘nikmalar biriktirilgan yoki mavjud emas." />;
+            if (candidates.length === 0) return <EmptyState title={t('skill.noCandidates')} message={t('skill.noCandidatesBody')} />;
             return (
               <ul className="max-h-72 space-y-1 overflow-y-auto">
                 {candidates.map((s) => (

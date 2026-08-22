@@ -81,20 +81,19 @@ export function isCanonicalObjectivePayload(raw: unknown): raw is ObjectiveActiv
   return true;
 }
 
-/** Human-facing (Uzbek) validation message for the editor, or null when the draft is valid. */
+/** Validation result as an i18n key (or null when valid) so the editor renders it in the active locale. */
 export function objectiveDraftError(draft: ObjectiveDraft): string | null {
-  if (draft.prompt.trim().length === 0) return 'Savol matni bo‘sh bo‘lishi mumkin emas.';
-  if (draft.options.length < 2) return 'Kamida 2 ta variant kerak.';
-  if (draft.format === 'true_false' && draft.options.length !== 2) return 'To‘g‘ri/Noto‘g‘ri uchun aynan 2 ta variant kerak.';
+  if (draft.prompt.trim().length === 0) return 'activity.errPromptEmpty';
+  if (draft.options.length < 2) return 'activity.errMinOptions';
+  if (draft.format === 'true_false' && draft.options.length !== 2) return 'activity.errTrueFalse';
   const ids = new Set<string>();
   for (const o of draft.options) {
-    if (o.text.trim().length === 0) return 'Har bir variant matni to‘ldirilishi kerak.';
-    if (ids.has(o.id)) return 'Variant identifikatorlari takrorlanmasligi kerak.';
+    if (o.text.trim().length === 0) return 'activity.errOptionText';
+    if (ids.has(o.id)) return 'activity.errDupId';
     ids.add(o.id);
   }
   const correct = draft.correctOptionIds.filter((id) => ids.has(id));
-  if (correct.length === 0) return 'Kamida bitta to‘g‘ri javob belgilang.';
-  if ((draft.format === 'single_choice' || draft.format === 'true_false') && new Set(correct).size !== 1)
-    return 'Bu format uchun aynan bitta to‘g‘ri javob bo‘lishi kerak.';
+  if (correct.length === 0) return 'activity.errNoCorrect';
+  if ((draft.format === 'single_choice' || draft.format === 'true_false') && new Set(correct).size !== 1) return 'activity.errOneCorrect';
   return null;
 }

@@ -25,22 +25,7 @@ export function isCreatableType(type: ActivityType): boolean {
   return CREATABLE_TYPES.includes(type);
 }
 
-const LABELS: Record<ActivityType, string> = {
-  TEXT: 'Matn',
-  EXPLANATION: 'Tushuntirish',
-  EXAMPLE: 'Misol',
-  IMAGE: 'Rasm',
-  AUDIO: 'Audio',
-  MINI_QUESTION: 'Mini savol',
-  PRACTICE: 'Mashq',
-  MASTERY_TEST: 'Nazorat testi',
-  SPEAKING: 'Gapirish',
-  WRITING: 'Yozish',
-  LISTENING: 'Tinglash',
-  AI_INTERACTION: 'AI muloqot',
-  VIDEO: 'Video',
-};
-
-export function activityTypeLabel(type: ActivityType): string {
-  return LABELS[type] ?? type;
+/** i18n key for an ActivityType display label (see `activity.typeLabels.*`). */
+export function activityTypeLabelKey(type: ActivityType): string {
+  return `activity.typeLabels.${type}`;
 }

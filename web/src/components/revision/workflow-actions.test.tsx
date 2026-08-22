@@ -36,12 +36,13 @@ describe('WEB-12 publish is blocked when readiness says not publish-ready', () =
       </ToastProvider>,
     );
 
-    const publishBtn = await screen.findByRole('button', { name: 'Nashr etish' });
+    // label from the uz dictionary (workflow.publish); no I18nProvider here → default (uz) translator
+    const publishBtn = await screen.findByRole('button', { name: 'Nashr qilish' });
     fireEvent.click(publishBtn);
 
     await waitFor(() => expect(mock.countMatching((c) => c.url.endsWith('/readiness'))).toBeGreaterThan(0));
-    // not-ready → no confirm dialog, no publish call
-    expect(screen.queryByText('Versiyani nashr etish')).toBeNull();
+    // not-ready → no confirm dialog (workflow.publishTitle), no publish call
+    expect(screen.queryByText('Versiyani nashr qilish')).toBeNull();
     expect(mock.countMatching(isPublish)).toBe(0);
   });
 });

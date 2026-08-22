@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 export interface TabDef {
   key: string;
@@ -8,27 +9,28 @@ export interface TabDef {
   icon?: ReactNode;
 }
 
-/** Accessible tab bar (roving via native buttons). Content is rendered by the caller keyed on `active`. */
+/** Accessible tab bar with a shared-layout active indicator that slides between tabs. */
 export function Tabs({ tabs, active, onChange }: { tabs: TabDef[]; active: string; onChange: (key: string) => void }) {
   const base = useId();
   return (
-    <div role="tablist" aria-label="Bo‘limlar" className="flex flex-wrap gap-1 border-b border-border">
-      {tabs.map((t) => {
-        const selected = t.key === active;
+    <div role="tablist" className="flex flex-wrap gap-1 border-b border-border">
+      {tabs.map((tab) => {
+        const selected = tab.key === active;
         return (
           <button
-            key={t.key}
-            id={`${base}-${t.key}`}
+            key={tab.key}
+            id={`${base}-${tab.key}`}
             role="tab"
             aria-selected={selected}
             type="button"
-            onClick={() => onChange(t.key)}
-            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-              selected ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-text'
+            onClick={() => onChange(tab.key)}
+            className={`relative -mb-px inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+              selected ? 'text-primary' : 'text-muted hover:text-text'
             }`}
           >
-            {t.icon}
-            {t.label}
+            {tab.icon}
+            {tab.label}
+            {selected && <motion.span layoutId={`${base}-underline`} className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-primary" transition={{ type: 'spring', stiffness: 500, damping: 34 }} />}
           </button>
         );
       })}

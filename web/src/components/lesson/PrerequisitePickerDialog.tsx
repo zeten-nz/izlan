@@ -8,6 +8,7 @@ import { Button, Input, useToast } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState, ResourceView } from '@/components/ui/states';
 import { describeError } from '@/lib/ui/error-text';
+import { useT } from '@/lib/i18n/i18n-context';
 
 /**
  * Pick a same-Subject prerequisite lesson. Candidates come from walking the Subject hierarchy (existing reads only).
@@ -30,6 +31,8 @@ export function PrerequisitePickerDialog({
   onClose: () => void;
 }) {
   const { toast } = useToast();
+  const t = useT();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const res = useResource(useCallback(() => collectSubjectLessons(subjectId), [subjectId]), [subjectId, open]);
   const [q, setQ] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -39,19 +42,19 @@ export function PrerequisitePickerDialog({
     setBusyId(id);
     try {
       await onPick(id);
-      toast('Talab qo‘shildi', 'success');
+      toast(t('prereq.added'), 'success');
       onClose();
     } catch (e) {
-      toast(describeError(e), 'error'); // e.g. CONTENT_PREREQUISITE_CYCLE
+      toast(describeError(e, t), 'error'); // e.g. CONTENT_PREREQUISITE_CYCLE
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Talab (prerequisite) qo‘shish">
+    <Dialog open={open} onClose={onClose} title={t('prereq.pickTitle')}>
       <div className="space-y-3">
-        <Input placeholder="Content key bo‘yicha qidirish…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Dars qidirish" />
+        <Input placeholder={t('prereq.searchPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t('prereq.searchLessons')} />
         <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload}>
           {(lessons) => {
             const candidates = lessons.filter(
@@ -60,7 +63,7 @@ export function PrerequisitePickerDialog({
                 l.status !== 'ARCHIVED' && // archived targets are not valid prerequisites
                 (q.trim() === '' || l.contentKey.toLowerCase().includes(q.trim().toLowerCase())),
             );
-            if (candidates.length === 0) return <EmptyState title="Mos dars yo‘q" message="Ushbu fanda tanlash mumkin bo‘lgan dars topilmadi." />;
+            if (candidates.length === 0) return <EmptyState title={t('prereq.noCandidates')} message={t('prereq.noCandidatesBody')} />;
             return (
               <ul className="max-h-72 space-y-1 overflow-y-auto">
                 {candidates.map((l) => (

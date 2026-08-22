@@ -9,13 +9,14 @@ import {
   type ObjectiveFormat,
   type ObjectiveOption,
 } from '@/lib/activity/objective-serializer';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Field, IconButton, Input, Select, Textarea } from '@/components/ui';
 import { Badge } from '@/components/ui/status-badge';
 
-const FORMAT_LABEL: Record<ObjectiveFormat, string> = {
-  single_choice: 'Bitta to‘g‘ri javob',
-  multiple_choice: 'Bir nechta to‘g‘ri javob',
-  true_false: 'To‘g‘ri / Noto‘g‘ri',
+const FORMAT_KEY: Record<ObjectiveFormat, string> = {
+  single_choice: 'activity.formatSingle',
+  multiple_choice: 'activity.formatMultiple',
+  true_false: 'activity.formatTrueFalse',
 };
 
 function draftFromPayload(payload: unknown): ObjectiveDraft {
@@ -51,13 +52,15 @@ export function ObjectiveActivityEditor({
   committing: boolean;
   onCommit: (payload: unknown, durationMin: number | undefined) => Promise<void>;
 }) {
+  const t = useT();
   const initialDraft = useMemo(() => draftFromPayload(initialPayload), [initialPayload]);
   const [draft, setDraft] = useState<ObjectiveDraft>(initialDraft);
   const [duration, setDuration] = useState(initialDuration === null ? '' : String(initialDuration));
   const counter = useRef(draft.options.length);
 
-  const error = objectiveDraftError(draft);
+  const errorKey = objectiveDraftError(draft);
   const isSingle = draft.format === 'single_choice' || draft.format === 'true_false';
+  const formatLabel = (f: ObjectiveFormat) => t(FORMAT_KEY[f]);
 
   function setFormat(format: ObjectiveFormat) {
     setDraft((d) => {
@@ -98,13 +101,13 @@ export function ObjectiveActivityEditor({
   if (!editable) {
     return (
       <div className="space-y-2 text-sm">
-        <p className="text-xs text-muted">{FORMAT_LABEL[initialDraft.format]}</p>
+        <p className="text-xs text-muted">{formatLabel(initialDraft.format)}</p>
         <p className="font-medium text-text">{initialDraft.prompt || '—'}</p>
         <ul className="space-y-1">
           {initialDraft.options.map((o) => (
             <li key={o.id} className="flex items-center gap-2">
-              {initialDraft.correctOptionIds.includes(o.id) ? <FiCheck className="text-success" aria-label="to‘g‘ri" /> : <span className="w-4" />}
-              <span className="text-text">{o.text || <span className="text-muted">(bo‘sh)</span>}</span>
+              {initialDraft.correctOptionIds.includes(o.id) ? <FiCheck className="text-success" aria-label={t('activity.correct')} /> : <span className="w-4" />}
+              <span className="text-text">{o.text || <span className="text-muted">{t('preview.emptyOption')}</span>}</span>
             </li>
           ))}
         </ul>
@@ -115,30 +118,30 @@ export function ObjectiveActivityEditor({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Format" htmlFor="obj-fmt">
+        <Field label={t('activity.format')} htmlFor="obj-fmt">
           <Select id="obj-fmt" value={draft.format} onChange={(e) => setFormat(e.target.value as ObjectiveFormat)}>
             {(['single_choice', 'multiple_choice', 'true_false'] as ObjectiveFormat[]).map((f) => (
               <option key={f} value={f}>
-                {FORMAT_LABEL[f]}
+                {formatLabel(f)}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Davomiylik (min)" htmlFor="obj-dur">
+        <Field label={t('activity.durationLabel')} htmlFor="obj-dur">
           <Input id="obj-dur" type="number" min={0} value={duration} onChange={(e) => setDuration(e.target.value)} />
         </Field>
       </div>
 
-      <Field label="Savol matni" htmlFor="obj-prompt">
+      <Field label={t('activity.prompt')} htmlFor="obj-prompt">
         <Textarea id="obj-prompt" rows={2} value={draft.prompt} onChange={(e) => setDraft((d) => ({ ...d, prompt: e.target.value }))} />
       </Field>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-text">Variantlar {isSingle ? '(bitta to‘g‘ri)' : '(bir nechta)'}</span>
+          <span className="text-sm font-medium text-text">{isSingle ? t('activity.optionsSingle') : t('activity.optionsMultiple')}</span>
           {draft.format !== 'true_false' && (
             <Button size="sm" variant="ghost" leftIcon={<FiPlus aria-hidden />} onClick={addOption}>
-              Variant
+              {t('activity.variant')}
             </Button>
           )}
         </div>
@@ -148,18 +151,12 @@ export function ObjectiveActivityEditor({
             return (
               <li key={o.id} className="flex items-center gap-2">
                 <label className="inline-flex items-center gap-1.5 text-xs text-muted">
-                  <input
-                    type={isSingle ? 'radio' : 'checkbox'}
-                    name={isSingle ? 'obj-correct' : undefined}
-                    checked={checked}
-                    onChange={() => toggleCorrect(o.id)}
-                    aria-label="To‘g‘ri javob"
-                  />
-                  to‘g‘ri
+                  <input type={isSingle ? 'radio' : 'checkbox'} name={isSingle ? 'obj-correct' : undefined} checked={checked} onChange={() => toggleCorrect(o.id)} aria-label={t('activity.correct')} />
+                  {t('activity.correct')}
                 </label>
-                <Input value={o.text} onChange={(e) => setOptionText(o.id, e.target.value)} placeholder="Variant matni" />
+                <Input value={o.text} onChange={(e) => setOptionText(o.id, e.target.value)} placeholder={t('activity.variantText')} />
                 {draft.format !== 'true_false' && draft.options.length > 2 && (
-                  <IconButton label="Variantni o‘chirish" onClick={() => removeOption(o.id)}>
+                  <IconButton label={t('activity.deleteVariant')} onClick={() => removeOption(o.id)}>
                     <FiTrash2 aria-hidden />
                   </IconButton>
                 )}
@@ -170,15 +167,15 @@ export function ObjectiveActivityEditor({
       </div>
 
       <div className="flex items-center justify-between">
-        {error ? <span className="text-xs text-danger">{error}</span> : <Badge tone="success">Yaroqli</Badge>}
+        {errorKey ? <span className="text-xs text-danger">{t(errorKey)}</span> : <Badge tone="success">{t('common.valid')}</Badge>}
         <Button
           size="sm"
           leftIcon={<FiSave aria-hidden />}
           loading={committing}
-          disabled={!!error}
+          disabled={!!errorKey}
           onClick={() => onCommit(serializeObjectivePayload(draft), duration.trim() === '' ? undefined : Number(duration))}
         >
-          Saqlash
+          {t('common.save')}
         </Button>
       </div>
     </div>

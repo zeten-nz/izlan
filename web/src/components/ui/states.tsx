@@ -2,12 +2,14 @@
 
 import type { ReactNode } from 'react';
 import { FiInbox, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
-import { ApiError } from '@/lib/api/errors';
 import { Button, Skeleton } from './primitives';
+import { useT } from '@/lib/i18n/i18n-context';
+import { describeError } from '@/lib/ui/error-text';
 
 export function LoadingRows({ rows = 3 }: { rows?: number }) {
+  const t = useT();
   return (
-    <div className="space-y-2" aria-busy="true" aria-label="Yuklanmoqda">
+    <div className="space-y-2" aria-busy="true" aria-label={t('common.loading')}>
       {Array.from({ length: rows }).map((_, i) => (
         <Skeleton key={i} className="h-12 w-full" />
       ))}
@@ -26,24 +28,15 @@ export function EmptyState({ title, message, action }: { title: string; message?
   );
 }
 
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 404) return 'Topilmadi yoki sizga biriktirilmagan.';
-    if (error.status === 403) return 'Ruxsat yo‘q.';
-    if (error.status === 401) return 'Sessiya tugagan. Qayta kiring.';
-    return `Xatolik (${error.code}).`;
-  }
-  return 'Tarmoq xatosi. Qayta urinib ko‘ring.';
-}
-
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-card border border-danger/30 bg-danger/5 px-6 py-10 text-center">
       <FiAlertCircle className="text-2xl text-danger" aria-hidden />
-      <p className="text-sm text-text">{errorMessage(error)}</p>
+      <p className="text-sm text-text">{describeError(error, t)}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" leftIcon={<FiRefreshCw aria-hidden />} onClick={onRetry}>
-          Qayta yuklash
+          {t('common.reload')}
         </Button>
       )}
     </div>

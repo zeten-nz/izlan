@@ -27,9 +27,10 @@ export function isCanonicalMarkdownPayload(raw: unknown): raw is MarkdownActivit
   return trimmed.length > 0 && trimmed.length <= LESSON_ACTIVITY_MARKDOWN_MAX_LEN;
 }
 
-export function markdownValidationError(markdown: string): string | null {
+/** Validation result as an i18n key (+vars) so the editor renders it in the active locale. Null = valid. */
+export function markdownValidationError(markdown: string): { key: string; vars?: Record<string, string | number> } | null {
   const trimmed = markdown.trim();
-  if (trimmed.length === 0) return 'Matn bo‘sh bo‘lishi mumkin emas.';
-  if (trimmed.length > LESSON_ACTIVITY_MARKDOWN_MAX_LEN) return `Matn ${LESSON_ACTIVITY_MARKDOWN_MAX_LEN} belgidan oshmasligi kerak.`;
+  if (trimmed.length === 0) return { key: 'activity.errEmpty' };
+  if (trimmed.length > LESSON_ACTIVITY_MARKDOWN_MAX_LEN) return { key: 'activity.errTooLong', vars: { n: LESSON_ACTIVITY_MARKDOWN_MAX_LEN } };
   return null;
 }

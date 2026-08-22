@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ResourceView } from '@/components/ui/states';
 import { PrerequisitePickerDialog } from './PrerequisitePickerDialog';
 import { describeError } from '@/lib/ui/error-text';
+import { useT } from '@/lib/i18n/i18n-context';
 
 /** Prerequisite list + add/remove. Token-agnostic: parent wires add/remove to Lesson.updatedAt aggregate token. */
 export function PrerequisitesPanel({
@@ -27,6 +28,7 @@ export function PrerequisitesPanel({
   onRemove: (prerequisiteLessonId: string) => Promise<void>;
 }) {
   const { toast } = useToast();
+  const t = useT();
   const res = useResource(useCallback(() => listPrerequisites(lessonId), [lessonId]), [lessonId, reloadKey]);
   const [picking, setPicking] = useState(false);
 
@@ -35,7 +37,7 @@ export function PrerequisitesPanel({
       await onRemove(id);
       res.reload();
     } catch (e) {
-      toast(describeError(e), 'error');
+      toast(describeError(e, t), 'error');
       res.reload();
     }
   }
@@ -44,17 +46,17 @@ export function PrerequisitesPanel({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-text">Talablar (prerequisites)</span>
+        <span className="text-sm font-medium text-text">{t('prereq.title')}</span>
         {editable && (
           <Button size="sm" variant="secondary" leftIcon={<FiPlus aria-hidden />} onClick={() => setPicking(true)}>
-            Qo‘shish
+            {t('prereq.add')}
           </Button>
         )}
       </div>
       <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload}>
         {(items) =>
           items.length === 0 ? (
-            <p className="text-xs text-muted">Talab qo‘shilmagan.</p>
+            <p className="text-xs text-muted">{t('prereq.empty')}</p>
           ) : (
             <ul className="space-y-1.5">
               {items.map((p) => (
@@ -64,7 +66,7 @@ export function PrerequisitesPanel({
                     <StatusBadge status={p.status} />
                   </span>
                   {editable && (
-                    <button type="button" aria-label={`${p.contentKey} talabini olib tashlash`} onClick={() => remove(p.prerequisiteLessonId)} className="text-muted hover:text-danger">
+                    <button type="button" aria-label={t('prereq.remove', { key: p.contentKey })} onClick={() => remove(p.prerequisiteLessonId)} className="text-muted transition-colors hover:text-danger">
                       <FiX aria-hidden />
                     </button>
                   )}

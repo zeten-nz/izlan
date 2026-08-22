@@ -6,6 +6,7 @@ import { createSkill, listSkills, updateSkill } from '@/lib/api/content';
 import type { Skill } from '@/lib/api/types';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Card, IconButton, useToast } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ResourceView, EmptyState } from '@/components/ui/states';
@@ -16,25 +17,26 @@ const s = (v?: string) => (v ?? '').trim();
 /** Subject Skill manager — create + edit (ACTIVE only). No delete/archive (backend does not expose it). */
 export function SkillsManager({ subjectId }: { subjectId: string }) {
   const caps = useCapabilities();
+  const t = useT();
   const { toast } = useToast();
   const res = useResource(useCallback(() => listSkills(subjectId), [subjectId]), [subjectId]);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Skill | null>(null);
 
   const fields = [
-    { name: 'name', label: 'Nomi', type: 'text' as const, required: true },
-    { name: 'code', label: 'Kod', type: 'text' as const },
-    { name: 'description', label: 'Tavsif', type: 'textarea' as const },
-    { name: 'sortOrder', label: 'Tartib', type: 'number' as const },
+    { name: 'name', label: t('skill.name'), type: 'text' as const, required: true },
+    { name: 'code', label: t('skill.code'), type: 'text' as const },
+    { name: 'description', label: t('skill.description'), type: 'textarea' as const },
+    { name: 'sortOrder', label: t('common.order'), type: 'number' as const },
   ];
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Ko‘nikmalar</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('skill.title')}</h3>
         {caps.author && (
           <Button size="sm" variant="secondary" leftIcon={<FiPlus aria-hidden />} onClick={() => setCreating(true)}>
-            Ko‘nikma qo‘shish
+            {t('skill.add')}
           </Button>
         )}
       </div>
@@ -45,7 +47,7 @@ export function SkillsManager({ subjectId }: { subjectId: string }) {
         data={res.data}
         onRetry={res.reload}
         isEmpty={(d) => d.length === 0}
-        empty={<EmptyState title="Ko‘nikma yo‘q" message="Bu fanda hali ko‘nikma yaratilmagan." />}
+        empty={<EmptyState title={t('skill.emptyTitle')} message={t('skill.emptyBody')} />}
       >
         {(skills) => (
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -57,11 +59,11 @@ export function SkillsManager({ subjectId }: { subjectId: string }) {
                       <span className="truncate font-medium text-text">{sk.name}</span>
                       <StatusBadge status={sk.status} />
                     </div>
-                    {sk.code && <span className="text-xs text-muted">kod: {sk.code}</span>}
+                    {sk.code && <span className="text-xs text-muted">{t('skill.codeMeta', { code: sk.code })}</span>}
                     {sk.description && <p className="mt-1 line-clamp-2 text-xs text-muted">{sk.description}</p>}
                   </div>
                   {caps.author && sk.status === 'ACTIVE' && (
-                    <IconButton label="Tahrirlash" onClick={() => setEditing(sk)}>
+                    <IconButton label={t('common.edit')} onClick={() => setEditing(sk)}>
                       <FiEdit2 aria-hidden />
                     </IconButton>
                   )}
@@ -74,18 +76,18 @@ export function SkillsManager({ subjectId }: { subjectId: string }) {
 
       <EntityFormDialog
         open={creating}
-        title="Yangi ko‘nikma"
+        title={t('skill.newTitle')}
         fields={fields}
         onSubmit={async (v: FormValues) => {
           await createSkill(subjectId, { name: s(v.name), code: s(v.code) || undefined, description: s(v.description) || undefined, sortOrder: v.sortOrder ? Number(v.sortOrder) : undefined });
-          toast('Ko‘nikma yaratildi', 'success');
+          toast(t('skill.created'), 'success');
           res.reload();
         }}
         onClose={() => setCreating(false)}
       />
       <EntityFormDialog
         open={editing !== null}
-        title="Ko‘nikmani tahrirlash"
+        title={t('skill.editTitle')}
         fields={fields}
         initial={editing ? { name: editing.name, code: editing.code ?? '', description: editing.description ?? '', sortOrder: String(editing.sortOrder) } : {}}
         onSubmit={async (v: FormValues) => {
@@ -97,7 +99,7 @@ export function SkillsManager({ subjectId }: { subjectId: string }) {
             description: s(v.description) ? s(v.description) : null,
             sortOrder: v.sortOrder ? Number(v.sortOrder) : undefined,
           });
-          toast('Saqlandi', 'success');
+          toast(t('common.saved'), 'success');
           res.reload();
         }}
         onClose={() => setEditing(null)}

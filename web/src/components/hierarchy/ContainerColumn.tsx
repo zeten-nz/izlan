@@ -1,13 +1,16 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FiChevronRight, FiEdit2, FiPlus, FiUploadCloud } from 'react-icons/fi';
 import { useResource } from '@/lib/hooks/use-resource';
+import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Card, IconButton, useToast } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ResourceView, EmptyState } from '@/components/ui/states';
 import { EntityFormDialog, type FieldSpec, type FormValues } from '@/components/forms/EntityFormDialog';
 import { describeError } from '@/lib/ui/error-text';
+import { listItem } from '@/lib/motion/motion';
 
 export interface ContainerEntity {
   id: string;
@@ -35,8 +38,8 @@ export interface ContainerColumnProps<E extends ContainerEntity> {
 
 /** One drill-down level of the content hierarchy: list + create + edit(DRAFT) + publish(DRAFT) + select-to-drill. */
 export function ContainerColumn<E extends ContainerEntity>(props: ContainerColumnProps<E>) {
+  const t = useT();
   const { toast } = useToast();
-  // Intentionally key the refetch on reloadKey only (the parent passes a fresh inline loader each render).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const res = useResource(useCallback(() => props.loader(), [props.reloadKey]), [props.reloadKey]);
   const [creating, setCreating] = useState(false);
@@ -47,10 +50,10 @@ export function ContainerColumn<E extends ContainerEntity>(props: ContainerColum
     setPublishingId(e.id);
     try {
       await props.onPublish(e);
-      toast('Nashr etildi', 'success');
+      toast(t('hierarchy.published'), 'success');
       res.reload();
     } catch (err) {
-      toast(describeError(err), 'error');
+      toast(describeError(err, t), 'error');
       res.reload(); // conflict/lifecycle → refresh to latest server state (never auto-retry)
     } finally {
       setPublishingId(null);
@@ -74,40 +77,38 @@ export function ContainerColumn<E extends ContainerEntity>(props: ContainerColum
         data={res.data}
         onRetry={res.reload}
         isEmpty={(d) => d.length === 0}
-        empty={<EmptyState title="Bo‘sh" message="Hali element yo‘q." />}
+        empty={<EmptyState title={t('hierarchy.emptyTitle')} message={t('hierarchy.emptyBody')} />}
       >
         {(items) => (
           <ul className="space-y-2">
-            {items.map((e) => (
-              <li key={e.id}>
-                <Card className="flex items-center gap-2 p-3">
-                  <button
-                    type="button"
-                    onClick={() => props.onSelect(e)}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium text-text">{props.title(e)}</span>
-                        <StatusBadge status={e.status} />
+            <AnimatePresence initial={false}>
+              {items.map((e) => (
+                <motion.li key={e.id} variants={listItem} initial="initial" animate="animate" exit="exit">
+                  <Card className="flex items-center gap-2 p-3 transition-colors hover:border-primary/50">
+                    <button type="button" onClick={() => props.onSelect(e)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium text-text">{props.title(e)}</span>
+                          <StatusBadge status={e.status} />
+                        </div>
+                        <span className="truncate text-xs text-muted">{props.meta(e)}</span>
                       </div>
-                      <span className="truncate text-xs text-muted">{props.meta(e)}</span>
-                    </div>
-                    <FiChevronRight className="shrink-0 text-muted" aria-hidden />
-                  </button>
-                  {props.canManage && e.status === 'DRAFT' && (
-                    <IconButton label="Tahrirlash" onClick={() => setEditing(e)}>
-                      <FiEdit2 aria-hidden />
-                    </IconButton>
-                  )}
-                  {props.canPublish && e.status === 'DRAFT' && (
-                    <IconButton label="Nashr etish" onClick={() => void doPublish(e)} disabled={publishingId === e.id}>
-                      <FiUploadCloud aria-hidden />
-                    </IconButton>
-                  )}
-                </Card>
-              </li>
-            ))}
+                      <FiChevronRight className="shrink-0 text-muted" aria-hidden />
+                    </button>
+                    {props.canManage && e.status === 'DRAFT' && (
+                      <IconButton label={t('common.edit')} onClick={() => setEditing(e)}>
+                        <FiEdit2 aria-hidden />
+                      </IconButton>
+                    )}
+                    {props.canPublish && e.status === 'DRAFT' && (
+                      <IconButton label={t('workflow.publish')} onClick={() => void doPublish(e)} disabled={publishingId === e.id}>
+                        <FiUploadCloud aria-hidden />
+                      </IconButton>
+                    )}
+                  </Card>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )}
       </ResourceView>
@@ -118,20 +119,20 @@ export function ContainerColumn<E extends ContainerEntity>(props: ContainerColum
         fields={props.createFields}
         onSubmit={async (v) => {
           await props.onCreate(v);
-          toast('Yaratildi', 'success');
+          toast(t('common.created'), 'success');
           res.reload();
         }}
         onClose={() => setCreating(false)}
       />
       <EntityFormDialog
         open={editing !== null}
-        title="Tahrirlash"
+        title={t('hierarchy.editTitle')}
         fields={props.editFields}
         initial={editing ? props.toInitial(editing) : {}}
         onSubmit={async (v) => {
           if (editing) {
             await props.onEdit(editing, v);
-            toast('Saqlandi', 'success');
+            toast(t('common.saved'), 'success');
             res.reload();
           }
         }}

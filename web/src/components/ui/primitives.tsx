@@ -7,7 +7,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md';
 
 const BTN_BASE =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const BTN_VARIANT: Record<Variant, string> = {
   primary: 'bg-primary text-primary-fg hover:brightness-110',
   secondary: 'border border-border bg-surface text-text hover:bg-surface-2',

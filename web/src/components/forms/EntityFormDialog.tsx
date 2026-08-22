@@ -6,6 +6,7 @@ import { Button, Field, Input, Textarea } from '@/components/ui';
 import { ConflictBanner } from '@/components/ui/conflict-banner';
 import { isEditConflict } from '@/lib/api/errors';
 import { describeError } from '@/lib/ui/error-text';
+import { useT } from '@/lib/i18n/i18n-context';
 
 export interface FieldSpec {
   name: string;
@@ -26,7 +27,7 @@ export function EntityFormDialog({
   title,
   fields,
   initial,
-  submitLabel = 'Saqlash',
+  submitLabel,
   onSubmit,
   onClose,
   onConflictReload,
@@ -40,6 +41,7 @@ export function EntityFormDialog({
   onClose: () => void;
   onConflictReload?: () => void;
 }) {
+  const t = useT();
   const [values, setValues] = useState<FormValues>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -76,10 +78,10 @@ export function EntityFormDialog({
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            {t('common.cancel')}
           </Button>
           <Button onClick={submit} loading={busy} disabled={missingRequired}>
-            {submitLabel}
+            {submitLabel ?? t('common.save')}
           </Button>
         </>
       }
@@ -94,7 +96,7 @@ export function EntityFormDialog({
             onCancel={onClose}
           />
         ) : error != null ? (
-          <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{describeError(error)}</p>
+          <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{describeError(error, t)}</p>
         ) : null}
 
         {fields.map((f) => (
