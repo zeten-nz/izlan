@@ -192,4 +192,17 @@ describe('Learner onboarding (WEB-ONB)', () => {
     render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
     await waitFor(() => expect(screen.getByText(/Server bilan bog/)).toBeInTheDocument());
   });
+
+  it('WEB-ONB-18 the real learner-demo state (profile loaded, empty published subjects, all reads succeed) shows the profile stage with NO false network banner', async () => {
+    // Exact state of +998900000003: missing dateOfBirth + learningIntent, no intents, only a DRAFT subject → subjects [].
+    setup({
+      profile: profile({ displayName: 'Izlan Demo Learner', dateOfBirth: null, timezone: 'Asia/Tashkent' }),
+      missing: ['dateOfBirth', 'learningIntent'],
+      intents: [],
+      subjects: [],
+    });
+    await waitFor(() => expect(screen.getByLabelText('Ismingiz')).toHaveValue('Izlan Demo Learner'));
+    expect(screen.queryByText(/Server bilan bog/)).toBeNull(); // never a false "couldn't reach the server"
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
