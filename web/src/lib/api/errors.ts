@@ -29,6 +29,14 @@ export class UnauthenticatedError extends ApiError {
 export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError;
 }
+/**
+ * True for a cancelled/aborted request (AbortController / navigation). Checked by `.name` (not `instanceof`) because
+ * an AbortError is a DOMException whose prototype chain varies across runtimes. A cancel is not a real failure — it
+ * must never be presented to the user as one (and never as a network error).
+ */
+export function isAbortError(e: unknown): boolean {
+  return typeof e === 'object' && e !== null && (e as { name?: unknown }).name === 'AbortError';
+}
 export function isEditConflict(e: unknown): boolean {
   return isApiError(e) && e.code === 'CONTENT_EDIT_CONFLICT';
 }

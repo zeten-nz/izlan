@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { validateEnv } from './config/env.validation';
 import { AuthExceptionFilter } from './auth/http/auth-exception.filter';
 import { createFastifyAdapter } from './bootstrap/http-adapter';
+import { corsOptions } from './bootstrap/cors';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -30,9 +31,10 @@ async function bootstrap(): Promise<void> {
   // Domain error → HTTP mapping (§40) — leak/enumeration-safe.
   app.useGlobalFilters(new AuthExceptionFilter());
 
-  // Credentialed CORS (§34): exact allowlist only, credentials=true; wildcard+credentials YO'Q.
+  // Credentialed CORS (§34): exact allowlist only, credentials=true; wildcard+credentials YO'Q. Methods/allowedHeaders
+  // are explicit (see corsOptions) — the Nest-Fastify default only allows GET,HEAD,POST, blocking PATCH/PUT/DELETE.
   if (env.corsOrigins.length > 0) {
-    app.enableCors({ origin: env.corsOrigins, credentials: true });
+    app.enableCors(corsOptions(env.corsOrigins));
   }
 
   await app.listen({ port: env.port, host: env.host });

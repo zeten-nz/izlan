@@ -4,9 +4,9 @@ import { ThemeProvider } from '@/lib/theme/theme-context';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
 import RegisterPage from './page';
 
-const h = vi.hoisted(() => ({ replace: vi.fn(), setUser: vi.fn(), requestOtp: vi.fn(), register: vi.fn() }));
+const h = vi.hoisted(() => ({ replace: vi.fn(), setUser: vi.fn(), requestOtp: vi.fn(), register: vi.fn(), status: 'unauthenticated' as string }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: h.replace, push: vi.fn() }) }));
-vi.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ status: 'unauthenticated', setAuthenticatedUser: h.setUser }) }));
+vi.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ status: h.status, setAuthenticatedUser: h.setUser }) }));
 vi.mock('@/lib/api/auth', () => ({ requestOtp: h.requestOtp, register: h.register }));
 
 function renderPage() {
@@ -36,7 +36,15 @@ async function toPasswordStep(phone = '+998900000003', code = '123456') {
 describe('Learner registration (WEB-REG)', () => {
   beforeEach(() => {
     for (const f of [h.replace, h.setUser, h.requestOtp, h.register]) f.mockReset();
+    h.status = 'unauthenticated';
     try { localStorage.clear(); sessionStorage.clear(); } catch { /* ignore */ }
+  });
+
+  it('WEB-REG-08 an already-authenticated user (session restored on bootstrap) is redirected to /learn and does not see the wizard', async () => {
+    h.status = 'authenticated';
+    renderPage();
+    await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/learn'));
+    expect(screen.queryByLabelText('Telefon raqam')).toBeNull();
   });
 
   it('WEB-REG-01 phone step requests a REGISTRATION OTP', async () => {
