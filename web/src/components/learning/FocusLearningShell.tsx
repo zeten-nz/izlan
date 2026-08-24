@@ -23,12 +23,14 @@ function BrandMark() {
 export function FocusLearningShell({
   context,
   progress,
+  progressLabel,
   onExit,
   exitLabel,
   children,
 }: {
   context?: string;
   progress?: { value: number; max: number };
+  progressLabel?: string;
   onExit?: () => void;
   exitLabel?: string;
   children: React.ReactNode;
@@ -61,7 +63,7 @@ export function FocusLearningShell({
       </header>
 
       {pct !== null && (
-        <div className="h-1 w-full bg-surface-2" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={t('placement.runner.progressLabel')}>
+        <div className="h-1 w-full bg-surface-2" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={progressLabel ?? t('placement.runner.progressLabel')}>
           <div className="h-full bg-primary transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${pct}%` }} />
         </div>
       )}

@@ -72,12 +72,16 @@ async function doRefresh(): Promise<string | null> {
       credentials: 'include', // send the HttpOnly refresh cookie
       headers: { [CSRF_HEADER]: '1' }, // required custom header (not sendable cross-origin without preflight)
     });
-  } catch {
-    clearAccessToken();
-    return null;
+  } catch (e) {
+    // A TRANSPORT failure of the refresh (backend briefly unreachable, a dev Fast-Refresh blip, a dropped connection —
+    // "status null / request did not succeed") is NOT a session loss: the refresh cookie may still be valid. Do NOT
+    // clear the token; surface a retryable NetworkError so callers show a retryable error and a later attempt can
+    // refresh again (the single-flight latch still clears via refreshAccessToken's .finally). Propagate a real abort.
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new NetworkError();
   }
   if (!res.ok) {
-    clearAccessToken();
+    clearAccessToken(); // a genuine auth failure (the refresh cookie is invalid/expired) → the session is gone
     return null;
   }
   const data = (await res.json().catch(() => null)) as { accessToken?: string } | null;

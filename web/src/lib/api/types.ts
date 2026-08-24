@@ -387,3 +387,88 @@ export interface DiagnosticSnapshot {
   derivationVersion: string;
   skills: DiagnosticSkill[];
 }
+
+// ── Learning + Review (Phase 04) — learner-facing projections; NEVER carry answerKey/correctness in the payload ──
+
+/** A projected learner Activity. Discriminate by field: objective has `format`, prose has `markdown`, media/deferred has neither. */
+export type LearnerActivity =
+  | { id: string; type: string; position: number; format: PlacementItemFormat; prompt: string; options: { id: string; text: string }[] }
+  | { id: string; type: string; position: number; schemaVersion: string; markdown: string }
+  | { id: string; type: string; position: number };
+
+export function isObjectiveActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: PlacementItemFormat }> {
+  return 'format' in a;
+}
+export function isMarkdownActivity(a: LearnerActivity): a is Extract<LearnerActivity, { markdown: string }> {
+  return 'markdown' in a;
+}
+
+/** Answer body for a lesson/review objective activity — same camelCase shape as placement. */
+export type ActivityAnswer = PlacementAnswer;
+
+export interface LessonExecutionView {
+  lessonId: string;
+  lessonRevisionId: string; // the PINNED revision — render exactly this
+  progress: { status: string; startedAt: string; lastActivityId: string | null };
+  lesson: { title: string; description: string | null; estimatedDurationMin: number | null };
+  activities: LearnerActivity[]; // ALL activities, ordered by position; no per-activity answered set is returned
+}
+
+/** Objective attempt result — server is the scoring authority. Carries correctness only; never an explanation or answerKey. */
+export interface ActivityAttemptView {
+  attemptId: string;
+  activityId: string;
+  attemptNo: number;
+  isCorrect: boolean;
+  deterministicScore: number; // 10000 correct / 0 incorrect
+  status: string;
+  submittedAt: string | null;
+  reviewSessionId?: string;
+}
+
+export interface LessonCompletionView {
+  lessonId: string;
+  lessonRevisionId: string;
+  status: string; // COMPLETED
+  completedAt: string;
+  mastery: { measured: boolean; skills?: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; displayLevel: string | null }[] };
+}
+
+export interface ReviewCandidate {
+  lesson: { id: string; title: string; topicId: string };
+  exposure: string; // IN_PROGRESS | COMPLETED
+  directTrigger: boolean;
+}
+export interface ReviewGroup {
+  skill: { id: string; name: string };
+  signalTypes: string[]; // enum strings (WEAK_SKILL / REVIEW_DUE / REPEATED_MISTAKE)
+  candidates: ReviewCandidate[];
+}
+export interface ReviewCandidateResult {
+  subjectId: string;
+  groups: ReviewGroup[];
+  uncoveredSkillIds: string[];
+}
+
+export interface ReviewSessionActivity {
+  id: string;
+  type: string;
+  position: number;
+  format: PlacementItemFormat;
+  prompt: string;
+  options: { id: string; text: string }[];
+  attempted: boolean;
+  attemptCount: number;
+  bestDeterministicScore: number;
+}
+export interface ReviewSessionView {
+  id: string;
+  status: string; // ACTIVE | COMPLETED
+  skill: { id: string; name: string };
+  lesson: { id: string };
+  lessonRevisionId: string;
+  startedAt: string;
+  completedAt: string | null;
+  mastery: { measured: boolean } & Record<string, unknown>; // learner-safe summary; not rendered in Phase 04
+  activities: ReviewSessionActivity[];
+}

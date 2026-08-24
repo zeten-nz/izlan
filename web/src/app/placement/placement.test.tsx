@@ -35,6 +35,16 @@ function renderPage() {
   return render(<ThemeProvider><I18nProvider><PlacementPage /></I18nProvider></ThemeProvider>);
 }
 
+// Wait for a question to be READY to answer. QuestionCard's mount effect (keyed on item.id) resets the selection and
+// focuses the heading; because the attempt is set outside act(), that effect can still be pending right after the prompt
+// first renders under full-suite load. Interacting before it flushes lets the late reset clobber the radio/checkbox
+// selection (→ "submit called 0 times" flakes). Waiting for the heading to gain focus proves the effect ran. This is a
+// test-timing artifact of the mocked async flow, NOT a product race (no real user clicks within that microtask window).
+async function question(prompt: string) {
+  await screen.findByText(prompt);
+  await waitFor(() => expect(screen.getByRole('heading', { name: prompt })).toHaveFocus());
+}
+
 describe('Placement (WEB-PL)', () => {
   beforeEach(() => {
     for (const f of [h.replace, h.availability, h.start, h.getAttempt, h.submit, h.snapshot, h.derive, h.roadmap, h.intents]) f.mockReset();
@@ -91,7 +101,7 @@ describe('Placement (WEB-PL)', () => {
     h.getAttempt.mockResolvedValue(inProgress(single, 0));
     h.submit.mockResolvedValue(inProgress(tf, 1));
     renderPage();
-    await screen.findByText('Choose one');
+    await question('Choose one');
     const submit = screen.getByRole('button', { name: 'Javobni tasdiqlash' });
     expect(submit).toBeDisabled();
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
@@ -105,7 +115,7 @@ describe('Placement (WEB-PL)', () => {
     h.getAttempt.mockResolvedValue(inProgress(tf, 0));
     h.submit.mockResolvedValue(inProgress(single, 1));
     renderPage();
-    await screen.findByText('Is it true?');
+    await question('Is it true?');
     fireEvent.click(screen.getByRole('radio', { name: 'True' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     await waitFor(() => expect(h.submit).toHaveBeenCalledWith('att1', 'it2', { selectedOptionId: 'yes' }));
@@ -117,7 +127,7 @@ describe('Placement (WEB-PL)', () => {
     h.submit.mockResolvedValue(completed());
     h.snapshot.mockResolvedValue(snap);
     renderPage();
-    await screen.findByText('Choose many');
+    await question('Choose many');
     fireEvent.click(screen.getByRole('checkbox', { name: 'X' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Z' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
@@ -146,7 +156,7 @@ describe('Placement (WEB-PL)', () => {
     h.getAttempt.mockResolvedValue(inProgress(single, 0));
     h.submit.mockResolvedValue(inProgress(tf, 1));
     renderPage();
-    await screen.findByText('Choose one');
+    await question('Choose one');
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     await screen.findByText('Is it true?', undefined, { timeout: 3000 }); // advanced to the server's next item
@@ -160,11 +170,16 @@ describe('Placement (WEB-PL)', () => {
     h.submit.mockReturnValue(new Promise((r) => { resolve = r; }));
     renderPage();
     await screen.findByText('Choose one');
+    // QuestionCard's mount effect resets the selection on item change and focuses the heading. Under full-suite load the
+    // attempt is set outside act(), so that effect can still be pending here; wait for it (heading focused) before
+    // interacting, else its late flush would clobber the radio selection — a test-timing artifact, not a product race.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Choose one' })).toHaveFocus());
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
     const submit = screen.getByRole('button', { name: 'Javobni tasdiqlash' });
+    await waitFor(() => expect(submit).toBeEnabled()); // selection registered
     fireEvent.click(submit);
-    await waitFor(() => expect(submit).toBeDisabled()); // in-flight
-    fireEvent.click(submit); // second rapid click — ignored
+    await waitFor(() => expect(h.submit).toHaveBeenCalledTimes(1)); // exactly one POST (submitting disables the button)
+    fireEvent.click(submit); // second rapid click while in-flight — ignored
     resolve(inProgress(tf, 1));
     await waitFor(() => expect(h.submit).toHaveBeenCalledTimes(1));
   });
@@ -187,7 +202,7 @@ describe('Placement (WEB-PL)', () => {
     h.submit.mockResolvedValue(completed());
     h.snapshot.mockResolvedValue(snap);
     renderPage();
-    await screen.findByText('Choose one');
+    await question('Choose one');
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     expect(await screen.findByText('Boshlash nuqtangiz tayyor', undefined, { timeout: 3000 })).toBeInTheDocument();
@@ -255,7 +270,7 @@ describe('Placement (WEB-PL)', () => {
     h.submit.mockRejectedValue(new ApiError(409, 'ASSESSMENT_RESPONSE_CONFLICT', 'x'));
     h.getAttempt.mockResolvedValueOnce(inProgress(tf, 1)); // resync
     renderPage();
-    await screen.findByText('Choose one');
+    await question('Choose one');
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Joriy holatga qaytdik'));
@@ -267,7 +282,7 @@ describe('Placement (WEB-PL)', () => {
     h.getAttempt.mockResolvedValue(inProgress(single, 0));
     h.submit.mockRejectedValue(new UnauthenticatedError());
     renderPage();
-    await screen.findByText('Choose one');
+    await question('Choose one');
     fireEvent.click(screen.getByRole('radio', { name: 'A' }));
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Sessiya tugagan'));
@@ -283,5 +298,26 @@ describe('Placement (WEB-PL)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Javobni tasdiqlash' }));
     await waitFor(() => expect(h.submit).toHaveBeenCalled());
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('WEB-PL-24 a network failure ends the spinner, shows a retryable message, keeps the answer, and can retry', async () => {
+    h.params = { learningIntentId: 'li1', attempt: 'att1' };
+    h.getAttempt.mockResolvedValue(inProgress(single, 0));
+    h.submit.mockRejectedValueOnce(new NetworkError()); // transient failure (e.g. refresh transport blip) — retryable
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Choose one' })).toHaveFocus());
+    fireEvent.click(screen.getByRole('radio', { name: 'A' }));
+    const submit = screen.getByRole('button', { name: 'Javobni tasdiqlash' });
+    await waitFor(() => expect(submit).toBeEnabled());
+    fireEvent.click(submit);
+    // spinner ends + a retryable network message (NOT a false "session expired"); the question/answer are kept
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/Server bilan bog/));
+    await waitFor(() => expect(submit).toBeEnabled());
+    expect(screen.getByRole('radio', { name: 'A' })).toBeChecked();
+    // retry now succeeds (advances to the next item)
+    h.submit.mockResolvedValueOnce(inProgress(tf, 1));
+    fireEvent.click(submit);
+    await waitFor(() => expect(screen.getByText('Is it true?')).toBeInTheDocument());
+    expect(h.submit).toHaveBeenCalledTimes(2);
   });
 });

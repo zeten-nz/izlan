@@ -8,7 +8,7 @@ import { useResource } from '@/lib/hooks/use-resource';
 import { fetchLearningIntents } from '@/lib/api/onboarding';
 import { fetchActiveRoadmap } from '@/lib/api/roadmap';
 import type { LearningIntent, RoadmapItem, RoadmapProgress } from '@/lib/api/types';
-import { Button, ButtonLink, Card, LinearProgress, Select, Spinner } from '@/components/ui';
+import { ButtonLink, Card, LinearProgress, Select, Spinner } from '@/components/ui';
 import { ResourceView } from '@/components/ui/states';
 
 interface RoadmapData {
@@ -143,10 +143,9 @@ function Milestone({ item, isNext, last }: { item: RoadmapItem; isNext: boolean;
           </span>
         </div>
         {isNext && (
-          <div className="mt-2.5 flex items-center gap-2">
-            {/* Lesson execution is Phase 04 — the next step is clear but not yet startable. */}
-            <Button size="sm" disabled aria-disabled title={t('learner.roadmap.lessonSoon')}>{t('learner.roadmap.start')}</Button>
-            <span className="text-xs text-muted">{t('learner.roadmap.lessonSoon')}</span>
+          <div className="mt-2.5">
+            {/* Phase 04: lessons start from today's plan (the entry authority) — guide to Learning, never bypass it. */}
+            <ButtonLink href="/learn/learning" size="sm">{t('learner.roadmap.start')}</ButtonLink>
           </div>
         )}
       </div>

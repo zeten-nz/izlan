@@ -145,4 +145,15 @@ describe('Learner login (WEB-AUTH)', () => {
     expect(screen.queryByLabelText('Telefon raqam')).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('WEB-AUTH-12 a pending submit prevents a duplicate login request', async () => {
+    let resolve!: (u: { id: string; onboardingCompleted: boolean }) => void;
+    h.login.mockReturnValue(new Promise((r) => { resolve = r; }));
+    renderPage();
+    await submit();
+    fireEvent.click(screen.getByRole('button', { name: 'Kirish' })); // second click while the first is in flight
+    await waitFor(() => expect(h.login).toHaveBeenCalledTimes(1));
+    resolve({ id: 'u1', onboardingCompleted: false });
+    await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/onboarding'));
+  });
 });
