@@ -26,7 +26,7 @@ function renderPage() {
 }
 
 async function submit(phone = '+998900000003', password = 'Passw0rd!123') {
-  fireEvent.change(screen.getByLabelText('Telefon raqami'), { target: { value: phone } });
+  fireEvent.change(screen.getByLabelText('Telefon raqam'), { target: { value: phone } });
   fireEvent.change(screen.getByLabelText('Parol'), { target: { value: password } });
   fireEvent.click(screen.getByRole('button', { name: 'Kirish' }));
 }
@@ -112,5 +112,21 @@ describe('Learner login (WEB-AUTH)', () => {
     renderPage();
     await submit();
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/learn'));
+  });
+
+  it('WEB-AUTH-10 editing either credential clears the stale auth error (code still never shown)', async () => {
+    h.login.mockRejectedValue(new ApiError(401, 'AUTH_INVALID_CREDENTIALS', 'x'));
+    renderPage();
+    await submit();
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(document.body.textContent).not.toContain('AUTH_INVALID_CREDENTIALS');
+    // editing the phone clears the visible error
+    fireEvent.change(screen.getByLabelText('Telefon raqam'), { target: { value: '+998900000000' } });
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    // and so does editing the password
+    await submit();
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'another-pass' } });
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 });
