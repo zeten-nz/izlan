@@ -2,6 +2,7 @@ export { Button, IconButton, Input, Textarea, Select, Field, Card, Skeleton, Spi
 export type { ButtonProps, ButtonVariant, ButtonSize } from './primitives';
 export { ButtonLink } from './button-link';
 export type { ButtonLinkProps } from './button-link';
+export { BrandMark } from './brand-mark';
 export { ThemeSwitcher } from './theme-switcher';
 export { LinearProgress, StepProgress, MasteryProgress, clampPercent } from './progress';
 export { Dialog, ConfirmDialog } from './dialog';
