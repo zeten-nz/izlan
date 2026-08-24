@@ -12,6 +12,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "db:seed:system": "ts-node src/bootstrap/seed-system.ts",
     "db:seed:demo": "ts-node src/bootstrap/seed-demo.ts",
+    "db:seed:runtime": "ts-node src/bootstrap/seed-runtime.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",
