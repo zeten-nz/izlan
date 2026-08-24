@@ -1,13 +1,13 @@
 'use client';
 
 import { LearnerGuard } from '@/components/learner/LearnerGuard';
-import { LearnerChrome } from '@/components/learner/LearnerChrome';
+import { LearnerShell } from '@/components/learner/LearnerShell';
 
-/** Authenticated learner area — auth-gated (→ /login) and wrapped in the learner shell (not the staff CMS sidebar). */
+/** Authenticated learner area — auth-gated (→ /login) and wrapped in the final Phase 03 learner shell. */
 export default function LearnLayout({ children }: { children: React.ReactNode }) {
   return (
     <LearnerGuard>
-      <LearnerChrome>{children}</LearnerChrome>
+      <LearnerShell>{children}</LearnerShell>
     </LearnerGuard>
   );
 }
