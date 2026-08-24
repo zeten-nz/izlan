@@ -71,7 +71,7 @@ describe('Learner profile (WEB-PROFILE)', () => {
     expect(screen.getByLabelText('Tug‘ilgan sana')).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
     await waitFor(() => expect(h.updateProfile).toHaveBeenCalled());
-    const arg = h.updateProfile.mock.calls[0][0];
+    const arg = h.updateProfile.mock.calls[0]![0];
     expect(arg).not.toHaveProperty('dateOfBirth'); // no DOB mutation the backend would reject
     expect(arg).toMatchObject({ displayName: 'Ali', preferredLanguage: 'uz' });
   });
