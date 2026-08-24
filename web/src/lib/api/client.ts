@@ -22,6 +22,20 @@ export function apiBase(): string {
   return base.replace(/\/+$/, '');
 }
 
+/**
+ * Resolve the backend base URL for a real request. A MISSING/empty `NEXT_PUBLIC_API_BASE_URL` must fail VISIBLY as a
+ * configuration/network error — NOT silently degrade to same-origin relative requests (which in dev would hit the web
+ * dev server on :4000 instead of the backend on :3000). Under the test runner (`NODE_ENV==='test'`) an empty base is
+ * allowed so fetch-mocked unit tests keep using relative paths.
+ */
+function resolveApiBase(): string {
+  const base = apiBase();
+  if (!base && process.env.NODE_ENV !== 'test') {
+    throw new NetworkError('API base URL is not configured (set NEXT_PUBLIC_API_BASE_URL)');
+  }
+  return base;
+}
+
 export interface RequestOptions {
   method?: string;
   body?: unknown;
@@ -53,7 +67,7 @@ export function refreshAccessToken(): Promise<string | null> {
 async function doRefresh(): Promise<string | null> {
   let res: Response;
   try {
-    res = await fetch(`${apiBase()}${REFRESH_PATH}`, {
+    res = await fetch(`${resolveApiBase()}${REFRESH_PATH}`, {
       method: 'POST',
       credentials: 'include', // send the HttpOnly refresh cookie
       headers: { [CSRF_HEADER]: '1' }, // required custom header (not sendable cross-origin without preflight)
@@ -82,7 +96,7 @@ async function rawFetch(path: string, opts: RequestOptions, token: string | null
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
   if (!opts.skipAuth && token) headers['Authorization'] = `Bearer ${token}`;
   try {
-    return await fetch(`${apiBase()}${path}`, {
+    return await fetch(`${resolveApiBase()}${path}`, {
       method: opts.method ?? 'GET',
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,

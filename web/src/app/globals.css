@@ -23,6 +23,13 @@
   --color-success: 21 148 68;
   --color-info: 8 133 190;
 
+  /* Auth "01 — Auth" design tokens (Claude Design). */
+  --color-primary-600: 74 63 224; /* #4A3FE0 brand-600 */
+  --color-primary-tint: 238 236 255; /* #EEECFF brand-tint (focus ring) */
+  --color-danger-tint: 253 237 236; /* #FDEDEC */
+  --color-success-tint: 234 247 238; /* #EAF7EE */
+  --color-panel: 20 18 28; /* #14121C learning-rail (always dark) */
+
   --ring: var(--color-primary);
   --shadow-color: 20 22 40;
   --shadow-strength: 0.06;
@@ -42,9 +49,25 @@
   --color-success: 74 222 128;
   --color-info: 56 189 248;
 
+  /*
+   * Dark equivalents of the deep/tint tokens (00 — Foundations). The design uses translucent brand/danger/success over
+   * the dark surface; expressed here as the resolved solid triplet so `bg-*`/`ring-*` fills read correctly on dark.
+   * --color-panel stays fixed (the Auth learning rail is intentionally deep in BOTH themes).
+   */
+  --color-primary-600: 167 156 255; /* #A79CFF — hover LIGHTENS in dark */
+  --color-primary-tint: 42 42 68; /* brand @16% over surface — subtle focus halo */
+  --color-danger-tint: 54 37 43; /* danger @14% over surface */
+  --color-success-tint: 29 52 45; /* success @14% over surface */
+
   --shadow-color: 0 0 0;
   --shadow-strength: 0.35;
 }
+
+/*
+ * Auth ("01 — Auth") is theme-aware: Light / Dark / System, same as the rest of the app (00 is the authority).
+ * `.auth-scope` is a semantic hook only — it no longer locks the palette. The form side follows the global tokens
+ * (light or dark); the learning rail stays deep via --color-panel, which is fixed across both themes.
+ */
 
 html,
 body {

@@ -16,6 +16,9 @@ import { bootstrapSystemRoles } from './system-roles';
  */
 export const DEMO_ADMIN = { phone: '+998900000001', displayName: 'Izlan Demo Admin', roleCode: 'ADMIN' } as const;
 export const DEMO_METHODIST = { phone: '+998900000002', displayName: 'Izlan Demo Methodist', roleCode: 'METHODIST' } as const;
+// Phase 3.0: a real LEARNER demo account (LEARNER only, NO SubjectAssignment) left INCOMPLETE so the onboarding UI can be
+// exercised from a genuine incomplete state (no dateOfBirth, no LearningIntent, no onboardingCompletedAt).
+export const DEMO_LEARNER = { phone: '+998900000003', displayName: 'Izlan Demo Learner', roleCode: 'LEARNER' } as const;
 export const DEMO_SUBJECT = { slug: 'english-demo', title: 'English — Demo' } as const;
 
 export interface DemoSeedEnv {
@@ -23,16 +26,20 @@ export interface DemoSeedEnv {
   allowDemoSeed: string | undefined;
   adminPassword: string | undefined;
   methodistPassword: string | undefined;
+  learnerPassword: string | undefined;
 }
 
-/** Fail closed: forbidden in production, requires ALLOW_DEMO_SEED=true and both demo passwords (policy-valid). */
-export function assertDemoSeedAllowed(env: DemoSeedEnv): { adminPassword: string; methodistPassword: string } {
+/** Fail closed: forbidden in production, requires ALLOW_DEMO_SEED=true and all demo passwords (policy-valid). */
+export function assertDemoSeedAllowed(env: DemoSeedEnv): { adminPassword: string; methodistPassword: string; learnerPassword: string } {
   if ((env.nodeEnv ?? '').trim() === 'production') throw new Error('db:seed:demo is forbidden in production');
   if ((env.allowDemoSeed ?? '').trim() !== 'true') throw new Error('db:seed:demo requires ALLOW_DEMO_SEED=true');
-  if (!env.adminPassword || !env.methodistPassword) throw new Error('DEMO_ADMIN_PASSWORD and DEMO_METHODIST_PASSWORD are required');
+  if (!env.adminPassword || !env.methodistPassword || !env.learnerPassword) {
+    throw new Error('DEMO_ADMIN_PASSWORD, DEMO_METHODIST_PASSWORD and DEMO_LEARNER_PASSWORD are required');
+  }
   assertPasswordPolicy(env.adminPassword);
   assertPasswordPolicy(env.methodistPassword);
-  return { adminPassword: env.adminPassword, methodistPassword: env.methodistPassword };
+  assertPasswordPolicy(env.learnerPassword);
+  return { adminPassword: env.adminPassword, methodistPassword: env.methodistPassword, learnerPassword: env.learnerPassword };
 }
 
 interface Deps {
@@ -55,15 +62,21 @@ async function ensureUser(deps: Deps, def: { phone: string; displayName: string;
 }
 
 /** Idempotent demo seed. Returns the created/ensured ids. No destructive rewrite of existing data. */
-export async function runDemoSeed(deps: Deps, env: DemoSeedEnv): Promise<{ adminId: string; methodistId: string; subjectId: string }> {
-  const { adminPassword, methodistPassword } = assertDemoSeedAllowed(env);
+export async function runDemoSeed(deps: Deps, env: DemoSeedEnv): Promise<{ adminId: string; methodistId: string; learnerId: string; subjectId: string }> {
+  const { adminPassword, methodistPassword, learnerPassword } = assertDemoSeedAllowed(env);
   await bootstrapSystemRoles(deps.authz);
 
   const adminId = await ensureUser(deps, DEMO_ADMIN, adminPassword);
   const methodistId = await ensureUser(deps, DEMO_METHODIST, methodistPassword);
 
+  // LEARNER demo: role LEARNER only, NO SubjectAssignment, and deliberately INCOMPLETE onboarding (Asia/Tashkent
+  // timezone set as a convenience; dateOfBirth + onboardingCompletedAt stay null; no LearningIntent).
+  const learnerId = await ensureUser(deps, DEMO_LEARNER, learnerPassword);
+  await deps.prisma.userProfile.update({ where: { userId: learnerId }, data: { timezone: 'Asia/Tashkent' } });
+
   const existingSubject = await deps.prisma.subject.findUnique({ where: { slug: DEMO_SUBJECT.slug } });
   const subject = existingSubject ?? (await deps.prisma.subject.create({ data: { slug: DEMO_SUBJECT.slug, title: DEMO_SUBJECT.title, status: 'DRAFT', createdBy: adminId } }));
+  // Only staff are assigned to the demo Subject — the learner intentionally has NO SubjectAssignment.
   for (const userId of [adminId, methodistId]) {
     await deps.prisma.subjectAssignment.upsert({
       where: { userId_subjectId: { userId, subjectId: subject.id } },
@@ -71,7 +84,7 @@ export async function runDemoSeed(deps: Deps, env: DemoSeedEnv): Promise<{ admin
       update: {},
     });
   }
-  return { adminId, methodistId, subjectId: subject.id };
+  return { adminId, methodistId, learnerId, subjectId: subject.id };
 }
 
 async function main(): Promise<void> {
@@ -80,9 +93,9 @@ async function main(): Promise<void> {
   try {
     const result = await runDemoSeed(
       { prisma: app.get(PrismaService), authz: app.get(AuthorizationRepository), hasher: new Argon2PasswordHasher() },
-      { nodeEnv: process.env.NODE_ENV, allowDemoSeed: process.env.ALLOW_DEMO_SEED, adminPassword: process.env.DEMO_ADMIN_PASSWORD, methodistPassword: process.env.DEMO_METHODIST_PASSWORD },
+      { nodeEnv: process.env.NODE_ENV, allowDemoSeed: process.env.ALLOW_DEMO_SEED, adminPassword: process.env.DEMO_ADMIN_PASSWORD, methodistPassword: process.env.DEMO_METHODIST_PASSWORD, learnerPassword: process.env.DEMO_LEARNER_PASSWORD },
     );
-    logger.log(`Demo seed complete — admin=${DEMO_ADMIN.phone} methodist=${DEMO_METHODIST.phone} subject=${DEMO_SUBJECT.slug} (${result.subjectId})`);
+    logger.log(`Demo seed complete — admin=${DEMO_ADMIN.phone} methodist=${DEMO_METHODIST.phone} learner=${DEMO_LEARNER.phone} subject=${DEMO_SUBJECT.slug} (${result.subjectId})`);
   } finally {
     await app.close();
   }

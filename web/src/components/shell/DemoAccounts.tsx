@@ -1,16 +1,16 @@
 'use client';
 
 import { useT } from '@/lib/i18n/i18n-context';
-import { DEMO_ACCOUNTS } from '@/lib/config/demo';
+import { DEMO_ACCOUNTS, type DemoAccount } from '@/lib/config/demo';
 
 /** Dev demo-account helper. Fills the phone field ONLY via onPick — never the password, and never auto-logs-in. */
-export function DemoAccounts({ onPick }: { onPick: (phone: string) => void }) {
+export function DemoAccounts({ onPick, accounts = DEMO_ACCOUNTS }: { onPick: (phone: string) => void; accounts?: DemoAccount[] }) {
   const t = useT();
   return (
     <div className="mt-4 space-y-2 border-t border-border pt-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{t('auth.demoTitle')}</p>
       <div className="grid gap-2">
-        {DEMO_ACCOUNTS.map((a) => (
+        {accounts.map((a) => (
           <button
             key={a.phone}
             type="button"

@@ -89,6 +89,17 @@ describe('Profile + Onboarding (e2e, izlan_test)', () => {
     expect(res.body.preferredLanguage).toBe('uz');
   });
 
+  it('LEARNER-LANG-01/02 preferredLanguage accepts uz/ru/en; rejects an unsupported locale', async () => {
+    const { token } = await login();
+    for (const lang of ['uz', 'ru', 'en']) {
+      const ok = await request(server()).patch('/api/profile/me').set('Authorization', `Bearer ${token}`).send({ preferredLanguage: lang });
+      expect(ok.status).toBe(200);
+      expect(ok.body.preferredLanguage).toBe(lang);
+    }
+    const bad = await request(server()).patch('/api/profile/me').set('Authorization', `Bearer ${token}`).send({ preferredLanguage: 'fr' });
+    expect(bad.status).toBe(400);
+  });
+
   it('rejects invalid timezone / DOB', async () => {
     const { token } = await login();
     const tz = await request(server()).patch('/api/profile/me').set('Authorization', `Bearer ${token}`).send({ timezone: 'GMT+5' });
