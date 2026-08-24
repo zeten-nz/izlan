@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n/i18n-context';
 import { register as apiRegister, requestOtp } from '@/lib/api/auth';
 import { describeError } from '@/lib/ui/error-text';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { Spinner } from '@/components/ui';
 import { AuthButton, AuthError, AuthField, AuthHeading, AuthInput, AuthPasswordInput } from '@/components/auth/fields';
 import { OtpStep } from '@/components/auth/OtpStep';
 import type { RailVariant } from '@/components/auth/AuthLearningRail';
@@ -87,6 +88,18 @@ export default function RegisterPage() {
   }
 
   const railVariant: RailVariant = step === 'phone' ? 'registerPhone' : step === 'otp' ? 'otp' : 'createPassword';
+
+  // A live session (successful register OR restored from the refresh cookie during bootstrap) shows a brief
+  // redirecting state instead of the wizard, so a valid redirect never collides with a stale form error.
+  if (status === 'authenticated') {
+    return (
+      <AuthShell rail="registerPhone">
+        <div className="grid min-h-[40vh] w-full place-items-center" role="status" aria-live="polite">
+          <Spinner label={t('learner.common.loading')} />
+        </div>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell rail={railVariant}>

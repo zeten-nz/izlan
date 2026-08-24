@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@/lib/theme/theme-context';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
+import { ApiError, NetworkError } from '@/lib/api/errors';
 import OnboardingPage from './page';
 
 const h = vi.hoisted(() => ({
@@ -170,5 +171,25 @@ describe('Learner onboarding (WEB-ONB)', () => {
     expect(await screen.findByRole('radiogroup', { name: 'Fan' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'English' })).toBeChecked();
     await waitFor(() => expect(screen.getByRole('radio', { name: 'General English' })).toBeInTheDocument());
+  });
+
+  it('WEB-ONB-16 a failed initial load surfaces the real classified error, never a false network banner', async () => {
+    h.fetchProfile.mockRejectedValue(new ApiError(500, 'SOME_SERVER_CODE', 'boom'));
+    h.fetchStatus.mockResolvedValue({ completed: false, canComplete: false, missing: [] });
+    h.fetchSubjects.mockResolvedValue([]);
+    h.fetchIntents.mockResolvedValue([]);
+    render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
+    await waitFor(() => expect(screen.getByText(/Kutilmagan xatolik/)).toBeInTheDocument());
+    expect(screen.queryByText(/Server bilan bog/)).toBeNull(); // NOT falsely "couldn't reach the server"
+    expect(document.body.textContent).not.toContain('SOME_SERVER_CODE');
+  });
+
+  it('WEB-ONB-17 a genuine transport failure on load shows the network message', async () => {
+    h.fetchProfile.mockResolvedValue(profile());
+    h.fetchStatus.mockRejectedValue(new NetworkError());
+    h.fetchSubjects.mockResolvedValue([]);
+    h.fetchIntents.mockResolvedValue([]);
+    render(<ThemeProvider><I18nProvider><OnboardingPage /></I18nProvider></ThemeProvider>);
+    await waitFor(() => expect(screen.getByText(/Server bilan bog/)).toBeInTheDocument());
   });
 });

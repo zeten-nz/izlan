@@ -5,14 +5,17 @@ import { I18nProvider } from '@/lib/i18n/i18n-context';
 import { ApiError, NetworkError } from '@/lib/api/errors';
 import LoginPage from './page';
 
-const h = vi.hoisted(() => ({ replace: vi.fn(), setUser: vi.fn(), login: vi.fn(), next: null as string | null }));
+const h = vi.hoisted(() => ({
+  replace: vi.fn(), setUser: vi.fn(), login: vi.fn(), next: null as string | null,
+  status: 'unauthenticated' as string, user: null as { id: string; onboardingCompleted: boolean } | null,
+}));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: h.replace, push: vi.fn() }),
   useSearchParams: () => ({ get: () => h.next }),
   usePathname: () => '/login',
 }));
-vi.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ status: 'unauthenticated', user: null, setAuthenticatedUser: h.setUser }) }));
+vi.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ status: h.status, user: h.user, setAuthenticatedUser: h.setUser }) }));
 vi.mock('@/lib/api/auth', () => ({ login: h.login }));
 
 function renderPage() {
@@ -37,6 +40,8 @@ describe('Learner login (WEB-AUTH)', () => {
     h.setUser.mockReset();
     h.login.mockReset();
     h.next = null;
+    h.status = 'unauthenticated';
+    h.user = null;
     try { localStorage.clear(); sessionStorage.clear(); } catch { /* ignore */ }
   });
 
@@ -128,5 +133,16 @@ describe('Learner login (WEB-AUTH)', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'another-pass' } });
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('WEB-AUTH-11 an already-authenticated user (session restored on bootstrap) is redirected, never showing the form or a stale error', async () => {
+    // Simulates the race: AuthProvider bootstrap restored a session from the refresh cookie.
+    h.status = 'authenticated';
+    h.user = { id: 'u1', onboardingCompleted: false };
+    renderPage();
+    await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/onboarding'));
+    // no contradictory "visible error + redirect": the form and any error banner are not rendered while redirecting
+    expect(screen.queryByLabelText('Telefon raqam')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

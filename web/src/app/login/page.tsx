@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n/i18n-context';
 import { login as apiLogin } from '@/lib/api/auth';
 import { describeError } from '@/lib/ui/error-text';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { Spinner } from '@/components/ui';
 import { AuthButton, AuthError, AuthField, AuthHeading, AuthInput, AuthPasswordInput } from '@/components/auth/fields';
 import { DemoAccounts } from '@/components/shell/DemoAccounts';
 import { demoAccountsEnabled, DEMO_LEARNER_ACCOUNTS } from '@/lib/config/demo';
@@ -27,6 +28,17 @@ function LoginForm() {
   useEffect(() => {
     if (status === 'authenticated' && user) router.replace(postAuthLearnerPath(user.onboardingCompleted, params.get('next')));
   }, [status, user, router, params]);
+
+  // A live session (from a successful submit OR restored from the refresh cookie during bootstrap) shows a brief
+  // redirecting state — never the form or a stale submit error. This removes the "visible error + redirect" race:
+  // a valid session redirect and a failed-login error can never be shown at the same time.
+  if (status === 'authenticated' && user) {
+    return (
+      <div className="grid min-h-[40vh] w-full place-items-center" role="status" aria-live="polite">
+        <Spinner label={t('learner.common.loading')} />
+      </div>
+    );
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
