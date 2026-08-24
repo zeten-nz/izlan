@@ -8,7 +8,13 @@
  * Both themes are intentionally designed (not an auto-inversion): calm, premium, content-first, restrained contrast.
  */
 :root {
-  --radius-card: 0.875rem;
+  --radius-card: 0.875rem; /* legacy card token — kept for compatibility (≈ --radius-lg + 2) */
+
+  /* Canonical radius scale (00 — Foundations). */
+  --radius-sm: 8px; /* small control / OTP box */
+  --radius-md: 10px; /* input / button */
+  --radius-lg: 12px; /* card */
+  --radius-panel: 16px; /* panel / app frame */
 
   --color-bg: 247 247 249;
   --color-surface: 255 255 255;
@@ -20,6 +26,7 @@
   --color-primary-fg: 255 255 255;
   --color-danger: 220 38 38;
   --color-warning: 202 120 12;
+  --color-warning-tint: 253 244 231; /* amber tint — status surfaces */
   --color-success: 21 148 68;
   --color-info: 8 133 190;
 
@@ -33,6 +40,10 @@
   --ring: var(--color-primary);
   --shadow-color: 20 22 40;
   --shadow-strength: 0.06;
+
+  /* Canonical elevation (00 — Foundations): none / subtle / elevated. Restrained, ink-tinted. */
+  --shadow-subtle: 0 4px 12px rgba(20, 18, 30, 0.06);
+  --shadow-elevated: 0 12px 32px rgba(20, 18, 30, 0.06);
 }
 
 .dark {
@@ -57,10 +68,15 @@
   --color-primary-600: 167 156 255; /* #A79CFF — hover LIGHTENS in dark */
   --color-primary-tint: 42 42 68; /* brand @16% over surface — subtle focus halo */
   --color-danger-tint: 54 37 43; /* danger @14% over surface */
+  --color-warning-tint: 53 46 36; /* warning @14% over surface */
   --color-success-tint: 29 52 45; /* success @14% over surface */
 
   --shadow-color: 0 0 0;
   --shadow-strength: 0.35;
+
+  /* Dark relies on a 1px border for separation (00), so subtle elevation is dropped; keep a soft frame shadow. */
+  --shadow-subtle: none;
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 /*

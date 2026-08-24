@@ -24,13 +24,20 @@ const config: Config = {
         danger: 'rgb(var(--color-danger) / <alpha-value>)',
         'danger-tint': 'rgb(var(--color-danger-tint) / <alpha-value>)',
         warning: 'rgb(var(--color-warning) / <alpha-value>)',
+        'warning-tint': 'rgb(var(--color-warning-tint) / <alpha-value>)',
         success: 'rgb(var(--color-success) / <alpha-value>)',
         'success-tint': 'rgb(var(--color-success-tint) / <alpha-value>)',
         info: 'rgb(var(--color-info) / <alpha-value>)',
         panel: 'rgb(var(--color-panel) / <alpha-value>)',
       },
       borderRadius: {
-        card: 'var(--radius-card)',
+        card: 'var(--radius-card)', // legacy — kept for existing consumers
+        control: 'var(--radius-md)', // 10px — canonical input/button
+        panel: 'var(--radius-panel)', // 16px — panel / app frame
+      },
+      boxShadow: {
+        subtle: 'var(--shadow-subtle)',
+        elevated: 'var(--shadow-elevated)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
