@@ -14,3 +14,11 @@ export async function fetchActiveRoadmap(subjectId: string): Promise<RoadmapProg
     throw e;
   }
 }
+
+/**
+ * POST /api/roadmaps/diagnostics/:attemptId/initial — generate (or idempotently return) the initial roadmap from a
+ * completed diagnostic. Backend-authored and idempotent; we only need it to succeed before entering /learn.
+ */
+export function generateInitialRoadmap(attemptId: string): Promise<{ roadmap: { id: string; status: string }; uncoveredSkillIds: string[] }> {
+  return apiRequest(`/api/roadmaps/diagnostics/${attemptId}/initial`, { method: 'POST' });
+}

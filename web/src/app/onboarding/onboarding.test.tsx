@@ -96,7 +96,7 @@ describe('Learner onboarding (WEB-ONB)', () => {
     expect(h.complete).not.toHaveBeenCalled();
   });
 
-  it('WEB-ONB-10 completing onboarding redirects to /learn', async () => {
+  it('WEB-ONB-10 completing onboarding enters Placement for the completed learning intent (transition seam)', async () => {
     h.complete.mockResolvedValue({ completed: true, completedAt: '2026-01-01T00:00:00Z' });
     h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: true, missing: [] });
     h.fetchStatus.mockResolvedValueOnce({ completed: false, canComplete: true, missing: [] });
@@ -108,7 +108,7 @@ describe('Learner onboarding (WEB-ONB)', () => {
     await waitFor(() => expect(screen.getByText('Nimani o‘rganmoqchisiz?')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
     await waitFor(() => expect(h.complete).toHaveBeenCalled());
-    expect(h.replace).toHaveBeenCalledWith('/learn');
+    expect(h.replace).toHaveBeenCalledWith('/placement?learningIntentId=i1'); // NOT /learn — Placement is next
   });
 
   it('WEB-ONB-11 already-completed onboarding redirects to /learn (resumes from backend, not local state)', async () => {

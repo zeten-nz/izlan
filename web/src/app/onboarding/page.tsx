@@ -100,6 +100,7 @@ function Wizard({ init, router }: { init: Init; router: ReturnType<typeof useRou
   // because changing the subject clears the track (invariant preserved from the Phase 3.0 fix).
   const [subjectId, setSubjectId] = useState<string | null>(existingIntent?.subject.id ?? null);
   const [trackId, setTrackId] = useState<string | null>(existingIntent?.track?.id ?? null);
+  const [intentId, setIntentId] = useState<string | null>(existingIntent?.id ?? null); // the LearningIntent id → carried into Placement
 
   // Move focus to the step heading after a stage transition (not on first mount).
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -138,9 +139,10 @@ function Wizard({ init, router }: { init: Init; router: ReturnType<typeof useRou
     setBusy(true);
     setError(null);
     try {
-      await saveLearningIntent(subject.id); // subject-only, resumable
+      const intents = await saveLearningIntent(subject.id); // subject-only, resumable
       setSubjectId(subject.id);
       setTrackId(null); // a track from a previous subject must never leak across subjects
+      setIntentId(intents.find((i) => i.subject.id === subject.id)?.id ?? null);
     } catch (err) {
       setError(describeError(err, t));
     } finally {
@@ -153,8 +155,10 @@ function Wizard({ init, router }: { init: Init; router: ReturnType<typeof useRou
     setBusy(true);
     setError(null);
     try {
-      await saveLearningIntent(subjectId, track.id); // complete intent = the ACTUAL current selection
+      const intents = await saveLearningIntent(subjectId, track.id); // complete intent = the ACTUAL current selection
       setTrackId(track.id);
+      const own = intents.find((i) => i.subject.id === subjectId && i.track?.id === track.id) ?? intents.find((i) => i.subject.id === subjectId);
+      setIntentId(own?.id ?? null);
     } catch (err) {
       setError(describeError(err, t));
     } finally {
@@ -174,8 +178,17 @@ function Wizard({ init, router }: { init: Init; router: ReturnType<typeof useRou
       }
       await completeOnboarding();
       if (user) setAuthenticatedUser({ ...user, onboardingCompleted: true });
-      // Phase 02B: route into Placement (intro) here instead of the dashboard.
-      router.replace('/learn');
+      // Phase 02B: enter Placement for the ACTUAL completed LearningIntent (resolve the id if we don't have it yet).
+      let lid = intentId;
+      if (!lid) {
+        try {
+          const intents = await fetchLearningIntents();
+          lid = intents.find((i) => i.subject.id === subjectId && i.track?.id === trackId)?.id ?? intents.find((i) => i.subject.id === subjectId)?.id ?? null;
+        } catch {
+          /* fall through to a safe destination */
+        }
+      }
+      router.replace(lid ? `/placement?learningIntentId=${encodeURIComponent(lid)}` : '/learn');
     } catch (err) {
       setError(describeError(err, t));
     } finally {

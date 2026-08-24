@@ -20,7 +20,7 @@ function BrandMark() {
  * centered single-column workflow — no learner sidebar. Theme-aware (Light/Dark/System) via the shared foundation.
  * `step` is the 0-based index into [Profil, Yo'nalish, Daraja]; Daraja is the future Placement stage (Phase 02B).
  */
-export function OnboardingShell({ step, children }: { step: 0 | 1; children: React.ReactNode }) {
+export function OnboardingShell({ step, children }: { step: 0 | 1 | 2; children: React.ReactNode }) {
   const t = useT();
   const steps = [t('learner.onboarding.stepProfile'), t('learner.onboarding.stepIntent'), t('learner.onboarding.stepPlacement')];
   return (

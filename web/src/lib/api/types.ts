@@ -352,3 +352,38 @@ export interface DailyPlan {
   progress: { total: number; completed: number; progressBp: number };
   items: DailyPlanItem[];
 }
+
+// ── Placement / diagnostic assessment (Phase 02B) — mirrors the real learner-facing backend shapes ──
+export type PlacementItemFormat = 'single_choice' | 'multiple_choice' | 'true_false';
+/** Learner projection: NEVER carries answerKey / difficulty / skillId / correctness. */
+export interface LearnerFacingItem {
+  id: string;
+  type: string;
+  format: PlacementItemFormat;
+  prompt: string;
+  options?: { id: string; text: string }[];
+}
+export interface AttemptView {
+  attemptId: string;
+  status: string; // 'IN_PROGRESS' | 'COMPLETED'
+  engineVersion: string;
+  progress: { answered: number; maxItems: number }; // maxItems is a CEILING, not a promised count
+  item: LearnerFacingItem | null; // null when COMPLETED
+  result: { answered: number; objectiveCorrect: number; coverageComplete: boolean; insufficientSkillIds: string[] } | null;
+}
+/** Answer body — the real camelCase contract; single/true_false vs multiple_choice. No clientRequestId. */
+export type PlacementAnswer = { selectedOptionId: string } | { selectedOptionIds: string[] };
+
+export interface DiagnosticSkill {
+  skillId: string;
+  name: string;
+  masteryScoreBp: number; // basis points 0..10000
+  confidenceBp: number | null;
+  displayLevel: string | null; // null in v1 — never fabricate a level when null
+  measuredAt: string;
+}
+export interface DiagnosticSnapshot {
+  attemptId?: string;
+  derivationVersion: string;
+  skills: DiagnosticSkill[];
+}
