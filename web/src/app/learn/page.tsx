@@ -144,12 +144,9 @@ function RoadmapSummary({ roadmap }: { roadmap: RoadmapProgress }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-muted">{t('learner.dashboard.nextStep')}</div>
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <span className="min-w-0 truncate font-medium text-text">{next.lesson.title ?? t('learner.roadmap.untitled')}</span>
-            {/* Lesson execution is Phase 04 — the next step is shown clearly but not yet executable. */}
-            <Button size="sm" disabled aria-disabled title={t('learner.dashboard.lessonSoon')}>
-              {t('learner.dashboard.startLesson')}
-            </Button>
+            {/* Phase 04: lessons start from today's plan (the entry authority) — guide to Learning, never bypass it. */}
+            <ButtonLink href="/learn/learning" size="sm">{t('learner.dashboard.startLesson')}</ButtonLink>
           </div>
-          <p className="mt-1.5 text-xs text-muted">{t('learner.dashboard.lessonSoon')}</p>
         </div>
       )}
     </Card>
@@ -240,8 +237,9 @@ function TodaySection({ initial, setData }: { initial: DailyPlan | null; setData
           </li>
         ))}
       </ul>
-      {/* Lesson execution is Phase 04 — today's items are shown, but starting a lesson is not yet available. */}
-      <p className="mt-3 text-xs text-muted">{t('learner.dashboard.lessonSoon')}</p>
+      <div className="mt-4">
+        <ButtonLink href="/learn/learning" variant="secondary" size="sm">{t('learner.dashboard.openLearning')}</ButtonLink>
+      </div>
     </Card>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { refreshAccessToken } from '../api/client';
 import { fetchMe, logout as logoutApi } from '../api/auth';
 import { clearAccessToken } from './token-store';
@@ -26,12 +26,23 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
+  // An explicit login/logout takes authority over bootstrap. Without this, a bootstrap refresh that started before an
+  // in-flight login could resolve AFTER it and clobber the authenticated state (→ guard bounces to /login: the observed
+  // "stuck login, second click enters" regression). Once settled, the late bootstrap result must never be applied.
+  const settledRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const token = await refreshAccessToken();
-      if (cancelled) return;
+      // refreshAccessToken can reject on a transport failure (backend briefly unreachable); on bootstrap that just
+      // means we could not establish a session now — treat it as unauthenticated (a later action retries), never crash.
+      let token: string | null = null;
+      try {
+        token = await refreshAccessToken();
+      } catch {
+        token = null;
+      }
+      if (cancelled || settledRef.current) return;
       if (!token) {
         setUser(null);
         setStatus('unauthenticated');
@@ -39,11 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const me = await fetchMe();
-        if (cancelled) return;
+        if (cancelled || settledRef.current) return;
         setUser(me);
         setStatus('authenticated');
       } catch {
-        if (cancelled) return;
+        if (cancelled || settledRef.current) return;
         clearAccessToken();
         setUser(null);
         setStatus('unauthenticated');
@@ -55,11 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setAuthenticatedUser = useCallback((u: AuthUser) => {
+    settledRef.current = true; // login is authoritative — bootstrap must not overwrite it
     setUser(u);
     setStatus('authenticated');
   }, []);
 
   const logout = useCallback(async () => {
+    settledRef.current = true; // logout is authoritative — a stale bootstrap must not re-authenticate
     await logoutApi();
     setUser(null);
     setStatus('unauthenticated');

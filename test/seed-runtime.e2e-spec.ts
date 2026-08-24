@@ -14,6 +14,9 @@ import {
 } from '../src/bootstrap/seed-runtime';
 import { parsePlacementConfig } from '../src/assessment/engine/placement-config';
 import { parseItemPayload, isObjectiveFormat } from '../src/assessment/scoring/item-payload';
+import { parseObjectiveActivityPayload } from '../src/lesson-execution/activity/objective-activity-payload';
+import { parseMarkdownActivityPayload } from '../src/content/activity/markdown-activity-payload';
+import { projectActivityForLearnerRuntime } from '../src/content/activity/learner-activity-projection';
 import { cleanupAuthTables, cleanupAssessmentTables, cleanupRoadmapContent } from './test-db.helper';
 
 const ADMIN_PW = 'RuntimeAdmin!123';
@@ -84,6 +87,25 @@ describe('Runtime fixture (e2e, izlan_test)', () => {
       expect(l.skills.length).toBeGreaterThanOrEqual(1);
     }
 
+    // Phase 04: each lesson has real learner activities (1 view-only + 3 objective, objectives mapped to the skill),
+    // and the learner projection strips answerKey.
+    for (const l of lessons) {
+      const acts = await prisma.activity.findMany({ where: { lessonRevisionId: l.publishedRevisionId! }, orderBy: { position: 'asc' }, include: { skills: true } });
+      expect(acts).toHaveLength(4);
+      const markdown = acts.find((a) => a.type === 'EXPLANATION');
+      expect(markdown).toBeTruthy();
+      expect(() => parseMarkdownActivityPayload(markdown!.payload)).not.toThrow();
+      const objectives = acts.filter((a) => a.type === 'MINI_QUESTION' || a.type === 'PRACTICE');
+      expect(objectives).toHaveLength(3);
+      for (const o of objectives) {
+        expect(() => parseObjectiveActivityPayload(o.payload)).not.toThrow();
+        expect(o.skills.length).toBeGreaterThanOrEqual(1); // mapped to the lesson skill (real evidence + review trigger)
+        const projected = JSON.stringify(projectActivityForLearnerRuntime({ id: o.id, type: o.type, position: o.position, payload: o.payload }));
+        expect(projected).not.toContain('answerKey');
+        expect(projected).not.toContain('correctOptionIds');
+      }
+    }
+
     // exactly one PUBLISHED DIAGNOSTIC definition with a published current version
     const def = await prisma.assessmentDefinition.findFirst({ where: { subjectId: r.subjectId, purposeScope: AssessmentPurposeScope.DIAGNOSTIC, status: ContainerStatus.PUBLISHED } });
     expect(def?.currentVersionId).toBe(r.versionId);
@@ -147,5 +169,9 @@ describe('Runtime fixture (e2e, izlan_test)', () => {
     expect(await prisma.assessmentItem.count({ where: { definitionId: first.definitionId } })).toBe(6);
     expect(await prisma.lesson.count({ where: { topicId: first.topicId } })).toBe(3);
     expect(await prisma.learnerLearningIntent.count({ where: { userId: first.learnerId } })).toBe(1);
+    // activities are seeded once per lesson revision (4 each × 3 lessons = 12), never duplicated on rerun
+    const revs = await prisma.lesson.findMany({ where: { id: { in: first.lessonIds } }, select: { publishedRevisionId: true } });
+    const revIds = revs.map((l) => l.publishedRevisionId!).filter(Boolean);
+    expect(await prisma.activity.count({ where: { lessonRevisionId: { in: revIds } } })).toBe(12);
   });
 });

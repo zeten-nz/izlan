@@ -139,8 +139,8 @@ async function ensureSkills(prisma: PrismaService, subjectId: string): Promise<M
 
 /**
  * Ensure a PUBLISHED, learner-visible lesson: Lesson(PUBLISHED) + LessonRevision(PUBLISHED) + publishedRevisionId
- * pointer + LessonSkill mapping + optional prerequisite. Idempotent by the globally-unique contentKey.
- * No Activity is created — roadmap/daily-plan generation does not read activities (lesson execution is a later phase).
+ * pointer + LessonSkill mapping + optional prerequisite + published learner Activities (Phase 04). Idempotent by the
+ * globally-unique contentKey (lesson) and by an empty-revision check (activities).
  */
 async function ensurePublishedLesson(
   prisma: PrismaService,
@@ -169,7 +169,46 @@ async function ensurePublishedLesson(
       update: {},
     });
   }
+  await ensureLessonActivities(prisma, revision.id, args.createdBy, args.skillId);
   return lesson.id;
+}
+
+// ── lesson activity payloads (Phase 04): view-only markdown + objective questions. answerKey is SERVER-ONLY (the
+// learner projection strips it); schemaVersions are the lesson-activity contracts (distinct from placement items). ──
+const LESSON_MD_V = 'lesson-activity-markdown/v1';
+const LESSON_OBJ_V = 'lesson-activity-objective/v1';
+const mdPayload = (markdown: string) => ({ schemaVersion: LESSON_MD_V, markdown });
+const objSingle = (prompt: string, options: { id: string; text: string }[], correctId: string) => ({ schemaVersion: LESSON_OBJ_V, format: 'single_choice', prompt, options, answerKey: { correctOptionIds: [correctId] } });
+const objTf = (prompt: string, correct: boolean) => ({ schemaVersion: LESSON_OBJ_V, format: 'true_false', prompt, options: [{ id: 't', text: 'True' }, { id: 'f', text: 'False' }], answerKey: { correctOptionIds: [correct ? 't' : 'f'] } });
+const objMulti = (prompt: string, options: { id: string; text: string }[], correctIds: string[]) => ({ schemaVersion: LESSON_OBJ_V, format: 'multiple_choice', prompt, options, answerKey: { correctOptionIds: correctIds } });
+
+/**
+ * Seed one view-only step + three objective questions on a lesson revision. All three objectives map to the lesson's
+ * skill via ActivitySkill, so completing the lesson yields real evidence and answering all three incorrectly can
+ * legitimately trigger a REPEATED_MISTAKE review signal (the review flow's real prerequisite). Idempotent: only seeds
+ * when the revision has no activities yet, atomically.
+ */
+async function ensureLessonActivities(prisma: PrismaService, revisionId: string, createdBy: string, skillId: string): Promise<void> {
+  void createdBy; // Activity has no createdBy column; provenance is carried by `source`.
+  if ((await prisma.activity.count({ where: { lessonRevisionId: revisionId } })) > 0) return;
+  const objectives = [
+    objSingle('Which of these is an English greeting?', [{ id: 'a', text: 'Hello' }, { id: 'b', text: 'Table' }, { id: 'c', text: 'Apple' }], 'a'),
+    objTf('“I am a student.” is a correct sentence.', true),
+    objMulti('Select the subject pronouns.', [{ id: 'a', text: 'I' }, { id: 'b', text: 'she' }, { id: 'c', text: 'apple' }], ['a', 'b']),
+  ];
+  await prisma.$transaction(async (tx) => {
+    await tx.activity.create({
+      data: { lessonRevisionId: revisionId, type: ActivityType.EXPLANATION, position: 0, source: ContentSource.HUMAN, payload: mdPayload('## Welcome\n\nRead this short explanation, then answer the questions below. Greetings are how we say **hello** and begin a conversation.') as object },
+    });
+    let position = 1;
+    for (const payload of objectives) {
+      const activity = await tx.activity.create({
+        data: { lessonRevisionId: revisionId, type: position === 3 ? ActivityType.PRACTICE : ActivityType.MINI_QUESTION, position, source: ContentSource.HUMAN, payload: payload as object },
+      });
+      await tx.activitySkill.create({ data: { activityId: activity.id, skillId } });
+      position++;
+    }
+  });
 }
 
 // ── placement item payloads (server-only answerKey; supported objective formats only) ──

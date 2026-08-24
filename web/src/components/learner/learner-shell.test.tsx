@@ -38,13 +38,26 @@ describe('LearnerShell (WEB-SHELL)', () => {
     expect(rm.some((l) => l.getAttribute('aria-current') === 'page')).toBe(true);
   });
 
-  it('WEB-SHELL-04 the three future items are accessibly disabled, never fake links', () => {
+  it('WEB-SHELL-04 Learning + Review are now active links; only Natijalar stays accessibly disabled', () => {
     renderShell();
-    for (const label of ['O‘rganish', 'Takrorlash', 'Natijalar']) {
-      expect(screen.queryByRole('link', { name: new RegExp(label) })).toBeNull(); // not navigable
-      const [firstMatch] = screen.getAllByText((c) => c.startsWith(label));
-      expect(firstMatch?.closest('[aria-disabled="true"]')).toBeTruthy(); // disabled semantics, not color-only (lock + sr-only "Tez orada")
-    }
+    expect(screen.getAllByRole('link', { name: 'O‘rganish' })[0]).toHaveAttribute('href', '/learn/learning');
+    expect(screen.getAllByRole('link', { name: 'Takrorlash' })[0]).toHaveAttribute('href', '/learn/review');
+    // Natijalar remains a non-navigable, accessibly-disabled item (lock + sr-only), not a fake route
+    expect(screen.queryByRole('link', { name: /Natijalar/ })).toBeNull();
+    const [results] = screen.getAllByText((c) => c.startsWith('Natijalar'));
+    expect(results?.closest('[aria-disabled="true"]')).toBeTruthy();
+  });
+
+  it('WEB-SHELL-08 Learning is the active route on /learn/learning', () => {
+    h.pathname = '/learn/learning';
+    renderShell();
+    expect(screen.getAllByRole('link', { name: 'O‘rganish' }).some((l) => l.getAttribute('aria-current') === 'page')).toBe(true);
+  });
+
+  it('WEB-SHELL-09 Review is the active route on /learn/review', () => {
+    h.pathname = '/learn/review';
+    renderShell();
+    expect(screen.getAllByRole('link', { name: 'Takrorlash' }).some((l) => l.getAttribute('aria-current') === 'page')).toBe(true);
   });
 
   it('WEB-SHELL-05 uses the canonical ThemeSwitcher (menu popover) and the shared language pill — not the interim toggle', () => {

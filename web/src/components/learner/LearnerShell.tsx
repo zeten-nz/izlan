@@ -23,8 +23,8 @@ type NavItem = { key: 'home' | 'roadmap' | 'learn' | 'review' | 'results'; href?
 const PRIMARY: NavItem[] = [
   { key: 'home', href: '/learn', icon: FiHome, exact: true, enabled: true },
   { key: 'roadmap', href: '/learn/roadmap', icon: FiMap, enabled: true },
-  { key: 'learn', icon: FiBookOpen, enabled: false },
-  { key: 'review', icon: FiRepeat, enabled: false },
+  { key: 'learn', href: '/learn/learning', icon: FiBookOpen, enabled: true },
+  { key: 'review', href: '/learn/review', icon: FiRepeat, enabled: true },
   { key: 'results', icon: FiBarChart2, enabled: false },
 ];
 
