@@ -11,9 +11,10 @@ import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
 import { useT } from '@/lib/i18n/i18n-context';
 import { Button, Card, useToast } from '@/components/ui';
-import { StatusBadge, Badge } from '@/components/ui/status-badge';
+import { Badge } from '@/components/ui/status-badge';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { ErrorState, LoadingRows } from '@/components/ui/states';
+import { StudioHeader } from '@/components/shell/StudioHeader';
 import { EntityFormDialog, type FormValues } from '@/components/forms/EntityFormDialog';
 import { RevisionsPanel } from '@/components/lesson/RevisionsPanel';
 import { PrerequisitesPanel } from '@/components/lesson/PrerequisitesPanel';
@@ -81,23 +82,20 @@ export default function LessonWorkspace() {
 
   return (
     <motion.div variants={fadeInUp} initial="initial" animate="animate" className="mx-auto max-w-5xl space-y-5">
-      <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-xl font-bold text-text">{lesson.contentKey}</h1>
-              <StatusBadge status={lesson.status} />
-              {lesson.publishedRevisionId && <Badge tone="success">{t('lesson.currentPublication')}</Badge>}
-            </div>
-            <p className="text-sm text-muted">
-              {lesson.slug ? `/${lesson.slug}` : t('hierarchy.noSlug')} · {t('hierarchy.metaOrder', { n: lesson.sortOrder })}
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              {t('common.updatedAt')}: {formatDateTime(lesson.updatedAt)}
-            </p>
-            {lesson.status === 'ARCHIVED' && <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">{t('lesson.archivedNotice')}</p>}
+      <StudioHeader
+        breadcrumb={[{ label: t('nav.subjects'), href: '/staff/content' }]}
+        title={lesson.contentKey}
+        status={lesson.status}
+        badges={lesson.publishedRevisionId ? <Badge tone="success">{t('lesson.currentPublication')}</Badge> : null}
+        meta={
+          <div className="space-y-1">
+            <div>{lesson.slug ? `/${lesson.slug}` : t('hierarchy.noSlug')} · {t('hierarchy.metaOrder', { n: lesson.sortOrder })}</div>
+            <div>{t('common.updatedAt')}: {formatDateTime(lesson.updatedAt)}</div>
           </div>
-          <div className="flex flex-wrap gap-2">
+        }
+        notice={lesson.status === 'ARCHIVED' ? <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">{t('lesson.archivedNotice')}</p> : null}
+        actions={
+          <>
             {editable && (
               <>
                 <Button variant="secondary" size="sm" leftIcon={<FiEdit2 aria-hidden />} onClick={() => setEditing(true)}>
@@ -113,9 +111,9 @@ export default function LessonWorkspace() {
                 {t('lesson.takedown')}
               </Button>
             )}
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -184,7 +182,7 @@ export default function LessonWorkspace() {
       <EntityFormDialog
         open={moving}
         title={t('lesson.moveTitle')}
-        fields={[{ name: 'toTopicId', label: t('lesson.moveField'), type: 'text', required: true }]}
+        fields={[{ name: 'toTopicId', label: t('lesson.moveField'), type: 'text', required: true, hint: t('lesson.moveHint') }]}
         onSubmit={async (v: FormValues) => {
           await moveLesson(lessonId, { expectedUpdatedAt: token(), toTopicId: s(v.toTopicId) });
           toast(t('lesson.moved'), 'success');
