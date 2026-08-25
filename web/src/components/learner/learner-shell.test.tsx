@@ -38,14 +38,20 @@ describe('LearnerShell (WEB-SHELL)', () => {
     expect(rm.some((l) => l.getAttribute('aria-current') === 'page')).toBe(true);
   });
 
-  it('WEB-SHELL-04 Learning + Review are now active links; only Natijalar stays accessibly disabled', () => {
-    renderShell();
+  it('WEB-SHELL-04 all five primary items are now live links — no disabled/placeholder primary nav remains', () => {
+    const { container } = renderShell();
     expect(screen.getAllByRole('link', { name: 'O‘rganish' })[0]).toHaveAttribute('href', '/learn/learning');
     expect(screen.getAllByRole('link', { name: 'Takrorlash' })[0]).toHaveAttribute('href', '/learn/review');
-    // Natijalar remains a non-navigable, accessibly-disabled item (lock + sr-only), not a fake route
-    expect(screen.queryByRole('link', { name: /Natijalar/ })).toBeNull();
-    const [results] = screen.getAllByText((c) => c.startsWith('Natijalar'));
-    expect(results?.closest('[aria-disabled="true"]')).toBeTruthy();
+    // Natijalar is now a real link to /learn/progress (Phase 05), not an accessibly-disabled placeholder
+    expect(screen.getAllByRole('link', { name: 'Natijalar' })[0]).toHaveAttribute('href', '/learn/progress');
+    // no primary nav item is disabled anymore
+    expect(container.querySelectorAll('nav [aria-disabled="true"]').length).toBe(0);
+  });
+
+  it('WEB-SHELL-10 Results is the active route on /learn/progress', () => {
+    h.pathname = '/learn/progress';
+    renderShell();
+    expect(screen.getAllByRole('link', { name: 'Natijalar' }).some((l) => l.getAttribute('aria-current') === 'page')).toBe(true);
   });
 
   it('WEB-SHELL-08 Learning is the active route on /learn/learning', () => {
