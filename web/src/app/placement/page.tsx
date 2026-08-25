@@ -179,7 +179,14 @@ function RunnerView({ attempt, setAttempt, subjectTitle, onExit }: { attempt: At
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  // Reset on SETUP, not just cleanup: under React StrictMode (next.config: reactStrictMode) the mount effect runs
+  // mount→cleanup→mount, which would otherwise latch `mounted.current` to false for the component's whole life — then
+  // every `if (!mounted.current) return;` after an awaited submit bails BEFORE setAttempt(next), so the runner never
+  // advances even though the server already progressed (the exact "answer → UI frozen, must re-enter" QA bug).
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const item = attempt.item;
   const context = subjectTitle ? t('placement.runner.context', { subject: subjectTitle }) : t('placement.result.title');
