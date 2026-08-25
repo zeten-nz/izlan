@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FiChevronsLeft, FiChevronsRight, FiCommand, FiFolder, FiLogOut, FiMenu, FiMoon, FiShield, FiSun, FiX } from 'react-icons/fi';
+import {
+  FiActivity, FiChevronsLeft, FiChevronsRight, FiClipboard, FiCommand, FiCreditCard, FiFolder,
+  FiGrid, FiLock, FiLogOut, FiMenu, FiShield, FiUsers, FiX,
+} from 'react-icons/fi';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useCms } from '@/lib/cms/cms-context';
-import { useTheme } from '@/lib/theme/theme-context';
 import { useT } from '@/lib/i18n/i18n-context';
-import { Button, IconButton, Spinner } from '@/components/ui';
+import { BrandMark, Button, IconButton, Spinner, ThemeSwitcher } from '@/components/ui';
 import { Badge } from '@/components/ui/status-badge';
 import { SubjectSwitcher } from './SubjectSwitcher';
 import { LocaleSwitcher } from './LocaleSwitcher';
@@ -16,6 +19,73 @@ import { CommandPalette } from './CommandPalette';
 import { overlayFade } from '@/lib/motion/motion';
 
 const SIDEBAR_KEY = 'izl-sidebar'; // UI preference only (collapsed/expanded)
+const DRAWER_ID = 'staff-mobile-drawer';
+
+// Final Admin/Staff information architecture (07). The ONLY live destination is Content (the mature CMS); every other
+// area is an accepted-but-not-yet-built admin surface with NO backend contract, so it is rendered as a non-navigable
+// "Tez orada" item — never a fake page, never fabricated data. (See Phase 07 audit.)
+type NavItem = { key: string; icon: typeof FiFolder; href?: string; soon?: boolean };
+type NavSection = { header: string; items: NavItem[] };
+
+const SECTIONS: NavSection[] = [
+  { header: 'sectionMain', items: [{ key: 'dashboard', icon: FiGrid, soon: true }] },
+  { header: 'content', items: [
+    { key: 'subjects', icon: FiFolder, href: '/staff/content' },
+    { key: 'assessment', icon: FiClipboard, soon: true },
+  ] },
+  { header: 'sectionAdmin', items: [
+    { key: 'users', icon: FiUsers, soon: true },
+    { key: 'staffAccess', icon: FiShield, soon: true },
+  ] },
+  { header: 'sectionOps', items: [
+    { key: 'payments', icon: FiCreditCard, soon: true },
+    { key: 'system', icon: FiActivity, soon: true },
+  ] },
+];
+
+function NavRow({ item, collapsed, pathname, onNavigate }: { item: NavItem; collapsed: boolean; pathname: string; onNavigate?: () => void }) {
+  const t = useT();
+  const Icon = item.icon;
+  const label = t(`nav.${item.key}`);
+
+  if (item.soon) {
+    // Non-interactive (not a link/button → not focusable, not keyboard-clickable). State is conveyed with TEXT, not colour.
+    return (
+      <span
+        aria-disabled="true"
+        title={`${label} — ${t('nav.soon')}`}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted/50 ${collapsed ? 'justify-center px-0' : ''}`}
+      >
+        <span className="relative shrink-0">
+          <Icon aria-hidden />
+          {collapsed && <FiLock aria-hidden size={9} className="absolute -right-1.5 -top-1" />}
+        </span>
+        {!collapsed ? (
+          <>
+            <span className="flex-1 truncate">{label}</span>
+            <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-muted">{t('nav.soon')}</span>
+          </>
+        ) : (
+          <span className="sr-only">{label} — {t('nav.soon')}</span>
+        )}
+      </span>
+    );
+  }
+
+  const active = item.href ? pathname.startsWith(item.href) : false;
+  return (
+    <Link
+      href={item.href!}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      title={label}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-primary-tint text-primary' : 'text-text hover:bg-surface-2'} ${collapsed ? 'justify-center px-0' : ''}`}
+    >
+      <Icon aria-hidden className="shrink-0" />
+      {!collapsed && <span className="flex-1 truncate">{label}</span>}
+    </Link>
+  );
+}
 
 function CapabilityChips() {
   const { capabilities } = useCms();
@@ -31,25 +101,23 @@ function CapabilityChips() {
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const t = useT();
+  const pathname = usePathname() ?? '';
   return (
     <div className="flex h-full flex-col gap-5 p-3">
-      <Link href="/staff/content" onClick={onNavigate} className="flex items-center gap-2 px-1 py-1 text-lg font-bold text-text" title={t('common.appName')}>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-fg">Iz</span>
-        {!collapsed && <span className="truncate">{t('common.appName')}</span>}
+      <Link href="/staff/content" onClick={onNavigate} aria-label={t('common.appName')} title={t('common.appName')} className="flex items-center gap-2.5 px-1 py-1">
+        <BrandMark />
+        {!collapsed && <span className="truncate text-lg font-extrabold tracking-tight text-text">{t('common.appName')}</span>}
       </Link>
 
       {!collapsed && <SubjectSwitcher />}
 
-      <nav className="flex flex-col gap-1">
-        <Link
-          href="/staff/content"
-          onClick={onNavigate}
-          title={t('nav.subjects')}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-2 ${collapsed ? 'justify-center px-0' : ''}`}
-        >
-          <FiFolder aria-hidden />
-          {!collapsed && t('nav.subjects')}
-        </Link>
+      <nav aria-label={t('nav.primary')} className="flex flex-col gap-4">
+        {SECTIONS.map((sec) => (
+          <div key={sec.header} className="flex flex-col gap-1">
+            {!collapsed && <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-muted/70">{t(`nav.${sec.header}`)}</p>}
+            {sec.items.map((it) => <NavRow key={it.key} item={it} collapsed={collapsed} pathname={pathname} onNavigate={onNavigate} />)}
+          </div>
+        ))}
       </nav>
 
       {!collapsed && (
@@ -82,7 +150,6 @@ function AccessUnavailable() {
 export function AppShell({ children }: { children: ReactNode }) {
   const { status, reload } = useCms();
   const { logout } = useAuth();
-  const { resolved, toggle } = useTheme();
   const t = useT();
   const [drawer, setDrawer] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -143,7 +210,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={toggleCollapsed}
           aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
           title={collapsed ? t('nav.expand') : t('nav.collapse')}
-          className="absolute -right-3 top-16 grid h-6 w-6 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:text-text"
+          className="absolute -right-3 top-16 grid h-6 w-6 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {collapsed ? <FiChevronsRight aria-hidden /> : <FiChevronsLeft aria-hidden />}
         </button>
@@ -155,6 +222,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="fixed inset-0 z-40 lg:hidden">
             <motion.div variants={overlayFade} initial="initial" animate="animate" exit="exit" className="absolute inset-0 bg-black/50" onClick={() => setDrawer(false)} aria-hidden />
             <motion.div
+              id={DRAWER_ID}
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
@@ -175,7 +243,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface/80 px-3 backdrop-blur-md sm:px-4">
           <div className="flex items-center gap-2">
-            <IconButton label={t('nav.openMenu')} className="lg:hidden" onClick={() => setDrawer(true)}>
+            <IconButton label={t('nav.openMenu')} className="lg:hidden" aria-expanded={drawer} aria-controls={DRAWER_ID} onClick={() => setDrawer(true)}>
               <FiMenu aria-hidden />
             </IconButton>
             <span className="hidden text-sm font-medium text-muted sm:block">{t('nav.headerLabel')}</span>
@@ -190,9 +258,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span>{t('nav.command')}</span>
             </button>
             <LocaleSwitcher />
-            <IconButton label={resolved === 'dark' ? t('theme.toLight') : t('theme.toDark')} onClick={toggle}>
-              {resolved === 'dark' ? <FiSun aria-hidden /> : <FiMoon aria-hidden />}
-            </IconButton>
+            <ThemeSwitcher />
             <IconButton label={t('nav.logout')} onClick={() => void logout()}>
               <FiLogOut aria-hidden />
             </IconButton>
