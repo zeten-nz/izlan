@@ -8,10 +8,10 @@ import { getSubject, publishSubject, updateSubject } from '@/lib/api/content';
 import { useResource } from '@/lib/hooks/use-resource';
 import { useCapabilities } from '@/lib/cms/cms-context';
 import { useT } from '@/lib/i18n/i18n-context';
-import { Button, Card, useToast } from '@/components/ui';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { Button, useToast } from '@/components/ui';
 import { ErrorState, LoadingRows } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
+import { StudioHeader } from '@/components/shell/StudioHeader';
 import { EntityFormDialog, type FormValues } from '@/components/forms/EntityFormDialog';
 import { HierarchyNav } from '@/components/hierarchy/HierarchyNav';
 import { SkillsManager } from '@/components/subject/SkillsManager';
@@ -61,20 +61,18 @@ export default function SubjectWorkspace() {
 
   return (
     <motion.div variants={fadeInUp} initial="initial" animate="animate" className="mx-auto max-w-5xl space-y-5">
-      <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-xl font-bold text-text">{subject.title}</h1>
-              <StatusBadge status={subject.status} />
-            </div>
-            <p className="text-sm text-muted">/{subject.slug}</p>
-            {subject.description && <p className="mt-2 max-w-2xl text-sm text-muted">{subject.description}</p>}
-            <p className="mt-2 text-xs text-muted">
-              {t('common.updatedAt')}: {formatDateTime(subject.updatedAt)}
-            </p>
+      <StudioHeader
+        breadcrumb={[{ label: t('nav.subjects'), href: '/staff/content' }]}
+        title={subject.title}
+        status={subject.status}
+        meta={
+          <div className="space-y-1">
+            <div>/{subject.slug} · {t('common.updatedAt')}: {formatDateTime(subject.updatedAt)}</div>
+            {subject.description && <p className="max-w-2xl text-text/80">{subject.description}</p>}
           </div>
-          <div className="flex gap-2">
+        }
+        actions={
+          <>
             {caps.subjectManage && subject.status === 'DRAFT' && (
               <Button variant="secondary" size="sm" leftIcon={<FiEdit2 aria-hidden />} onClick={() => setEditing(true)}>
                 {t('common.edit')}
@@ -85,9 +83,9 @@ export default function SubjectWorkspace() {
                 {t('workflow.publish')}
               </Button>
             )}
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 

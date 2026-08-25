@@ -264,6 +264,7 @@ const en: Messages = {
     slugHint: 'leave empty to clear',
     moveTitle: 'Move lesson to another topic',
     moveField: 'Topic ID (UUID, within this subject)',
+    moveHint: 'Take the Topic ID from this subject’s hierarchy. A lesson only moves within its own subject.',
     skillsLabel: 'Lesson skills',
     subjectResolving: 'Resolving subject…',
     takedownTitle: 'Take down lesson',

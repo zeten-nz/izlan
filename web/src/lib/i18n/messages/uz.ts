@@ -263,6 +263,7 @@ const uz = {
     slugHint: 'bo‘sh qoldirilsa tozalanadi',
     moveTitle: 'Darsni boshqa mavzuga ko‘chirish',
     moveField: 'Mavzu ID (UUID, shu fan ichida)',
+    moveHint: 'Mavzu ID’sini shu fanning ierarxiyasidan oling. Dars faqat shu fan ichida ko‘chiriladi.',
     skillsLabel: 'Dars ko‘nikmalari',
     subjectResolving: 'Fan aniqlanmoqda…',
     takedownTitle: 'Darsni takedown qilish',
