@@ -3,6 +3,7 @@ import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { SecurityModule } from './security/security.module';
 import { SmsModule } from './sms/sms.module';
@@ -57,6 +58,7 @@ import { ContentImportModule } from './content-import/content-import.module';
     PaymentsModule,
     ContentAuthoringModule,
     ContentImportModule,
+    AdminUsersModule,
   ],
 })
 export class AppModule {}

@@ -20,8 +20,9 @@ describe('content authoring permissions + bootstrap mapping (Phase 2.2A-1, TD-24
     expect(isKnownPermission(CONTENT_PUBLISH)).toBe(true);
   });
 
-  it('AUTH-04 ADMIN default receives all three content permissions', () => {
-    expect([...permsFor('ADMIN')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE].sort());
+  it('AUTH-04 ADMIN default holds all three content permissions (it may additively hold others, e.g. users.* in 07C)', () => {
+    const admin = permsFor('ADMIN');
+    for (const c of [CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE]) expect(admin).toContain(c);
   });
 
   it('AUTH-05 LEARNER and MODERATOR receive no content permissions', () => {
