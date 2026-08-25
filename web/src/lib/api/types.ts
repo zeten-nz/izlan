@@ -472,3 +472,55 @@ export interface ReviewSessionView {
   mastery: { measured: boolean } & Record<string, unknown>; // learner-safe summary; not rendered in Phase 04
   activities: ReviewSessionActivity[];
 }
+
+// ── Progress / skill state (Phase 05) — subject-scoped, backend-derived. GET /api/skill-profile/me/subjects/:subjectId ──
+export interface SkillState {
+  skillId: string;
+  name: string;
+  masteryScoreBp: number; // basis points 0..10000 — how well the skill is currently demonstrated
+  confidenceBp: number | null; // basis points 0..10000, or null when evidence is insufficient — NOT the same as mastery
+  evidenceCount: number; // number of measurements supporting the estimate
+  displayLevel: string | null; // ALWAYS null in v1 — never fabricate a CEFR/level when null
+  lastMeasurementAt: string | null;
+}
+export interface SkillProfileView {
+  subject: { id: string; title: string };
+  skills: SkillState[];
+}
+
+// ── XP (Phase 05) — a LEARNING-PROGRESS score with a REAL backend level curve (xp-progression-v1). GET /api/xp/me.
+// DISTINCT from IZL (the platform currency): never combined into one balance/bar. No ranks/titles/badges, no history. ──
+export interface XpProgression {
+  totalXp: number; // authoritative signed total = SUM of grants (non-negative in practice)
+  progressionXp: number; // max(totalXp, 0) — value the level curve consumes
+  currentLevel: number; // >= 1 (a real backend concept)
+  currentLevelStartXp: number;
+  nextLevelXp: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
+  progressBp: number; // 0..9999 — progress WITHIN the current level
+  progressionVersion: string;
+}
+
+// ── IZL (Phase 05) — the platform REWARD CURRENCY wallet. GET /api/izl/me. Integer IZL units; 0-state is {0,0,0}.
+// DISTINCT from XP. Read-only in Phase 05 (no buy/withdraw/transfer/redeem UI). Reserved funds are NOT spendable. ──
+export interface IzlBalance {
+  balanceIzl: number; // signed net ledger sum (total earned, minus any redemptions)
+  reservedIzl: number; // >= 0 — held, never spendable
+  availableIzl: number; // balanceIzl - reservedIzl
+}
+
+// ── Daily missions (Phase 05) — today's fixed catalog status. GET /api/daily-missions/me/today.
+// Read-only: the read model carries NO reward/XP/IZL fields and there is NO claim command (rewards auto-granted). ──
+export type DailyMissionCode = 'LEARN_TODAY' | 'MASTERY_TEST_90';
+export interface DailyMissionStatus {
+  code: string; // a DailyMissionCode in practice; the backend catalog is authoritative
+  completed: boolean;
+  completedAt: string | null;
+  policyVersion: string;
+}
+export interface DailyMissionsView {
+  localDate: string;
+  timezone: string;
+  missions: DailyMissionStatus[];
+}

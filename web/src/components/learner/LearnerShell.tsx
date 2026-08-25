@@ -18,14 +18,14 @@ import { AuthLangPill } from '@/components/auth/AuthLangPill';
 
 type NavItem = { key: 'home' | 'roadmap' | 'learn' | 'review' | 'results'; href?: string; icon: typeof FiHome; exact?: boolean; enabled: boolean };
 
-// The five frozen primary items. Home + Roadmap are live this phase; the last three are future phases and are rendered
-// as accessible, non-navigable disabled items (never fake links / placeholder routes).
+// The five frozen primary items — all live from Phase 05. The disabled rendering paths below are retained for any
+// future item, but no primary item is currently disabled (never fake links / placeholder routes).
 const PRIMARY: NavItem[] = [
   { key: 'home', href: '/learn', icon: FiHome, exact: true, enabled: true },
   { key: 'roadmap', href: '/learn/roadmap', icon: FiMap, enabled: true },
   { key: 'learn', href: '/learn/learning', icon: FiBookOpen, enabled: true },
   { key: 'review', href: '/learn/review', icon: FiRepeat, enabled: true },
-  { key: 'results', icon: FiBarChart2, enabled: false },
+  { key: 'results', href: '/learn/progress', icon: FiBarChart2, enabled: true },
 ];
 
 function isActive(pathname: string, href: string, exact?: boolean): boolean {
