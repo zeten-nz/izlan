@@ -13,6 +13,7 @@
     "db:seed:system": "ts-node src/bootstrap/seed-system.ts",
     "db:seed:demo": "ts-node src/bootstrap/seed-demo.ts",
     "db:seed:runtime": "ts-node src/bootstrap/seed-runtime.ts",
+    "db:prepare:investor-demo": "ts-node src/bootstrap/prepare-investor-demo.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",

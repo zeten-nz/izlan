@@ -44,7 +44,10 @@ import { PLACEMENT_CONFIG_SCHEMA_VERSION, PLACEMENT_ENGINE_VERSION } from '../as
 const RUNTIME_CREATOR = DEMO_ADMIN;
 /** A dedicated, pre-onboarded learner for the post-onboarding flow — keeps the demo learner pristine for onboarding QA. */
 export const RUNTIME_LEARNER = { phone: '+998900000004', displayName: 'Izlan Runtime Learner', roleCode: 'LEARNER' } as const;
-export const RUNTIME_SUBJECT = { slug: 'english-a1-dev', title: 'English (A1) — Dev Runtime' } as const;
+// Learner-VISIBLE titles/descriptions are neutral & polished (no dev-grade labels in the investor journey). The SLUGS
+// stay internal (never rendered) so existing contracts/tests that key on them are unaffected.
+export const RUNTIME_SUBJECT = { slug: 'english-a1-dev', title: 'English — Beginner (A1)' } as const;
+export const RUNTIME_SUBJECT_DESCRIPTION = 'Beginner English (A1): greetings, the verb “to be”, and subject pronouns.';
 export const RUNTIME_TRACK = { slug: 'general-a1-dev', title: 'General English A1' } as const;
 
 /** Stable skill codes (subject-scoped) — reused by both the lessons and the placement item pool. */
@@ -97,8 +100,8 @@ async function ensureUser(deps: Deps, def: { phone: string; displayName: string;
 async function ensureContainerChain(prisma: PrismaService, createdBy: string): Promise<{ subjectId: string; trackId: string; topicId: string }> {
   const subject = await prisma.subject.upsert({
     where: { slug: RUNTIME_SUBJECT.slug },
-    create: { slug: RUNTIME_SUBJECT.slug, title: RUNTIME_SUBJECT.title, description: 'Dev-only runtime fixture subject.', status: ContainerStatus.PUBLISHED, sortOrder: 10, createdBy },
-    update: { status: ContainerStatus.PUBLISHED }, // keep it visible on rerun; never demote
+    create: { slug: RUNTIME_SUBJECT.slug, title: RUNTIME_SUBJECT.title, description: RUNTIME_SUBJECT_DESCRIPTION, status: ContainerStatus.PUBLISHED, sortOrder: 10, createdBy },
+    update: { title: RUNTIME_SUBJECT.title, description: RUNTIME_SUBJECT_DESCRIPTION, status: ContainerStatus.PUBLISHED }, // keep visible + refresh polished copy on rerun; never demote
   });
   const track = await prisma.track.upsert({
     where: { subjectId_slug: { subjectId: subject.id, slug: RUNTIME_TRACK.slug } },
@@ -239,7 +242,7 @@ function placementItems(skills: Map<string, string>): { skillId: string; difficu
 async function ensurePlacementDefinition(prisma: PrismaService, subjectId: string, createdBy: string, skills: Map<string, string>): Promise<{ definitionId: string; versionId: string; poolSize: number }> {
   const existingDef = await prisma.assessmentDefinition.findFirst({ where: { subjectId, purposeScope: AssessmentPurposeScope.DIAGNOSTIC, status: ContainerStatus.PUBLISHED } });
   const definition = existingDef ?? (await prisma.assessmentDefinition.create({
-    data: { subjectId, purposeScope: AssessmentPurposeScope.DIAGNOSTIC, title: 'English A1 Placement (dev)', status: ContainerStatus.PUBLISHED, createdBy },
+    data: { subjectId, purposeScope: AssessmentPurposeScope.DIAGNOSTIC, title: 'English A1 Placement', status: ContainerStatus.PUBLISHED, createdBy },
   }));
 
   const config = {
