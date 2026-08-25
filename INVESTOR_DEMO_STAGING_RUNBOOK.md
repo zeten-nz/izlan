@@ -38,7 +38,9 @@ Backend:
   `ALLOW_INVESTOR_DEMO=true`, `ALLOW_DEMO_SEED=true`, `ALLOW_DEV_FIXTURE=true`
 - `DEMO_ADMIN_PASSWORD`, `DEMO_METHODIST_PASSWORD`, `DEMO_LEARNER_PASSWORD` (policy-valid; env-owned; delivered to the
   presenter out-of-band; never printed by any command)
-- (SMS provider vars if a real provider is used; otherwise the test SMS adapter is dev-only.)
+- SMS/OTP: **no real provider is implemented yet** — see "Registration / OTP delivery" below. On the mode-B app,
+  leave `SMS_DRIVER` **unset** (production-safe default). Never set `SMS_DRIVER=console` on a `NODE_ENV=production`
+  process — the app refuses to start.
 
 Web:
 - `NEXT_PUBLIC_API_BASE_URL` (the staging backend origin)
@@ -139,6 +141,36 @@ Alternatively, for the **fresh-learner** flow you can simply register a brand-ne
 For the **review** page, the presenter answers one objective **incorrectly** during the lesson step — that legitimately
 creates the review candidate (do not fabricate review state).
 
+## Registration / OTP delivery (SMS driver) — LOCAL QA vs STAGING
+
+Registration and password-reset send a one-time code by SMS. Exactly **two** SMS adapters exist in the codebase; the
+driver is chosen at startup by `SMS_DRIVER`:
+
+| `SMS_DRIVER` | Adapter | Behaviour | Where it may run |
+|---|---|---|---|
+| `console` | `ConsoleSmsAdapter` | Logs the code as a WARN line (`[IZLAN DEV SMS] phone=… code=NNNNNN`) — **never** returns it in any API response or UI | **DEV / LOCAL QA ONLY.** The factory **throws at startup when `NODE_ENV=production`**, so a production process can never select it and can never print codes. |
+| unset / anything else | `UnavailableSmsAdapter` | Sends nothing; returns `TEMPORARY_FAILURE` → the OTP endpoint answers **`503 AUTH_SMS_UNAVAILABLE`** | The **production-safe default**. |
+
+**There is no real SMS provider adapter** (no Twilio / Eskiz / Play Mobile / etc. branch). **Production-capable SMS is
+NOT available yet.** Adding one is a code change (a new adapter + a `SMS_DRIVER` value + its provider env vars) — out of
+scope here.
+
+What this means for the two runtimes:
+
+- **LOCAL QA (`NODE_ENV=development`):** set `SMS_DRIVER=console` in the **local, gitignored `.env`** to exercise the
+  genuine `register → OTP request → verify → login` flow end-to-end. Read the code from the dev backend log. **Never
+  commit `.env`; never print the code; never surface it in the UI.** (This is exactly how the fresh-learner
+  register→onboarding→placement→roadmap path is QA'd locally.)
+- **INVESTOR STAGING APP (mode B, `NODE_ENV=production`):** `SMS_DRIVER=console` is **forbidden** (the app will not
+  start). So **live account registration on staging requires a real SMS provider to be configured first** — which does
+  not exist yet.
+
+**Investor-presentation registration policy (until a real provider exists):** do **not** demonstrate live account
+registration on the `NODE_ENV=production` staging app. Registration may be **described** as implemented, but the live
+demo uses the **seeded FRESH LEARNER** account: `login → onboarding → placement → roadmap → daily plan`. **Never** fake
+OTP success, **never** expose the OTP in the UI, and **never** weaken the production SMS guard to make registration
+appear to work. Console SMS is **never** recommended for the deployed staging runtime.
+
 ## Staging readiness classification
 
 | Item | Status |
@@ -149,6 +181,7 @@ creates the review candidate (do not fabricate review state).
 | JWT keypair, issuer, audience | CONFIG ONLY (generate keys, keep private key out of repo) |
 | `NEXT_PUBLIC_API_BASE_URL`, `CORS_ORIGINS`, `AUTH_COOKIE_SECURE=true`, `TRUST_PROXY=true`, HTTPS | CONFIG ONLY |
 | Web + backend build/start, `/api/health`, `/api/ready` | READY |
+| Real SMS provider for **live registration** on the production staging app | NOT IMPLEMENTED (no provider adapter; use seeded fresh-learner login for the demo, or add an adapter first) |
 | DB snapshot/restore for repeatable demos | CONFIG ONLY (ops step) |
 | Dashboards, monitoring, immediate-suspension hardening, index tuning, load testing | POST-DEMO HARDENING |
 
@@ -158,4 +191,6 @@ creates the review candidate (do not fabricate review state).
 
 Do not weaken production guards for convenience. Do not commit `.env`, passwords, or JWT keys. Do not print secrets. Do
 not run the demo seeds with `NODE_ENV=production` (they will refuse). Do not deploy the fresh feature areas that are
-still "Tez orada".
+still "Tez orada". Do not set `SMS_DRIVER=console` on the `NODE_ENV=production` app (dev/local-QA only — it refuses to
+start). Do not demonstrate live registration on staging until a real SMS provider adapter exists; do not fake OTP,
+expose it in the UI, or weaken the SMS guard.
