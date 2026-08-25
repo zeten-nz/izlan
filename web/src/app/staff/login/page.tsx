@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiArrowRight, FiEye, FiEyeOff, FiMoon, FiSun } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 import { useAuth } from '@/lib/auth/auth-context';
-import { useTheme } from '@/lib/theme/theme-context';
 import { useT } from '@/lib/i18n/i18n-context';
 import { login as apiLogin, requestOtp, resetPassword } from '@/lib/api/auth';
 import { describeError } from '@/lib/ui/error-text';
-import { Button, Card, Field, IconButton, Input } from '@/components/ui';
+import { BrandMark, Button, Card, Field, Input, ThemeSwitcher } from '@/components/ui';
+import { PasswordInput } from '@/components/learner/PasswordInput';
 import { LocaleSwitcher } from '@/components/shell/LocaleSwitcher';
 import { DemoAccounts } from '@/components/shell/DemoAccounts';
 import { demoAccountsEnabled } from '@/lib/config/demo';
@@ -16,30 +16,15 @@ import { demoAccountsEnabled } from '@/lib/config/demo';
 const PW_MIN = 8;
 const PW_MAX = 128;
 
-/** Password input with an accessible show/hide toggle. */
-function PasswordInput({ id, value, onChange, autoComplete, placeholder }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; placeholder: string }) {
-  const t = useT();
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <Input id={id} type={show ? 'text' : 'password'} autoComplete={autoComplete} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="pr-10" />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        aria-label={show ? t('auth.hidePassword') : t('auth.showPassword')}
-        aria-pressed={show}
-        className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted transition-colors hover:text-text"
-      >
-        {show ? <FiEyeOff aria-hidden /> : <FiEye aria-hidden />}
-      </button>
-    </div>
-  );
-}
-
+/**
+ * Staff sign-in (Izlan Studio). Phase 07A brings the chrome into the canonical Izlan design language — shared
+ * BrandMark, 3-way ThemeSwitcher and the shared PasswordInput — while preserving ALL behavior: phone+password staff
+ * login, OTP password recovery, the authenticated inverse redirect, env-gated demo accounts, and the /staff/content
+ * landing. No auth/token/session change.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const { status, setAuthenticatedUser } = useAuth();
-  const { resolved, toggle } = useTheme();
   const t = useT();
   const [mode, setMode] = useState<'login' | 'recover'>('login');
 
@@ -51,15 +36,13 @@ export default function LoginPage() {
     <div className="izl-grid-bg grid min-h-screen place-items-center bg-bg p-4">
       <div className="absolute right-4 top-4 flex items-center gap-1.5">
         <LocaleSwitcher />
-        <IconButton label={resolved === 'dark' ? t('theme.toLight') : t('theme.toDark')} onClick={toggle}>
-          {resolved === 'dark' ? <FiSun aria-hidden /> : <FiMoon aria-hidden />}
-        </IconButton>
+        <ThemeSwitcher />
       </div>
       <Card className="izl-elevate w-full max-w-sm p-6">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-fg">Iz</span>
+          <BrandMark size={36} />
           <div>
-            <h1 className="text-lg font-bold text-text">{t('auth.title')}</h1>
+            <h1 className="text-lg font-extrabold tracking-tight text-text">{t('auth.title')}</h1>
             <p className="text-xs text-muted">{t('auth.subtitle')}</p>
           </div>
         </div>

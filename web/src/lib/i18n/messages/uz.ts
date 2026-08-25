@@ -70,6 +70,18 @@ const uz = {
     expand: 'Yoyish',
     headerLabel: 'Kontent boshqaruvi',
     command: 'Buyruqlar (⌘K)',
+    // Admin shell information architecture (07). Section headers + future destinations (not yet available).
+    sectionMain: 'Asosiy',
+    sectionAdmin: 'Boshqaruv',
+    sectionOps: 'Operatsiyalar',
+    dashboard: 'Boshqaruv paneli',
+    assessment: 'Baholash',
+    users: 'Foydalanuvchilar',
+    staffAccess: 'Xodimlar va ruxsatlar',
+    payments: 'To‘lov operatsiyalari',
+    system: 'Tizim operatsiyalari',
+    soon: 'Tez orada',
+    primary: 'Asosiy menyu',
   },
   auth: {
     title: 'Izlan Studio',
