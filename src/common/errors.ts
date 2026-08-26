@@ -65,6 +65,19 @@ export class AssessmentItemNotCurrentError extends DomainError {}
 export class AssessmentInvalidResponseError extends DomainError {}
 export class AssessmentResponseConflictError extends DomainError {}
 
+// Assessment authoring (Phase: assessment authoring V1). Staff diagnostic/placement authoring — leak-safe messages
+// (never carry answerKey / prompt / config internals). Not-found + out-of-scope reuse ContentNotFoundError (IDOR-safe);
+// OCC conflicts reuse ContentEditConflictError — both are canonical across staff authoring.
+export class AssessmentEditableVersionExistsError extends DomainError {} // a DRAFT/REVIEW version already exists (§G one editable)
+export class AssessmentNotDraftError extends DomainError {} // version/item not editable (owning version not DRAFT)
+export class AssessmentNotInReviewError extends DomainError {} // version not in REVIEW (return-draft/publish)
+export class AssessmentItemImmutableError extends DomainError {} // item belongs to a REVIEW/PUBLISHED/ARCHIVED version
+export class AssessmentNotReadyError extends DomainError {} // readiness gate failed (submit-review/publish)
+export class AssessmentInvalidItemError extends DomainError {} // item payload/options/difficulty invalid
+export class AssessmentInvalidConfigError extends DomainError {} // placement config invalid
+export class AssessmentSkillInvalidError extends DomainError {} // skill not ACTIVE or not in the definition's Subject
+export class AssessmentPublicationStateInvalidError extends DomainError {} // incoherent currentVersion pointer at publish
+
 // Skill profile derivation (Phase 1.5C)
 export class SkillProfileNotDerivedError extends DomainError {}
 

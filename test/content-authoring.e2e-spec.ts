@@ -11,6 +11,7 @@ import { SMS_PORT } from '../src/sms/sms.port';
 import { bootstrapSystemRoles } from '../src/bootstrap/system-roles';
 import { ContentAuditRepository } from '../src/content-authoring/content-audit.repository';
 import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from '../src/content-authoring/content-authoring.constants';
+import { ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH } from '../src/assessment-authoring/assessment-authoring.constants';
 import { cleanupAuthTables } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
 
@@ -457,8 +458,8 @@ describe('Content authoring — auth/scope/hierarchy/logical Lesson (e2e, izlan_
       const methodist = await prisma.role.findUnique({ where: { code: 'METHODIST' }, select: { permissions: { select: { permissionCode: true } } } });
       const admin = await prisma.role.findUnique({ where: { code: 'ADMIN' }, select: { permissions: { select: { permissionCode: true } } } });
       const learner = await prisma.role.findUnique({ where: { code: 'LEARNER' }, select: { permissions: { select: { permissionCode: true } } } });
-      expect(methodist!.permissions.map((p) => p.permissionCode).sort()).toEqual(['content.author', 'content.publish'].sort());
-      expect(admin!.permissions.map((p) => p.permissionCode).sort()).toEqual([CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE, 'content.publish'].sort());
+      expect(methodist!.permissions.map((p) => p.permissionCode).sort()).toEqual(['content.author', 'content.publish', ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH].sort());
+      expect(admin!.permissions.map((p) => p.permissionCode).sort()).toEqual([CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE, 'content.publish', ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH].sort());
       expect(learner!.permissions).toEqual([]);
     };
     await check();

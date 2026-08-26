@@ -19,6 +19,15 @@ import {
   AssessmentItemNotCurrentError,
   AssessmentNotAvailableError,
   AssessmentResponseConflictError,
+  AssessmentEditableVersionExistsError,
+  AssessmentNotDraftError,
+  AssessmentNotInReviewError,
+  AssessmentItemImmutableError,
+  AssessmentNotReadyError,
+  AssessmentInvalidItemError,
+  AssessmentInvalidConfigError,
+  AssessmentSkillInvalidError,
+  AssessmentPublicationStateInvalidError,
   ContentActivityPayloadInvalidError,
   ContentActivityTypeNotAuthorableError,
   ContentAssignmentInvalidError,
@@ -198,6 +207,16 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof AssessmentResponseConflictError) return { statusCode: 409, code: 'ASSESSMENT_RESPONSE_CONFLICT', message: 'response already recorded with a different answer' };
     if (e instanceof AssessmentInvalidResponseError) return { statusCode: 400, code: 'ASSESSMENT_INVALID_RESPONSE', message: 'invalid response' };
     if (e instanceof AssessmentConfigurationInvalidError) return { statusCode: 409, code: 'ASSESSMENT_CONFIGURATION_INVALID', message: 'assessment temporarily unavailable' };
+    // Assessment authoring (staff). Leak-safe messages. Not-found/scope + OCC reuse CONTENT_NOT_FOUND / CONTENT_EDIT_CONFLICT.
+    if (e instanceof AssessmentEditableVersionExistsError) return { statusCode: 409, code: 'ASSESSMENT_EDITABLE_VERSION_EXISTS', message: 'a draft or in-review version already exists' };
+    if (e instanceof AssessmentNotDraftError) return { statusCode: 409, code: 'ASSESSMENT_NOT_DRAFT', message: 'version is not editable' };
+    if (e instanceof AssessmentNotInReviewError) return { statusCode: 409, code: 'ASSESSMENT_NOT_IN_REVIEW', message: 'version is not in review' };
+    if (e instanceof AssessmentItemImmutableError) return { statusCode: 409, code: 'ASSESSMENT_ITEM_IMMUTABLE', message: 'item belongs to a non-draft version' };
+    if (e instanceof AssessmentNotReadyError) return { statusCode: 409, code: 'ASSESSMENT_NOT_READY', message: 'version is not ready' };
+    if (e instanceof AssessmentInvalidItemError) return { statusCode: 400, code: 'ASSESSMENT_INVALID_ITEM', message: 'invalid item' };
+    if (e instanceof AssessmentInvalidConfigError) return { statusCode: 400, code: 'ASSESSMENT_INVALID_CONFIG', message: 'invalid configuration' };
+    if (e instanceof AssessmentSkillInvalidError) return { statusCode: 400, code: 'ASSESSMENT_SKILL_INVALID', message: 'invalid skill for this subject' };
+    if (e instanceof AssessmentPublicationStateInvalidError) return { statusCode: 409, code: 'ASSESSMENT_PUBLICATION_STATE_INVALID', message: 'publication state is invalid' };
     if (e instanceof SkillProfileNotDerivedError) return { statusCode: 409, code: 'SKILL_PROFILE_NOT_DERIVED', message: 'skill profile not yet derived' };
 
     // Roadmap foundation (Phase 1.6A)
