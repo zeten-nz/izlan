@@ -21,16 +21,22 @@ function BrandMark() {
  * The shell is intentionally domain-agnostic — callers pass context/progress/exit; it knows nothing about Placement.
  */
 export function FocusLearningShell({
+  title,
   context,
   progress,
   progressLabel,
+  progressText,
   onExit,
   exitLabel,
   children,
 }: {
+  /** Prominent primary label (e.g. the real lesson title). When set, `context` renders as a smaller secondary line. */
+  title?: string;
   context?: string;
   progress?: { value: number; max: number };
   progressLabel?: string;
+  /** Opt-in compact numeric progress (e.g. "3 / 8"). Callers with a CEILING max (Placement) omit it. */
+  progressText?: string;
   onExit?: () => void;
   exitLabel?: string;
   children: React.ReactNode;
@@ -41,13 +47,24 @@ export function FocusLearningShell({
     <div className="flex min-h-screen flex-col bg-bg text-text">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-6">
         <BrandMark />
-        {context && (
+        {title ? (
           <>
             <span aria-hidden className="h-4 w-px bg-border" />
-            <span className="truncate text-sm font-semibold text-muted">{context}</span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold leading-tight text-text">{title}</div>
+              {context && <div className="truncate text-[11px] leading-tight text-muted">{context}</div>}
+            </div>
           </>
+        ) : (
+          context && (
+            <>
+              <span aria-hidden className="h-4 w-px bg-border" />
+              <span className="truncate text-sm font-semibold text-muted">{context}</span>
+            </>
+          )
         )}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
+          {progressText && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted">{progressText}</span>}
           <ThemeSwitcher />
           {onExit && (
             <button

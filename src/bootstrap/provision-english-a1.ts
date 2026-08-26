@@ -22,9 +22,13 @@ import type { SubjectService } from '../content-authoring/subject.service';
 import type { HierarchyService } from '../content-authoring/hierarchy.service';
 import type { HierarchyPublishService } from '../content-authoring/publish/hierarchy-publish.service';
 import type { PublicationService } from '../content-authoring/publish/publication.service';
+import type { RevisionService } from '../content-authoring/revision.service';
+import type { ActivityService } from '../content-authoring/activity.service';
+import type { SkillMappingService } from '../content-authoring/skill-mapping.service';
 import { RUNTIME_SUBJECT, RUNTIME_TRACK } from './seed-runtime';
 import { DEMO_ADMIN } from './seed-demo';
-import { loadManifest, PILOT_DIR, PILOT_IMPORT_FILES, PILOT_CONTENT_KEYS, PILOT_PREREQUISITE_CHAIN } from '../content-import/pilot/english-a1-pilot';
+import { loadManifest, PILOT_DIR, PILOT_IMPORT_FILES, PILOT_CONTENT_KEYS, PILOT_PREREQUISITE_CHAIN, parsePackages } from '../content-import/pilot/english-a1-pilot';
+import type { PlanLesson } from '../content-import/import-contract';
 
 // ── Diagnostic items: exactly one concise A1 objective per pilot skill (difficulty within profileScale [1,6]). ──
 const ITEM_SCHEMA = 'placement-item/v1';
@@ -50,6 +54,8 @@ export const A1_DIAGNOSTIC_ITEMS: { skillCode: string; difficulty: number; paylo
 export interface ProvisionEnv {
   nodeEnv: string | undefined;
   allowDevFixture: string | undefined;
+  /** Opt-in: when 'true', refresh already-published pilot lessons whose content differs from the packages (new revision). */
+  refreshContent?: string | undefined;
 }
 
 /** Fail closed: forbidden in production; requires the existing ALLOW_DEV_FIXTURE=true dev opt-in. No secrets involved. */
@@ -65,6 +71,9 @@ export interface ProvisionDeps {
   importer: ImportService;
   hierarchyPublish: HierarchyPublishService;
   publication: PublicationService;
+  revisions: RevisionService;
+  activities: ActivityService;
+  mappings: SkillMappingService;
 }
 
 export interface ProvisionResult {
@@ -72,6 +81,7 @@ export interface ProvisionResult {
   topics: number;
   pilotLessonsPublished: number;
   pilotSkills: number;
+  lessonsRefreshed: number;
   diagnostic: { versionNo: number; poolSize: number; distinctSkills: number; createdNewVersion: boolean };
 }
 
@@ -137,12 +147,96 @@ export async function provisionEnglishA1(deps: ProvisionDeps, env: ProvisionEnv)
     await deps.publication.publish(actor, rev.id, { expectedRevisionUpdatedAt: iso(revFresh!.updatedAt), expectedLessonUpdatedAt: iso(lessonFresh!.updatedAt) });
   }
 
-  // 6) Diagnostic bridge (Prisma model APIs only — no authoring API exists for assessments).
+  // 6) Optional content refresh (opt-in): update already-published pilot lessons whose content differs from the current
+  //    packages, via the REAL create-revision → author activities → review → publish flow (immutability preserved).
+  const lessonsRefreshed = (env.refreshContent ?? '').trim() === 'true' ? await refreshPilotContent(deps, subject.id, actor) : 0;
+
+  // 7) Diagnostic bridge (Prisma model APIs only — no authoring API exists for assessments).
   const diagnostic = await ensureDiagnosticCoversPilotSkills(deps, subject.id, actor);
 
   const pilotSkills = await prisma.skill.count({ where: { subjectId: subject.id, code: { in: A1_DIAGNOSTIC_ITEMS.map((i) => i.skillCode) } } });
   const pilotLessonsPublished = await prisma.lesson.count({ where: { contentKey: { in: [...PILOT_CONTENT_KEYS] }, status: 'PUBLISHED' } });
-  return { subjectId: subject.id, topics: topicIdByFile.size, pilotLessonsPublished, pilotSkills, diagnostic };
+  return { subjectId: subject.id, topics: topicIdByFile.size, pilotLessonsPublished, pilotSkills, lessonsRefreshed, diagnostic };
+}
+
+/** Canonical JSON: object keys sorted recursively (array order preserved) — so JSONB key-reordering doesn't matter. */
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/** Deep-compare the current published activities to the package plan (type + position + payload), order-insensitive. */
+function activitiesMatch(published: { type: string; position: number; payload: unknown }[], plan: PlanLesson['revision']['activities']): boolean {
+  if (published.length !== plan.length) return false;
+  const byPos = new Map(published.map((a) => [a.position, a]));
+  for (let pos = 0; pos < plan.length; pos++) {
+    const p = byPos.get(pos);
+    if (!p || p.type !== plan[pos].type) return false;
+    if (canonical(p.payload) !== canonical(plan[pos].payload)) return false;
+  }
+  return true;
+}
+
+/**
+ * DEV refresh: for each pilot lesson whose PUBLISHED content differs from the current package, publish a NEW revision
+ * with the package's activities + activity-skill mappings — via the real authoring services (immutability preserved;
+ * v1 archived, pointer repointed; learners mid-v1 keep their pinned revision). Idempotent: unchanged lessons are skipped.
+ * `opts.force`/`opts.only` are for tests. Returns the number of lessons refreshed.
+ */
+export async function refreshPilotContent(deps: ProvisionDeps, subjectId: string, actor: string, opts: { force?: boolean; only?: string[] } = {}): Promise<number> {
+  const { prisma } = deps;
+  const planByKey = new Map<string, PlanLesson>();
+  for (const pkg of parsePackages()) for (const l of pkg.plan.lessons) planByKey.set(l.contentKey, l);
+  const skills = await prisma.skill.findMany({ where: { subjectId } });
+  const idByCode = new Map(skills.map((s) => [s.code as string, s.id]));
+
+  const keys = opts.only ?? [...PILOT_CONTENT_KEYS];
+  let refreshed = 0;
+  for (const contentKey of keys) {
+    const plan = planByKey.get(contentKey);
+    if (!plan) continue;
+    const lesson = await prisma.lesson.findUnique({ where: { contentKey } });
+    if (!lesson || lesson.status !== 'PUBLISHED' || !lesson.publishedRevisionId) continue;
+    if (!opts.force) {
+      const pubActs = await prisma.activity.findMany({ where: { lessonRevisionId: lesson.publishedRevisionId }, orderBy: { position: 'asc' }, select: { type: true, position: true, payload: true } });
+      if (activitiesMatch(pubActs, plan.revision.activities)) continue; // unchanged — skip (idempotent)
+    }
+    await refreshOneLesson(deps, actor, lesson.id, plan, idByCode);
+    refreshed++;
+  }
+  return refreshed;
+}
+
+/** Publish a new revision for one lesson matching the package plan (create draft → author activities → map skills → review → publish). */
+async function refreshOneLesson(deps: ProvisionDeps, actor: string, lessonId: string, plan: PlanLesson, idByCode: Map<string, string>): Promise<void> {
+  const { prisma } = deps;
+  const acts = plan.revision.activities;
+  const rev = await deps.revisions.createRevision(actor, lessonId, { title: plan.revision.title, description: plan.revision.description ?? undefined });
+  let token = rev.updatedAt; // ISO string; rotates on every authoring mutation and must be threaded serially.
+  const createdIds: string[] = [];
+  for (let pos = 0; pos < acts.length; pos++) {
+    const a = acts[pos];
+    const res = await deps.activities.createActivity(actor, rev.id, { expectedRevisionUpdatedAt: token, type: a.type, position: pos, payload: a.payload as Record<string, unknown>, estimatedDurationMin: a.estimatedDurationMin ?? undefined });
+    token = res.revisionUpdatedAt;
+    createdIds.push(res.activity.id);
+  }
+  // Reconcile ActivitySkill (per-activity skill codes) — createActivity does not write these; they feed mastery/review.
+  for (let pos = 0; pos < acts.length; pos++) {
+    for (const code of acts[pos].skillCodes) {
+      const skillId = idByCode.get(code);
+      if (!skillId) throw new Error(`skill ${code} missing for ${plan.contentKey}`);
+      const res = await deps.mappings.addActivitySkill(actor, createdIds[pos], { expectedRevisionUpdatedAt: token, skillId });
+      token = res.revisionUpdatedAt;
+    }
+  }
+  await deps.publication.submitReview(actor, rev.id, { expectedUpdatedAt: token });
+  const revFresh = await prisma.lessonRevision.findUnique({ where: { id: rev.id } });
+  const lessonFresh = await prisma.lesson.findUnique({ where: { id: lessonId } });
+  await deps.publication.publish(actor, rev.id, { expectedRevisionUpdatedAt: revFresh!.updatedAt.toISOString(), expectedLessonUpdatedAt: lessonFresh!.updatedAt.toISOString() });
 }
 
 /**

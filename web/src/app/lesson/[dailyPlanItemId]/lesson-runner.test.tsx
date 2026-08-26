@@ -39,14 +39,14 @@ describe('Lesson runner (WEB-LESSON)', () => {
     renderPage();
     await waitFor(() => expect(h.start).toHaveBeenCalledWith('dpi1'));
     expect(screen.getByText('world')).toBeInTheDocument(); // markdown rendered (bold)
-    expect(screen.getByRole('button', { name: 'Keyingi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Davom etish' })).toBeInTheDocument(); // view-only CTA
   });
 
   it('WEB-LESSON-02 acknowledging a view-only step advances to the next activity', async () => {
     h.start.mockResolvedValue(view([md, sc]));
     h.viewStep.mockResolvedValue({ lessonId: 'les1', activityId: 'a-md', recorded: true });
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Keyingi' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Davom etish' }));
     await waitFor(() => expect(h.viewStep).toHaveBeenCalledWith('les1', 'a-md'));
     expect(await screen.findByText('Pick A')).toBeInTheDocument(); // advanced to the objective
   });
@@ -96,14 +96,14 @@ describe('Lesson runner (WEB-LESSON)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Keyingi' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Darsni yakunlash' }));
     await waitFor(() => expect(h.complete).toHaveBeenCalledWith('les1'));
-    expect(await screen.findByText('Dars tugallandi')).toBeInTheDocument();
+    expect(await screen.findByText(/Bu darsni yakunladingiz/)).toBeInTheDocument(); // completion state (only after backend)
   });
 
   it('WEB-LESSON-07 a metadata-only (media/deferred) activity renders a safe placeholder, never a broken element', async () => {
     h.start.mockResolvedValue(view([img]));
     renderPage();
     expect(await screen.findByText('Bu kontent hozircha mavjud emas.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Keyingi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Davom etish' })).toBeInTheDocument();
   });
 
   it('WEB-LESSON-08 LESSON_ALREADY_COMPLETED on start is a completed state, not an error', async () => {
@@ -117,5 +117,62 @@ describe('Lesson runner (WEB-LESSON)', () => {
     renderPage();
     expect(await screen.findByText('Pick A')).toBeInTheDocument();
     expect(screen.queryByText('world')).toBeNull();
+  });
+
+  // ── UX finalization regressions (real title, orientation, progress, completion, guards) ──
+  it('WEB-LESSON-10 shows the REAL lesson title and numeric step progress (not the generic placeholder)', async () => {
+    h.start.mockResolvedValue({ ...view([md, sc]), lesson: { title: 'Salomlashish va tanishuv', description: null, estimatedDurationMin: null } });
+    renderPage();
+    expect(await screen.findByText('Salomlashish va tanishuv')).toBeInTheDocument();
+    expect(screen.getByText('0 / 2')).toBeInTheDocument(); // steps completed / total, backend-derived activity count
+  });
+
+  it('WEB-LESSON-11 shows a localized activity-type label for orientation, never the raw enum', async () => {
+    h.start.mockResolvedValue(view([md, sc])); // md = EXPLANATION
+    renderPage();
+    expect(await screen.findByText('Tushuntirish')).toBeInTheDocument();
+    expect(screen.queryByText('EXPLANATION')).toBeNull();
+  });
+
+  it('WEB-LESSON-12 the completion state headlines the REAL lesson title (finished in-session)', async () => {
+    h.start.mockResolvedValue({ ...view([sc]), lesson: { title: 'Kishilik olmoshlari', description: null, estimatedDurationMin: null } });
+    h.submit.mockResolvedValue({ attemptId: 't1', activityId: 'a-sc', attemptNo: 1, isCorrect: true, deterministicScore: 10000, status: 'SUBMITTED', submittedAt: 'x' });
+    h.complete.mockResolvedValue({ lessonId: 'les1', lessonRevisionId: 'rev1', status: 'COMPLETED', completedAt: 'x', mastery: { measured: false } });
+    renderPage();
+    await question('Pick A');
+    fireEvent.click(screen.getByRole('radio', { name: 'A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Javobni tekshirish' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Keyingi' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Darsni yakunlash' }));
+    expect(await screen.findByRole('heading', { name: 'Kishilik olmoshlari' })).toBeInTheDocument(); // completion h1 = real title
+  });
+
+  it('WEB-LESSON-13 a rapid double submit is guarded (exactly one POST while pending)', async () => {
+    h.start.mockResolvedValue(view([sc]));
+    let resolve!: (v: unknown) => void;
+    h.submit.mockReturnValue(new Promise((r) => { resolve = r; }));
+    renderPage();
+    await question('Pick A');
+    fireEvent.click(screen.getByRole('radio', { name: 'A' }));
+    const btn = screen.getByRole('button', { name: 'Javobni tekshirish' });
+    fireEvent.click(btn);
+    await waitFor(() => expect(h.submit).toHaveBeenCalledTimes(1));
+    fireEvent.click(btn); // second click while the request is in flight — button is disabled, ignored
+    resolve({ attemptId: 't1', activityId: 'a-sc', attemptNo: 1, isCorrect: true, deterministicScore: 10000, status: 'SUBMITTED', submittedAt: 'x' });
+    await waitFor(() => expect(h.submit).toHaveBeenCalledTimes(1));
+  });
+
+  it('WEB-LESSON-14 completion never renders fabricated reward values (XP/IZL/streak)', async () => {
+    h.start.mockResolvedValue(view([sc]));
+    h.submit.mockResolvedValue({ attemptId: 't1', activityId: 'a-sc', attemptNo: 1, isCorrect: true, deterministicScore: 10000, status: 'SUBMITTED', submittedAt: 'x' });
+    h.complete.mockResolvedValue({ lessonId: 'les1', lessonRevisionId: 'rev1', status: 'COMPLETED', completedAt: 'x', mastery: { measured: false } });
+    renderPage();
+    await question('Pick A');
+    fireEvent.click(screen.getByRole('radio', { name: 'A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Javobni tekshirish' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Keyingi' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Darsni yakunlash' }));
+    await screen.findByText(/Bu darsni yakunladingiz/);
+    expect(document.body.textContent).not.toMatch(/\bXP\b|\bIZL\b|streak|tanga|\+\s*\d/i);
   });
 });

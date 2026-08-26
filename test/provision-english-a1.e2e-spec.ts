@@ -16,7 +16,10 @@ import { SubjectService } from '../src/content-authoring/subject.service';
 import { HierarchyService } from '../src/content-authoring/hierarchy.service';
 import { HierarchyPublishService } from '../src/content-authoring/publish/hierarchy-publish.service';
 import { PublicationService } from '../src/content-authoring/publish/publication.service';
-import { provisionEnglishA1, A1_DIAGNOSTIC_ITEMS } from '../src/bootstrap/provision-english-a1';
+import { RevisionService } from '../src/content-authoring/revision.service';
+import { ActivityService } from '../src/content-authoring/activity.service';
+import { SkillMappingService } from '../src/content-authoring/skill-mapping.service';
+import { provisionEnglishA1, refreshPilotContent, A1_DIAGNOSTIC_ITEMS } from '../src/bootstrap/provision-english-a1';
 import { PILOT_CONTENT_KEYS } from '../src/content-import/pilot/english-a1-pilot';
 import { cleanupAuthTables, cleanupAssessmentTables, cleanupRoadmapContent } from './test-db.helper';
 import { TestSmsAdapter } from './test-sms.adapter';
@@ -44,6 +47,9 @@ describe('Provision English A1 (e2e, izlan_test)', () => {
     importer: mod.get(ImportService, { strict: false }),
     hierarchyPublish: mod.get(HierarchyPublishService, { strict: false }),
     publication: mod.get(PublicationService, { strict: false }),
+    revisions: mod.get(RevisionService, { strict: false }),
+    activities: mod.get(ActivityService, { strict: false }),
+    mappings: mod.get(SkillMappingService, { strict: false }),
   });
 
   // Lesson-execution/reward/mission artifacts hold RESTRICT FKs to activity/revision — clear (canonical order, mirrors
@@ -120,11 +126,11 @@ describe('Provision English A1 (e2e, izlan_test)', () => {
     expect(r.diagnostic.distinctSkills).toBe(13);
     expect(r.diagnostic.poolSize).toBe(13);
 
-    // Content: 12 pilot lessons PUBLISHED with coherent published revisions; 98 pilot activities.
+    // Content: 12 pilot lessons PUBLISHED with coherent published revisions; 114 pilot activities.
     const pilot = await prisma.lesson.findMany({ where: { contentKey: { in: [...PILOT_CONTENT_KEYS] } } });
     expect(pilot).toHaveLength(12);
     expect(pilot.every((l) => l.status === 'PUBLISHED' && l.publishedRevisionId)).toBe(true);
-    expect(await prisma.activity.count({ where: { revision: { lesson: { contentKey: { in: [...PILOT_CONTENT_KEYS] } }, status: 'PUBLISHED' } } })).toBe(98);
+    expect(await prisma.activity.count({ where: { revision: { lesson: { contentKey: { in: [...PILOT_CONTENT_KEYS] } }, status: 'PUBLISHED' } } })).toBe(114);
     expect(await prisma.skill.count({ where: { subjectId: await subjectId(), code: { startsWith: 'ENG-A1-' }, NOT: { code: { startsWith: 'ENG-A1-DEV' } } } })).toBe(13);
 
     // Diagnostic: the CURRENT version now measures all 13 pilot skills.
@@ -225,5 +231,30 @@ describe('Provision English A1 (e2e, izlan_test)', () => {
     expect(ok(done.status)).toBe(true);
     const completed = await prisma.learnerLessonCompletion.count({ where: { lessonId } });
     expect(completed).toBe(1); // real completion recorded — no hidden DB steps
+  }, 120_000);
+
+  it('PROV-E2E-04 content refresh is idempotent (unchanged → 0) and forced refresh publishes a NEW revision (v1 archived)', async () => {
+    const sid = await subjectId();
+    const admin = await prisma.user.findUniqueOrThrow({ where: { phone: '+998900000001' } });
+
+    // Idempotent: the packages match the just-imported content → nothing to refresh, no new revisions created.
+    const revsBefore = await prisma.lessonRevision.count();
+    expect(await refreshPilotContent(deps(), sid, admin.id)).toBe(0);
+    expect(await prisma.lessonRevision.count()).toBe(revsBefore);
+
+    // Forced refresh of one lesson exercises the REAL create-revision → author activities → map skills → review → publish
+    // path, respecting immutability (old published revision archived, pointer repointed).
+    const l1before = await prisma.lesson.findUniqueOrThrow({ where: { contentKey: 'ENG-A1-001-GREETINGS' } });
+    expect(await refreshPilotContent(deps(), sid, admin.id, { force: true, only: ['ENG-A1-001-GREETINGS'] })).toBe(1);
+
+    const l1after = await prisma.lesson.findUniqueOrThrow({ where: { contentKey: 'ENG-A1-001-GREETINGS' }, include: { publishedRevision: { include: { activities: true } } } });
+    expect(l1after.publishedRevision!.version).toBe(2); // a new published revision
+    expect(l1after.publishedRevisionId).not.toBe(l1before.publishedRevisionId); // pointer repointed
+    expect((await prisma.lessonRevision.findUniqueOrThrow({ where: { id: l1before.publishedRevisionId! } })).status).toBe('ARCHIVED'); // v1 archived, not edited
+    expect(l1after.publishedRevision!.activities.length).toBeGreaterThan(0);
+    // Activity-skill mappings reconciled: every objective activity in v2 maps to >= 1 skill.
+    const objectiveIds = l1after.publishedRevision!.activities.filter((a) => ['MINI_QUESTION', 'PRACTICE', 'MASTERY_TEST'].includes(a.type)).map((a) => a.id);
+    expect(objectiveIds.length).toBeGreaterThan(0);
+    expect(await prisma.activitySkill.count({ where: { activityId: { in: objectiveIds } } })).toBeGreaterThanOrEqual(objectiveIds.length);
   }, 120_000);
 });

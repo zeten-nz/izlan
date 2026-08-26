@@ -60,7 +60,7 @@ export const EXPECTED = {
   provenanceSource: 'AI_ASSISTED',
   topics: 4,
   lessons: 12,
-  activities: 98,
+  activities: 114,
   skills: 13,
 } as const;
 

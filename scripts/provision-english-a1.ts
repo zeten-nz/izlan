@@ -19,6 +19,9 @@ import { SubjectService } from '../src/content-authoring/subject.service';
 import { HierarchyService } from '../src/content-authoring/hierarchy.service';
 import { HierarchyPublishService } from '../src/content-authoring/publish/hierarchy-publish.service';
 import { PublicationService } from '../src/content-authoring/publish/publication.service';
+import { RevisionService } from '../src/content-authoring/revision.service';
+import { ActivityService } from '../src/content-authoring/activity.service';
+import { SkillMappingService } from '../src/content-authoring/skill-mapping.service';
 import { provisionEnglishA1 } from '../src/bootstrap/provision-english-a1';
 
 async function main(): Promise<void> {
@@ -33,12 +36,15 @@ async function main(): Promise<void> {
         importer: app.get(ImportService, { strict: false }),
         hierarchyPublish: app.get(HierarchyPublishService, { strict: false }),
         publication: app.get(PublicationService, { strict: false }),
+        revisions: app.get(RevisionService, { strict: false }),
+        activities: app.get(ActivityService, { strict: false }),
+        mappings: app.get(SkillMappingService, { strict: false }),
       },
-      { nodeEnv: process.env.NODE_ENV, allowDevFixture: process.env.ALLOW_DEV_FIXTURE },
+      { nodeEnv: process.env.NODE_ENV, allowDevFixture: process.env.ALLOW_DEV_FIXTURE, refreshContent: process.env.A1_REFRESH },
     );
     logger.log(
       `English A1 provisioned — subject=${r.subjectId} topics=${r.topics} pilotLessonsPublished=${r.pilotLessonsPublished}/12 ` +
-        `pilotSkills=${r.pilotSkills}/13 diagnostic=v${r.diagnostic.versionNo} pool=${r.diagnostic.poolSize} skills=${r.diagnostic.distinctSkills} ` +
+        `pilotSkills=${r.pilotSkills}/13 lessonsRefreshed=${r.lessonsRefreshed} diagnostic=v${r.diagnostic.versionNo} pool=${r.diagnostic.poolSize} skills=${r.diagnostic.distinctSkills} ` +
         `(${r.diagnostic.createdNewVersion ? 'created new version' : 'reused existing version'})`,
     );
   } finally {
