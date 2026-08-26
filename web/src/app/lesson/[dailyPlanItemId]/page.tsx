@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/ui/states';
 import { FocusLearningShell } from '@/components/learning/FocusLearningShell';
 import { QuestionCard } from '@/components/learning/QuestionCard';
 import { LessonActivityView } from '@/components/learning/LessonActivityView';
+import { LessonMedia } from '@/components/learning/LessonMedia';
 import { FeedbackBanner } from '@/components/learning/FeedbackBanner';
 
 export default function LessonRunnerPage() {
@@ -175,6 +176,7 @@ function Runner({ initial, onExit }: { initial: LessonExecutionView; onExit: () 
       ) : isObjectiveActivity(current) ? (
         <div className="flex flex-col gap-6">
           <ActivityKindLabel type={current.type} />
+          <LessonMedia media={current.media} />
           {feedback ? (
             <>
               <p className="text-2xl font-bold leading-snug tracking-tight text-text">{current.prompt}</p>

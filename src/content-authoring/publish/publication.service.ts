@@ -19,6 +19,7 @@ import { presentRevision } from '../presenters';
 import { projectActivityForLearnerRuntime } from '../../content/activity/learner-activity-projection';
 import { PublicationReadinessService } from './publication-readiness.service';
 import { PublishRepository } from './publish.repository';
+import { ActivityMediaRepository } from '../activity-media.repository';
 import { PublishRevisionDto, ReturnToDraftDto, SubmitReviewDto } from '../dto/revision-workflow.dto';
 import { ArchiveLessonDto } from '../dto/lesson-archive.dto';
 
@@ -41,6 +42,7 @@ export class PublicationService {
     private readonly audit: ContentAuditRepository,
     private readonly readiness: PublicationReadinessService,
     private readonly publishRepo: PublishRepository,
+    private readonly activityMedia: ActivityMediaRepository,
   ) {}
 
   // ── Reads (content.author + scope) ──
@@ -56,10 +58,11 @@ export class PublicationService {
     if (!rev) throw new ContentNotFoundError('not found');
     await this.scope.requireScope(userId, rev.subjectId);
     const acts = await this.activities.listByRevision(revisionId);
+    const mediaByActivity = await this.activityMedia.mediaByRevision(revisionId); // safe media fields only (no storageKey)
     return {
       revisionId: rev.id, lessonId: rev.lessonId, version: rev.version, status: rev.status,
       title: rev.title, description: rev.description, estimatedDurationMin: rev.estimatedDurationMin,
-      activities: acts.map((a) => projectActivityForLearnerRuntime({ id: a.id, type: a.type, position: a.position, payload: a.payload })),
+      activities: acts.map((a) => projectActivityForLearnerRuntime({ id: a.id, type: a.type, position: a.position, payload: a.payload, media: mediaByActivity.get(a.id) })),
     };
   }
 

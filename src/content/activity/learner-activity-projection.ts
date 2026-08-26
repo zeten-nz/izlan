@@ -2,6 +2,7 @@ import { ActivityType } from '@prisma/client';
 import { getActivityDefinition } from './activity-registry';
 import { parseObjectiveActivityPayload, projectActivityForLearner } from '../../lesson-execution/activity/objective-activity-payload';
 import { parseMarkdownActivityPayload } from './markdown-activity-payload';
+import { mediaKindForMime } from '../../media/media.constants';
 
 /**
  * ONE shared learner-safe Activity projector (Phase 2.2B, §32) used by BOTH staff preview and LessonExecution runtime.
@@ -11,36 +12,54 @@ import { parseMarkdownActivityPayload } from './markdown-activity-payload';
  *  - METADATA_ONLY  → identity/type/position only (IMAGE/AUDIO media; deferred types); never storageKey/URL
  * Malformed stored payload → safe metadata-only fallback (never leaks the raw body).
  */
+/** Learner-safe media view for an activity — id/kind/mime/altText ONLY; never storageKey/path/uploader. */
+export interface LearnerActivityMedia {
+  id: string; // MediaAsset id — fetch bytes via GET /api/media/:id/content (authenticated)
+  kind: string; // 'image' | 'audio'
+  mimeType: string;
+  altText: string | null;
+}
+
 export interface LearnerActivityInput {
   id: string;
   type: ActivityType;
   position: number;
   payload: unknown;
+  /** Ordered attached media (from ActivityMedia join). Optional so callers that never attach media are unaffected. */
+  media?: { id: string; mimeType: string; altText: string | null }[];
 }
 
-export type LearnerProjectedActivity =
+type LearnerProjectedBase =
   | { id: string; type: string; position: number }
   | { id: string; type: string; position: number; format: string; prompt: string; options: { id: string; text: string }[] }
   | { id: string; type: string; position: number; schemaVersion: string; markdown: string };
+export type LearnerProjectedActivity = LearnerProjectedBase & { media?: LearnerActivityMedia[] };
+
+function projectMedia(media: LearnerActivityInput['media']): LearnerActivityMedia[] | undefined {
+  if (!media || media.length === 0) return undefined;
+  return media.map((m) => ({ id: m.id, kind: mediaKindForMime(m.mimeType) ?? 'other', mimeType: m.mimeType, altText: m.altText ?? null }));
+}
 
 export function projectActivityForLearnerRuntime(a: LearnerActivityInput): LearnerProjectedActivity {
   const meta = { id: a.id, type: a.type as string, position: a.position };
+  const media = projectMedia(a.media);
+  const withMedia = <T extends object>(v: T): T & { media?: LearnerActivityMedia[] } => (media ? { ...v, media } : v);
   const projection = getActivityDefinition(a.type).learnerProjection;
   if (projection === 'OBJECTIVE_SAFE') {
     try {
       const payload = parseObjectiveActivityPayload(a.payload);
-      return projectActivityForLearner(a.id, a.type, a.position, payload); // {id,type,position,format,prompt,options} — no answerKey
+      return withMedia(projectActivityForLearner(a.id, a.type, a.position, payload)); // no answerKey
     } catch {
-      return meta;
+      return withMedia(meta);
     }
   }
   if (projection === 'MARKDOWN_SAFE') {
     try {
       const md = parseMarkdownActivityPayload(a.payload);
-      return { ...meta, schemaVersion: md.schemaVersion, markdown: md.markdown };
+      return withMedia({ ...meta, schemaVersion: md.schemaVersion, markdown: md.markdown });
     } catch {
-      return meta;
+      return withMedia(meta);
     }
   }
-  return meta; // METADATA_ONLY
+  return withMedia(meta); // METADATA_ONLY
 }

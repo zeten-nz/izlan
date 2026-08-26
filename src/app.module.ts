@@ -24,6 +24,7 @@ import { FinanceModule } from './finance/finance.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ContentAuthoringModule } from './content-authoring/content-authoring.module';
 import { ContentImportModule } from './content-import/content-import.module';
+import { MediaModule } from './media/media.module';
 
 /**
  * AppModule — foundational (Config/Database/Health) + auth core + learner flow (…/LearningProgress/
@@ -57,6 +58,7 @@ import { ContentImportModule } from './content-import/content-import.module';
     PaymentsModule,
     ContentAuthoringModule,
     ContentImportModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

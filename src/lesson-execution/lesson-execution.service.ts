@@ -153,8 +153,8 @@ export class LessonExecutionService {
    * Learner-safe Activity projection via the ONE shared projector (Phase 2.2B §32): OBJECTIVE → answerKey stripped;
    * TEXT/EXPLANATION/EXAMPLE → validated markdown body; IMAGE/AUDIO + deferred → metadata only. Malformed → metadata only.
    */
-  private projectActivity(a: { id: string; type: ActivityType; position: number; payload: Prisma.JsonValue }): LearnerActivity {
-    return projectActivityForLearnerRuntime(a);
+  private projectActivity(a: { id: string; type: ActivityType; position: number; payload: Prisma.JsonValue; media?: { altText: string | null; media: { id: string; mimeType: string } }[] }): LearnerActivity {
+    return projectActivityForLearnerRuntime({ ...a, media: a.media?.map((m) => ({ id: m.media.id, mimeType: m.media.mimeType, altText: m.altText })) });
   }
 
   // ── Activity submission (Phase 1.7B-2) ──
