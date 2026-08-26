@@ -136,7 +136,7 @@ describe('English A1 pilot (e2e, izlan_test)', () => {
     // Every lesson has >=1 LessonSkill; every objective activity contributes ActivitySkill rows.
     for (const l of lessons) expect(await prisma.lessonSkill.count({ where: { lessonId: l.id } })).toBeGreaterThanOrEqual(1);
     const activities = await prisma.activity.findMany({ where: { revision: { lesson: { topic: { module: { level: { track: { subjectId } } } } } } } });
-    expect(activities).toHaveLength(98);
+    expect(activities).toHaveLength(114);
     // Provenance (TD-254): the pilot declares AI_ASSISTED — every Activity persists AI_ASSISTED, aiMetadata null.
     expect(activities.every((a) => a.source === 'AI_ASSISTED' && a.aiMetadata === null)).toBe(true);
     expect(await prisma.activitySkill.count({ where: { activity: { id: { in: activities.map((a) => a.id) } } } })).toBeGreaterThanOrEqual(51);

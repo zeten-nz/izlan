@@ -56,16 +56,27 @@ function StartError({ error, onRetry }: { error: unknown; onRetry: () => void })
   return <ErrorState error={error} onRetry={onRetry} />;
 }
 
-function CompletedPanel() {
+/** Completion state. When the real lesson title is known (finished in-session), it headlines; otherwise a generic
+ *  confirmation (e.g. an already-completed lesson reached without loading the execution). No fabricated XP/IZL/streak. */
+function CompletedPanel({ title }: { title?: string }) {
   const t = useT();
   return (
     <div className="rounded-panel border border-border bg-surface p-6 text-center">
       <FiCheckCircle className="mx-auto text-3xl text-success" aria-hidden />
-      <h1 className="mt-3 text-xl font-bold text-text">{t('learner.lesson.completedTitle')}</h1>
-      <p className="mt-1 text-muted">{t('learner.lesson.completedBody')}</p>
+      <h1 className="mt-3 text-xl font-bold text-text">{title ?? t('learner.lesson.completedTitle')}</h1>
+      <p className="mt-1 text-muted">{title ? `${t('learner.lesson.completedTitle')} — ${t('learner.lesson.completedBody')}` : t('learner.lesson.completedBody')}</p>
       <div className="mt-5 flex justify-center"><ButtonLink href="/learn/learning">{t('learner.lesson.backToLearning')}</ButtonLink></div>
     </div>
   );
+}
+
+/** Small localized orientation label for the current step (Tushuntirish / Misol / Mashq …). No badge for intro TEXT. */
+function ActivityKindLabel({ type }: { type: string }) {
+  const t = useT();
+  const key: Record<string, string> = { EXPLANATION: 'explanation', EXAMPLE: 'example', MINI_QUESTION: 'miniQuestion', PRACTICE: 'practice', MASTERY_TEST: 'masteryTest' };
+  const k = key[type];
+  if (!k) return null;
+  return <span className="text-[11px] font-bold uppercase tracking-wide text-primary">{t(`learner.lesson.kind.${k}`)}</span>;
 }
 
 function Runner({ initial, onExit }: { initial: LessonExecutionView; onExit: () => void }) {
@@ -139,13 +150,20 @@ function Runner({ initial, onExit }: { initial: LessonExecutionView; onExit: () 
   }
 
   return (
-    <FocusLearningShell context={t('learner.lesson.context')} progress={progress} progressLabel={t('learner.lesson.progressLabel')} onExit={onExit} exitLabel={t('learner.lesson.exit')}>
+    <FocusLearningShell
+      title={view.lesson.title}
+      progress={progress}
+      progressLabel={t('learner.lesson.progressLabel')}
+      progressText={`${progress.value} / ${progress.max}`}
+      onExit={onExit}
+      exitLabel={t('learner.lesson.exit')}
+    >
       {actionError != null && (
         <p role="alert" className="mb-4 rounded-control bg-danger-tint px-3.5 py-2.5 text-sm font-medium text-danger">{describeError(actionError, t)}</p>
       )}
 
       {completion ? (
-        <CompletedPanel />
+        <CompletedPanel title={view.lesson.title} />
       ) : !current ? (
         // Every activity walked — offer the real completion (server verifies eligibility).
         <div className="rounded-panel border border-border bg-surface p-6 text-center">
@@ -155,27 +173,31 @@ function Runner({ initial, onExit }: { initial: LessonExecutionView; onExit: () 
           </div>
         </div>
       ) : isObjectiveActivity(current) ? (
-        feedback ? (
-          <div className="flex flex-col gap-6">
-            <p className="text-lg font-semibold text-text">{current.prompt}</p>
-            <FeedbackBanner isCorrect={feedback.isCorrect} />
-            <div className="flex justify-end">
-              <Button size="xl" onClick={advance} className="min-w-[200px]">{t('learner.lesson.next')}</Button>
-            </div>
-          </div>
-        ) : (
-          <QuestionCard
-            item={{ id: current.id, type: current.type, format: current.format, prompt: current.prompt, options: current.options }}
-            onSubmit={(answer) => onObjectiveSubmit(current.id, answer)}
-            submitting={busy}
-            submitLabel={t('learner.lesson.check')}
-          />
-        )
-      ) : (
         <div className="flex flex-col gap-6">
+          <ActivityKindLabel type={current.type} />
+          {feedback ? (
+            <>
+              <p className="text-2xl font-bold leading-snug tracking-tight text-text">{current.prompt}</p>
+              <FeedbackBanner isCorrect={feedback.isCorrect} />
+              <div className="flex justify-end">
+                <Button size="xl" onClick={advance} className="min-w-[200px]">{t('learner.lesson.next')}</Button>
+              </div>
+            </>
+          ) : (
+            <QuestionCard
+              item={{ id: current.id, type: current.type, format: current.format, prompt: current.prompt, options: current.options }}
+              onSubmit={(answer) => onObjectiveSubmit(current.id, answer)}
+              submitting={busy}
+              submitLabel={t('learner.lesson.check')}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-5">
+          <ActivityKindLabel type={current.type} />
           <LessonActivityView activity={current} />
           <div className="flex justify-end">
-            <Button size="xl" onClick={() => onViewNext(current.id)} loading={busy} disabled={busy} className="min-w-[200px]">{t('learner.lesson.next')}</Button>
+            <Button size="xl" onClick={() => onViewNext(current.id)} loading={busy} disabled={busy} className="min-w-[200px]">{t('learner.lesson.continue')}</Button>
           </div>
         </div>
       )}

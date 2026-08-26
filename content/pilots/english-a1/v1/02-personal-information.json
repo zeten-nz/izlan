@@ -17,17 +17,17 @@
       "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
       "revision": {
         "title": "To be: inkor shakli",
-        "description": "am not / is not (isn't) / are not (aren't).",
+        "description": "am not / isn't / aren't bilan biror narsa 'shunday emas' deyish.",
         "activities": [
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **to be** fe'lining **inkor** shakli bilan gap tuzishni o'rganasiz: biror narsa *shunday emas* deyishni." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **to be** fe'lining **inkor** shakli bilan gap tuzishni o'rganasiz: biror narsa *shunday emas* deyishni." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Inkor qilish uchun **to be** dan keyin **not** qo'shiladi:\n\n- **I am not** — men ...emasman\n- **you are not** — sen ...emassan\n- **he / she / it is not** — u ...emas\n- **we / they are not** — biz / ular ...emas\n\nQisqartma shakllar:\n\n- is not → **isn't**\n- are not → **aren't**\n\n**Diqqat:** standart ingliz tilida *amn't* odatda ishlatilmaydi; buning o'rniga **I'm not** ishlatiladi." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\nInkor uchun **to be** dan keyin **not** qo'shiladi:\n\n| Olmosh | Inkor | Qisqartma |\n| --- | --- | --- |\n| **I** | am not | I'm not |\n| **he / she / it** | is not | **isn't** |\n| **you / we / they** | are not | **aren't** |\n\n> **E'tibor bering:** standart ingliz tilida *amn't* ishlatilmaydi — buning o'rniga **I'm not** deyiladi." }
           },
           {
             "type": "EXAMPLE",
@@ -43,7 +43,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** inkorda **not** ni tushirib qoldirmang va olmoshga mos shaklni tanlang.\n\n- Noto'g'ri: *He no is at home.*\n- To'g'ri: **He isn't at home.**\n\n- Noto'g'ri: *They isn't students.*\n- To'g'ri: **They aren't students.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Inkorda **not** ni tushirib qoldirmang va olmoshga mos shaklni tanlang.\n>\n> Noto'g'ri: *He no is at home.* → To'g'ri: **He isn't at home.**\n> Noto'g'ri: *They isn't students.* → To'g'ri: **They aren't students.**" }
           },
           {
             "type": "PRACTICE",
@@ -62,6 +62,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-BE-NEGATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I ___ from Tashkent. (men Toshkentdan emasman)", "options": [ { "id": "a", "text": "am not" }, { "id": "b", "text": "isn't" }, { "id": "c", "text": "aren't" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **I'm not**, **isn't** (he/she/it), **aren't** (you/we/they).\n- *amn't* yo'q — **I'm not** deyiladi." }
           }
         ]
       }
@@ -79,12 +84,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **to be** bilan savol berishni o'rganasiz va odam bilan tanishishda kerak bo'ladigan asosiy savollarni ishlata olasiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **to be** bilan savol berishni va tanishishda kerak bo'ladigan asosiy savollarni o'rganasiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ha/yo'q savollarida** *to be* fe'li oldinga chiqadi:\n\n- You are a student. → **Are you** a student?\n- He is at home. → **Is he** at home?\n\nAsosiy savol so'zlari bilan:\n\n- **What is your name?** — Isming(iz) nima?\n- **Where are you from?** — Qayerdansiz?\n- **How old are you?** — Necha yoshdasiz?\n\nBu savollarda ham *to be* (is / are) tushib qolmasligi kerak." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida: fe'l oldinga chiqadi\n\nHa/yo'q savolida **to be** ega oldiga o'tadi:\n\n- You are a student. → **Are you** a student?\n- He is at home. → **Is he** at home?\n\n## Asosiy savollar\n\n| Savol | Ma'nosi |\n| --- | --- |\n| **What is your name?** | Isming(iz) nima? |\n| **Where are you from?** | Qayerdansiz? |\n| **How old are you?** | Necha yoshdasiz? |" }
           },
           {
             "type": "EXAMPLE",
@@ -100,7 +105,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Qisqa javoblar:**\n\n- Are you a student? — **Yes, I am.** / **No, I'm not.**\n- Is she a doctor? — **Yes, she is.** / **No, she isn't.**\n\n**Ko'p uchraydigan xato:** savolda *to be* ni tushirib qoldirmang.\n\n- Noto'g'ri: *Where you from?*\n- To'g'ri: **Where are you from?**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qisqa javoblar\n\n- Are you a student? — **Yes, I am.** / **No, I'm not.**\n- Is she a doctor? — **Yes, she is.** / **No, she isn't.**\n\n> **Ko'p uchraydigan xato:** savolda *to be* ni tushirib qoldirmang.\n>\n> Noto'g'ri: *Where you from?* → To'g'ri: **Where are you from?**" }
           },
           {
             "type": "PRACTICE",
@@ -119,6 +124,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-BE-QUESTIONS"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Kimningdir ismini so'ramoqchisiz. Qaysi savol to'g'ri?", "options": [ { "id": "a", "text": "What is your name?" }, { "id": "b", "text": "What your name?" }, { "id": "c", "text": "Who is your name?" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Savolda **to be** ega oldiga chiqadi: **Are you...?**, **Is he...?**\n- Asosiy savollar: **What is your name?**, **Where are you from?**, **How old are you?**" }
           }
         ]
       }
@@ -131,22 +141,27 @@
       "prerequisiteContentKeys": ["ENG-A1-005-BE-QUESTIONS"],
       "revision": {
         "title": "Sonlar va shaxsiy ma'lumot",
-        "description": "0-100 sonlar, yosh, telefon raqami va oddiy shaxsiy ma'lumot.",
+        "description": "0-100 sonlar, yosh va telefon raqamini aytish.",
         "activities": [
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **sonlar** (0-100) va oddiy **shaxsiy ma'lumot**ni aytishni o'rganasiz: yoshingiz, telefon raqamingiz va qayerdanligingiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **sonlar** (0-100) va oddiy **shaxsiy ma'lumot**ni aytishni o'rganasiz: yoshingiz va telefon raqamingiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Sonlar:\n\n- **0** = zero, **1** = one, **2** = two ... **10** = ten, **11** = eleven, **12** = twelve.\n- 13-19 oxirida **-teen**: thir**teen** (13), four**teen** (14), fif**teen** (15) ... nine**teen** (19).\n- 20, 30, 40 ... oxirida **-ty**: twen**ty** (20), thir**ty** (30), for**ty** (40) ... nine**ty** (90).\n- Qo'shma sonlar chiziqcha bilan: twenty-**one** (21), thirty-**five** (35), forty-**two** (42).\n- **100** = one hundred.\n\nEsda tuting: **thirteen** (13) va **thirty** (30) — bular boshqa sonlar.\n\n**Telefon raqamlari** odatda **raqamma-raqam** (birma-bir) o'qiladi, bitta katta son sifatida emas. Masalan, `4 7 2` → **four seven two**." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Sonlar\n\n- **0-12** alohida yodlanadi: zero, one, two ... ten, eleven, twelve.\n- **13-19** oxirida **-teen**: thir**teen** (13), fif**teen** (15), nine**teen** (19).\n- **20-90** oxirida **-ty**: twen**ty** (20), thir**ty** (30), nine**ty** (90).\n- Qo'shma sonlar chiziqcha bilan: twenty-**one** (21), thirty-**five** (35).\n- **100** = one hundred.\n\n> **E'tibor bering:** **thirteen** (13) va **thirty** (30) — ikki xil son. -teen urg'usi oxirida, -ty urg'usi boshida." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Telefon raqami\n\nTelefon raqamlari **raqamma-raqam** (birma-bir) o'qiladi, bitta katta son sifatida emas.\n\n`4 7 2` → **four seven two** (\"four hundred seventy-two\" emas)." }
           },
           {
             "type": "EXAMPLE",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Shaxsiy ma'lumot namunalari (barchasi o'ylab topilgan):\n\n- **I am 20 years old.**\n- **I am from Uzbekistan.**\n- **A:** How old are you? **B:** I am twenty-one.\n- **A:** Where are you from? **B:** I am from Namangan.\n- Telefon raqami raqamma-raqam o'qiladi: `9 0 — 1 2 3` → **nine zero, one two three**." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "| Inglizcha | Ma'nosi |\n| --- | --- |\n| I am 20 years old. | Men 20 yoshdaman. |\n| I am from Uzbekistan. | Men O'zbekistondanman. |\n| My number is nine zero, one two three. | Raqamim 90-123. |" }
           },
           {
             "type": "MINI_QUESTION",
@@ -157,7 +172,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xatolar:**\n\n1. Yoshni aytishda *have* ishlatilmaydi.\n   - Noto'g'ri: *I have 25 years.* → To'g'ri: **I am 25 years old.**\n2. Telefon raqamini bitta katta son qilib o'qimang — har bir raqamni alohida ayting.\n   - `4 7 2` → **four seven two**, *four hundred seventy-two* emas." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Yoshni aytishda *have* ishlatilmaydi.\n>\n> Noto'g'ri: *I have 25 years.* → To'g'ri: **I am 25 years old.**\n\nTelefon raqamini ham bitta katta son qilib o'qimang — har bir raqamni alohida ayting." }
           },
           {
             "type": "PRACTICE",
@@ -176,6 +191,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-NUMBERS", "ENG-A1-PERSONAL-INFO"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "multiple_choice", "prompt": "Qaysi gaplar to'g'ri? (bir nechta javob bo'lishi mumkin)", "options": [ { "id": "a", "text": "forty-two = 42" }, { "id": "b", "text": "I am 25 years old." }, { "id": "c", "text": "I have 25 years." }, { "id": "d", "text": "one hundred = 10" } ], "answerKey": { "correctOptionIds": ["a", "b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- 13-19 → **-teen**, 20-90 → **-ty**.\n- Yosh: **I am ... years old** (*have* emas).\n- Telefon: raqamma-raqam." }
           }
         ]
       }

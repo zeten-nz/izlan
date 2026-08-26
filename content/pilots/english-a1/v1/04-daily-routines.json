@@ -20,12 +20,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **Present Simple** (hozirgi oddiy zamon) tasdiq gaplarini o'rganasiz — kundalik odatlar va faktlarni ifodalash uchun." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **Present Simple** (hozirgi oddiy zamon) tasdiq gaplarini o'rganasiz — kundalik odat va faktlarni ifodalash uchun." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple kundalik odat va faktlar uchun ishlatiladi.\n\n- **I / you / we / they** bilan fe'l o'zgarmaydi: I **work**, they **live**.\n- **he / she / it** bilan fe'lga **-s** qo'shiladi: he **works**, she **lives**.\n\nAyrim fe'llarda yozilishi biroz o'zgaradi:\n\n- study → **studies** (undosh + y → -ies)\n- go → **goes**, watch → **watches** (-o, -ch, -sh dan keyin -es)" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Ega | Fe'l |\n| --- | --- |\n| **I / you / we / they** | work (o'zgarmaydi) |\n| **he / she / it** | work**s** (-s qo'shiladi) |\n\nMisol: I **work**, they **live** — lekin he **works**, she **lives**.\n\n## Yozilishdagi o'zgarishlar\n\n- study → **studies** (undosh + y → -ies)\n- go → **goes**, watch → **watches** (-o, -ch, -sh dan keyin -es)" }
           },
           {
             "type": "EXAMPLE",
@@ -41,7 +41,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he / she / it* bilan fe'lga **-s** ni unutmang, lekin yozilishiga e'tibor bering.\n\n- Noto'g'ri: *He work in a bank.* → To'g'ri: **He works in a bank.**\n- Noto'g'ri: *She studys English.* → To'g'ri: **She studies English.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> *he / she / it* bilan fe'lga **-s** ni unutmang, va yozilishiga e'tibor bering.\n>\n> Noto'g'ri: *He work in a bank.* → To'g'ri: **He works in a bank.**\n> Noto'g'ri: *She studys English.* → To'g'ri: **She studies English.**" }
           },
           {
             "type": "PRACTICE",
@@ -60,6 +60,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My sister ___ in a hospital. (work)", "options": [ { "id": "a", "text": "work" }, { "id": "b", "text": "works" }, { "id": "c", "text": "is work" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **he / she / it** → fe'lga **-s** (works, lives).\n- study → **studies**, go → **goes**." }
           }
         ]
       }
@@ -77,12 +82,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda Present Simple **inkor** gaplarini o'rganasiz: *don't* va *doesn't* yordamida biror ish qilinmasligini aytish." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda Present Simple **inkor** gaplarini o'rganasiz: *don't* va *doesn't* yordamida biror ish qilinmasligini aytish." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Inkor uchun **don't** yoki **doesn't** ishlatiladi:\n\n- **I / you / we / they** → **don't** + asosiy fe'l\n- **he / she / it** → **doesn't** + asosiy fe'l\n\n**Eng muhim qoida:** *doesn't* dan keyin fe'l **asosiy shakl**da bo'ladi (-s **qo'shilmaydi**).\n\n- To'g'ri: **doesn't work**\n- Noto'g'ri: *doesn't works*\n\nSababi: -s allaqachon *does* ichida bor." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Ega | Inkor |\n| --- | --- |\n| **I / you / we / they** | **don't** + asosiy fe'l |\n| **he / she / it** | **doesn't** + asosiy fe'l |\n\n**Eng muhim qoida:** *doesn't* dan keyin fe'l **asosiy shakl**da bo'ladi (-s **qo'shilmaydi**), chunki -s allaqachon *does* ichida bor.\n\n- To'g'ri: `doesn't work`\n- Noto'g'ri: `doesn't works`" }
           },
           {
             "type": "EXAMPLE",
@@ -98,7 +103,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *doesn't* dan keyin fe'lga **-s** qo'shmang.\n\n- Noto'g'ri: *She doesn't works.*\n- To'g'ri: **She doesn't work.**\n\nShuningdek, *he / she / it* bilan **don't** emas, **doesn't** ishlatiladi.\n\n- Noto'g'ri: *He don't like tea.*\n- To'g'ri: **He doesn't like tea.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> *doesn't* dan keyin fe'lga **-s** qo'shmang; *he/she/it* bilan **don't** emas, **doesn't**.\n>\n> Noto'g'ri: *She doesn't works.* → To'g'ri: **She doesn't work.**\n> Noto'g'ri: *He don't like tea.* → To'g'ri: **He doesn't like tea.**" }
           },
           {
             "type": "PRACTICE",
@@ -117,6 +122,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "They ___ in Tashkent. (live, inkor)", "options": [ { "id": "a", "text": "doesn't live" }, { "id": "b", "text": "don't live" }, { "id": "c", "text": "don't lives" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **don't** (I/you/we/they), **doesn't** (he/she/it).\n- *doesn't/don't* dan keyin fe'l asosiy shaklda." }
           }
         ]
       }
@@ -134,12 +144,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu — yakuniy dars. Present Simple **savollari**ni o'rganasiz va oldingi mavzularni (have/has, egalik sifatlari, to be) **amalda** takrorlaysiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu — yakuniy dars. Present Simple **savollari**ni o'rganasiz va oldingi mavzularni (have/has, egalik, to be) **amalda** takrorlaysiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 4,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Present Simple savollari **Do / Does** bilan boshlanadi:\n\n- **I / you / we / they** → **Do** + ega + asosiy fe'l: *Do you work here?*\n- **he / she / it** → **Does** + ega + asosiy fe'l: *Does she live here?*\n\n**Qisqa javoblar:**\n\n- Do you ...? → **Yes, I do.** / **No, I don't.**\n- Does he ...? → **Yes, he does.** / **No, he doesn't.**\n\n**Diqqat:** *Does* dan keyin fe'l asosiy shaklda bo'ladi.\n\n- Noto'g'ri: *Does he works?* → To'g'ri: **Does he work?**\n\nQuyidagi mashqlarda oldingi mavzular ham qaytadan uchraydi." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Ega | Savol |\n| --- | --- |\n| **I / you / we / they** | **Do** + ega + fe'l? |\n| **he / she / it** | **Does** + ega + fe'l? |\n\nMisol: *Do you work here?* / *Does she live here?*\n\n## Qisqa javoblar\n\n- Do you ...? → **Yes, I do.** / **No, I don't.**\n- Does he ...? → **Yes, he does.** / **No, he doesn't.**\n\n> **E'tibor bering:** *Does* dan keyin fe'l asosiy shaklda. Noto'g'ri: *Does he works?* → To'g'ri: **Does he work?**" }
           },
           {
             "type": "EXAMPLE",
@@ -151,6 +161,11 @@
             "estimatedDurationMin": 1,
             "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ he like tea?", "options": [ { "id": "a", "text": "Do" }, { "id": "b", "text": "Does" }, { "id": "c", "text": "Is" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Yakuniy takrorlash\n\nQuyidagi mashqlarda oldingi mavzular ham qaytadan uchraydi:\n\n- **have / has** — egalik\n- **egalik sifatlari** — his / her\n- **to be** savollari — Are you ...?" }
           },
           {
             "type": "PRACTICE",
@@ -187,6 +202,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PRESENT-SIMPLE-QUESTIONS", "ENG-A1-PRESENT-SIMPLE-NEGATIVE"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"Does he work here?\" savoliga qisqa inkor javob qaysi?", "options": [ { "id": "a", "text": "No, he doesn't." }, { "id": "b", "text": "No, he don't." }, { "id": "c", "text": "No, he isn't." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Tabriklaymiz!\n\nSiz A1 asosiy mavzularini yakunladingiz:\n\n- salomlashish va tanishuv\n- **to be** (tasdiq, inkor, savol)\n- sonlar va shaxsiy ma'lumot\n- egalik va oila, **have/has**\n- **Present Simple** (tasdiq, inkor, savol)\n\nEndi oddiy suhbatni ingliz tilida boshlay olasiz." }
           }
         ]
       }

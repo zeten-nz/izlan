@@ -173,14 +173,38 @@ VIDEO. IMAGE va AUDIO ham hozircha to‘liq ishlamaydi — matnli darslar bilan 
 
 ### Matn (Markdown) haqida muhim eslatma
 
-Dars matnida faqat quyidagilar ishlaydi:
+Dars matnida quyidagi **oddiy va xavfsiz** vositalar ishlaydi (boshqa hech narsa — HTML ham,
+skript ham — ishlamaydi, ular oddiy matn bo‘lib ko‘rinadi):
 
-- **Sarlavhalar:** `#`, `##`, `###`
-- **Qalin matn:** `**shu tarzda**`
-- **Ro‘yxat:** har qatorda `-` bilan boshlang
+| Nima | Qanday yoziladi | Nimaga ishlatiladi |
+|---|---|---|
+| **Sarlavha** | `#`, `##`, `###` | mavzuni bo‘limlarga ajratish |
+| **Qalin matn** | `**shu tarzda**` | muhim so‘z/shaklni ajratish |
+| **Ro‘yxat** | har qatorda `-` | sanab o‘tish |
+| **Qoida kartasi (jadval)** | `\| Ustun \| Ustun \|` + keyingi qatorda `\| --- \| --- \|` | qoida/naqsh yoki so‘z–ma’no juftliklari |
+| **Eslatma (callout)** | qatorni `>` bilan boshlang | \"E’tibor bering\", \"Ko‘p uchraydigan xato\" |
+| **Naqsh (inline)** | `` `Do + you + verb?` `` | grammatik shaklni ajratib ko‘rsatish |
+| **Bo‘lim chizig‘i** | alohida qatorda `---` | bo‘limlarni ajratish |
 
-Jadval, kursiv, havola (link), rasm yoki kod bloklari **ishlamaydi** — ular oddiy matn bo‘lib
-ko‘rinadi. Shuning uchun matnni shu oddiy imkoniyatlar doirasida yozing.
+Masalan, **to be** qoidasini jadval bilan ko‘rsatish:
+
+```
+| Olmosh | To be |
+| --- | --- |
+| I | am |
+| he / she / it | is |
+| you / we / they | are |
+```
+
+va **ko‘p uchraydigan xato**ni eslatma bilan:
+
+```
+> Noto‘g‘ri: He are a student.
+> To‘g‘ri: He is a student.
+```
+
+Kursiv, havola (link) va rasm hozircha **ishlamaydi** — matnni shu vositalar doirasida yozing.
+Yaxshi namuna: `content/pilots/english-a1/v1/` (barcha 12 dars shu uslubda yozilgan).
 
 ---
 
@@ -204,6 +228,69 @@ Har bir darsda aynan 8 ta faoliyat bo‘lishi shart emas — pedagogik mulohaza 
 - dars **uzun matn devori** bo‘lmasin — qisqa bo‘laklarga bo‘ling;
 - har bir tushuntirishdan keyin kamida bitta savol bo‘lgani ma’qul;
 - dars **maqsad** bilan boshlanib, **yakuniy test** bilan tugasin.
+
+---
+
+## O‘quvchiga mavzuni qanday tushuntirish kerak?
+
+Dars **o‘rgatishi** kerak — nafaqat tekshirishi. O‘quvchi yonida o‘qituvchi bo‘lmasa ham, dars
+orqali mavzuni tushuna olishi kerak. Bu — asosiy sifat mezoni.
+
+**Yomon dars:**
+
+> uzun ta’rif → darhol test
+
+Bunda o‘quvchi qoidani ko‘rmaydi, misol olmaydi va nega xato qilganini bilmaydi.
+
+**Yaxshi dars:**
+
+> sodda tushuntirish → **qoida/naqsh** → **misollar** → **ko‘p uchraydigan xato** → kichik savol
+> → mashq → yakuniy tekshiruv
+
+### Har bir bosqich nima beradi
+
+1. **Maqsad** — o‘quvchi nima o‘rganishini biladi (1–3 natija, uzun paragraf emas).
+2. **Tushuntirish** — bitta tushuncha, sodda o‘zbek tilida, izohsiz atamasiz.
+3. **Qoida** — jadval bilan ko‘rsating, shunda o‘quvchi naqshni **ko‘radi**, o‘qib chiqmaydi.
+4. **Misollar** — inglizcha + o‘zbekcha ma’no; kerak bo‘lsa tasdiq/inkor/savol qarama-qarshiligi.
+5. **Ko‘p uchraydigan xato** — eslatma (`>`) bilan: *Noto‘g‘ri → To‘g‘ri* va qisqa sabab.
+6. **Kichik savol** — endigina o‘rgatilgan narsani darhol tekshiring.
+7. **Mashq** — asta-sekin qiyinlashib boradigan bir necha savol (bir xil savolni takrorlamang).
+8. **Yakuniy tekshiruv** — dars maqsadini qamrab oladi.
+9. **Xulosa** — o‘quvchi asosiy qoida bilan darsdan chiqadi.
+
+### Haqiqiy misol — “To be: am, is, are”
+
+- **Maqsad:** to be bilan oddiy gap tuzishni o‘rganamiz.
+- **Tushuntirish:** kimligini/qandayligini/qayerdaligini aytishda to be ishlatiladi.
+- **Qoida (jadval):**
+
+  ```
+  | Olmosh | To be |
+  | --- | --- |
+  | I | am |
+  | he / she / it | is |
+  | you / we / they | are |
+  ```
+- **Misollar:** I **am** a student. — Men talabaman. / She **is** happy. — U xursand.
+- **Ko‘p uchraydigan xato:** `> Noto‘g‘ri: He are a student. → To‘g‘ri: He is a student.`
+- **Kichik savol:** She ___ a doctor. (is)
+- **Mashq → Yakuniy tekshiruv → Xulosa.**
+
+Barcha 12 A1 darsi (`content/pilots/english-a1/v1/`) aynan shu uslubda yozilgan — namuna sifatida
+oching.
+
+### Media (rasm/audio) haqida
+
+Til darslari uchun **audio** (talaffuz) va **rasm** (masalan, oila diagrammasi, kun tartibi
+ketma-ketligi, soat) foydali bo‘ladi. Hozircha platformada media **yuklash quvuri tayyor emas**
+(alohida keyingi bosqich), shuning uchun:
+
+- media hozircha darsga qo‘shilmaydi;
+- **hech qachon** rasm/audio havolasini yoki faylni dars JSON matniga yozib qo‘ymang.
+
+Media qo‘shish imkoni paydo bo‘lganda, u faqat **o‘rgatadigan** joyda ishlatiladi (bezak uchun
+emas): salomlashish/sonlar talaffuzi (audio), oila munosabatlari va kun tartibi (rasm).
 
 ---
 

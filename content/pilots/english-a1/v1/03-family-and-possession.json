@@ -20,17 +20,17 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **egalik sifatlari**ni o'rganasiz — biror narsa kimga tegishli ekanini ko'rsatuvchi so'zlar: *my, your, his, her ...*" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **egalik sifatlari**ni o'rganasiz — biror narsa kimga tegishli ekanini ko'rsatuvchi so'zlar: *my, your, his, her ...*" }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Egalik sifatlari otdan **oldin** keladi:\n\n- **my** — mening\n- **your** — sening / sizning\n- **his** — uning (erkak)\n- **her** — uning (ayol)\n- **its** — uning (narsa / hayvon)\n- **our** — bizning\n- **their** — ularning\n\nMasalan: **my** book (mening kitobim), **her** name (uning ismi)." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\nEgalik sifati **otdan oldin** keladi: **my** book, **her** name.\n\n| Egalik sifati | Ma'nosi |\n| --- | --- |\n| **my** | mening |\n| **your** | sening / sizning |\n| **his** | uning (erkak) |\n| **her** | uning (ayol) |\n| **its** | uning (narsa/hayvon) |\n| **our** | bizning |\n| **their** | ularning |" }
           },
           {
             "type": "EXAMPLE",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **my** phone.\n- What is **your** name?\n- Aziz is happy. **His** job is interesting.\n- Laylo is a teacher. **Her** students are young.\n- This is **our** car. **Our** car is blue.\n- This is **their** house. **Their** house is big." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **my** phone.\n- What is **your** name?\n- Aziz is happy. **His** job is interesting.\n- Laylo is a teacher. **Her** students are young.\n- This is **our** car. **Our** car is blue.\n- This is **their** house." }
           },
           {
             "type": "MINI_QUESTION",
@@ -41,7 +41,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** olmosh (*he, she*) va egalik sifatini (*his, her*) aralashtirmang.\n\n- Noto'g'ri: *He name is Aziz.*\n- To'g'ri: **His name is Aziz.**\n\n- Noto'g'ri: *She brother is a doctor.*\n- To'g'ri: **Her brother is a doctor.**\n\n**his** — erkak uchun, **her** — ayol uchun." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Olmosh (*he, she*) va egalik sifatini (*his, her*) aralashtirmang.\n>\n> Noto'g'ri: *He name is Aziz.* → To'g'ri: **His name is Aziz.**\n> Noto'g'ri: *She brother is a doctor.* → To'g'ri: **Her brother is a doctor.**\n\n**his** — erkak uchun, **her** — ayol uchun." }
           },
           {
             "type": "PRACTICE",
@@ -60,6 +60,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-POSSESSIVE-ADJECTIVES"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We are a family. ___ house is big. (bizning)", "options": [ { "id": "a", "text": "Our" }, { "id": "b", "text": "Their" }, { "id": "c", "text": "We" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Egalik sifatlari: **my, your, his, her, its, our, their** — otdan oldin.\n- Erkak — **his**, ayol — **her**." }
           }
         ]
       }
@@ -77,12 +82,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **oila a'zolari**ning inglizcha nomlarini o'rganasiz va o'z oilangiz haqida oddiy gaplar tuza olasiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **oila a'zolari**ning inglizcha nomlarini o'rganasiz va o'z oilangiz haqida oddiy gap tuza olasiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Asosiy oila so'zlari:\n\n- **mother** — ona, **father** — ota\n- **parents** — ota-ona (ikkalasi)\n- **sister** — opa / singil, **brother** — aka / uka\n- **husband** — turmush o'rtog'i (erkak), **wife** — rafiqa / turmush o'rtog'i (ayol)\n- **son** — o'g'il, **daughter** — qiz (farzand)\n- **child** — bola (bitta), **children** — bolalar (ko'plik)\n\n**Diqqat:** *children* — *child* so'zining ko'plik shakli (qoidasiz)." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## So'zlar\n\n| Inglizcha | Ma'nosi |\n| --- | --- |\n| **mother** | ona |\n| **father** | ota |\n| **parents** | ota-ona |\n| **brother** | aka / uka |\n| **sister** | opa / singil |\n| **husband** | er (turmush o'rtog'i) |\n| **wife** | rafiqa |\n| **son** | o'g'il |\n| **daughter** | qiz (farzand) |\n| **children** | bolalar |\n\n> **E'tibor bering:** *child* (bola) so'zining ko'plik shakli qoidasiz — **children**." }
           },
           {
             "type": "EXAMPLE",
@@ -98,7 +103,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xatolar:**\n\n1. *child* ning ko'pligi **children**, *childs* emas.\n   - Noto'g'ri: *two childs* → To'g'ri: **two children**\n\n2. Egaga bitta ega yetarli — otni takrorlamang.\n   - Noto'g'ri: *My mother she is a doctor.*\n   - To'g'ri: **My mother is a doctor.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> *child* ning ko'pligi **children**, *childs* emas.\n>\n> Noto'g'ri: *two childs* → To'g'ri: **two children**\n\nEgani ikki marta takrorlamang:\n\n> Noto'g'ri: *My mother she is a doctor.* → To'g'ri: **My mother is a doctor.**" }
           },
           {
             "type": "PRACTICE",
@@ -117,6 +122,11 @@
             "estimatedDurationMin": 1,
             "skillCodes": ["ENG-A1-FAMILY-VOCAB"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "\"parents\" so'zi kimlarni bildiradi?", "options": [ { "id": "a", "text": "mother and father" }, { "id": "b", "text": "sister and brother" }, { "id": "c", "text": "son and daughter" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Oila: mother, father, parents, brother, sister, son, daughter, children.\n- **children** — *child* ning qoidasiz ko'pligi." }
           }
         ]
       }
@@ -134,12 +144,12 @@
           {
             "type": "TEXT",
             "estimatedDurationMin": 1,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Maqsad\n\nBu darsda **have** va **has** yordamida biror narsaga ega ekaningizni aytishni o'rganasiz." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBu darsda **have** va **has** yordamida biror narsaga ega ekaningizni aytishni o'rganasiz." }
           },
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 3,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "Egalikni **have / has** bilan ifodalaymiz:\n\n- **I / you / we / they have** — menda / senda / bizda / ularda bor\n- **he / she / it has** — unda bor\n\nYa'ni **he, she, it** bilan **has**, qolganlari bilan **have**.\n\nMisol: I **have** a brother. She **has** a car." }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Olmosh | Fe'l |\n| --- | --- |\n| **I / you / we / they** | have |\n| **he / she / it** | has |\n\nYa'ni **he, she, it** bilan **has**, qolganlari bilan **have**.\n\nMisol: I **have** a brother. She **has** a car." }
           },
           {
             "type": "EXAMPLE",
@@ -155,7 +165,7 @@
           {
             "type": "EXPLANATION",
             "estimatedDurationMin": 2,
-            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "**Ko'p uchraydigan xato:** *he, she, it* bilan **has** ishlatiladi, **have** emas. *have* fe'lining he/she/it shakli **has**; \"haves\" bu yerda fe'l shakli sifatida ishlatilmaydi.\n\n- Noto'g'ri: *He have a car.*\n- To'g'ri: **He has a car.**\n\n- Noto'g'ri: *She haves a car.*\n- To'g'ri: **She has a car.**" }
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> *he, she, it* bilan **has** ishlatiladi, **have** emas. \"haves\" degan shakl yo'q.\n>\n> Noto'g'ri: *He have a car.* → To'g'ri: **He has a car.**\n> Noto'g'ri: *She haves a car.* → To'g'ri: **She has a car.**" }
           },
           {
             "type": "PRACTICE",
@@ -174,6 +184,11 @@
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-HAVE-HAS"],
             "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "They ___ three children.", "options": [ { "id": "a", "text": "has" }, { "id": "b", "text": "have" }, { "id": "c", "text": "haves" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **I / you / we / they → have**\n- **he / she / it → has**\n- \"haves\" degan shakl yo'q." }
           }
         ]
       }
