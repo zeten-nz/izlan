@@ -35,6 +35,24 @@ describe('projectActivityForLearnerRuntime (shared learner-safe projector, §32)
     expect(JSON.stringify(v)).not.toContain('secret-key');
   });
 
+  it('PV-10 attached media projects as learner-safe {id,kind,mimeType,altText}; storageKey never present', () => {
+    const v = projectActivityForLearnerRuntime({
+      id: 'm1', type: ActivityType.EXPLANATION, position: 0,
+      payload: { schemaVersion: LESSON_ACTIVITY_MARKDOWN_SCHEMA_VERSION, markdown: 'Body' },
+      media: [{ id: 'img1', mimeType: 'image/png', altText: 'A diagram' }, { id: 'aud1', mimeType: 'audio/mpeg', altText: null }],
+    });
+    expect(v.media).toEqual([
+      { id: 'img1', kind: 'image', mimeType: 'image/png', altText: 'A diagram' },
+      { id: 'aud1', kind: 'audio', mimeType: 'audio/mpeg', altText: null },
+    ]);
+    expect(JSON.stringify(v)).not.toContain('storageKey');
+  });
+
+  it('PV-11 no attached media → no empty media array on the learner activity', () => {
+    const v = projectActivityForLearnerRuntime({ id: 'm2', type: ActivityType.TEXT, position: 0, payload: { schemaVersion: LESSON_ACTIVITY_MARKDOWN_SCHEMA_VERSION, markdown: 'x' }, media: [] });
+    expect(v).not.toHaveProperty('media');
+  });
+
   it('malformed objective/markdown payload → safe metadata-only fallback (no leak)', () => {
     expect(projectActivityForLearnerRuntime({ id: 'a', type: ActivityType.MINI_QUESTION, position: 0, payload: { schemaVersion: 'x' } })).toEqual({ id: 'a', type: 'MINI_QUESTION', position: 0 });
     expect(projectActivityForLearnerRuntime({ id: 'b', type: ActivityType.TEXT, position: 0, payload: { schemaVersion: 'x' } })).toEqual({ id: 'b', type: 'TEXT', position: 0 });

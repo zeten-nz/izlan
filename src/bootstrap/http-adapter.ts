@@ -1,4 +1,6 @@
 import { FastifyAdapter } from '@nestjs/platform-fastify';
+import fastifyMultipart from '@fastify/multipart';
+import { MAX_MEDIA_UPLOAD_BYTES } from '../media/media.constants';
 
 /** Ordinary API JSON body ceiling — the Fastify default (§34). Every route EXCEPT bulk import uses this. */
 export const DEFAULT_BODY_LIMIT = 1 * 1024 * 1024; // 1 MiB
@@ -20,5 +22,8 @@ export function createFastifyAdapter(opts: { trustProxy?: boolean } = {}): Fasti
   adapter.getInstance().addHook('onRoute', (routeOptions) => {
     if (IMPORT_ROUTE_RE.test(routeOptions.url)) routeOptions.bodyLimit = IMPORT_BODY_LIMIT;
   });
+  // Real multipart/form-data uploads for lesson media (§6). The plugin owns its own streaming size cap (fileSize), so
+  // the global 1 MiB JSON bodyLimit does not apply to a media upload; the service still enforces per-type limits.
+  void adapter.getInstance().register(fastifyMultipart, { limits: { fileSize: MAX_MEDIA_UPLOAD_BYTES, files: 1, fields: 6 } });
   return adapter;
 }

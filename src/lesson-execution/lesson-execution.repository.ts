@@ -73,7 +73,14 @@ export class LessonExecutionRepository {
         estimatedDurationMin: true,
         // payload is included only so the service can build the learner projection (objective types) and
         // STRIP the answer key — it is never returned raw (§10/34).
-        activities: { orderBy: { position: 'asc' }, select: { id: true, type: true, position: true, payload: true } },
+        activities: {
+          orderBy: { position: 'asc' },
+          select: {
+            id: true, type: true, position: true, payload: true,
+            // Attached learner media — SAFE fields only; altText is per-attachment (ActivityMedia), storageKey is NEVER selected (§14).
+            media: { orderBy: { position: 'asc' }, select: { altText: true, media: { select: { id: true, mimeType: true } } } },
+          },
+        },
       },
     });
   }

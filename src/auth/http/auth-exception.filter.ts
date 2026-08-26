@@ -74,6 +74,12 @@ import {
   LessonNotExecutableError,
   LessonNotReadyForCompletionError,
   LessonProgressNotFoundError,
+  MediaUploadInvalidError,
+  MediaTypeNotAllowedError,
+  MediaTooLargeError,
+  MediaStorageUnavailableError,
+  MediaAssetNotFoundError,
+  MediaAltTextRequiredError,
   DobEditNotAllowedError,
   DomainError,
   DuplicatePhoneError,
@@ -264,6 +270,14 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ContentPublishNotReadyError) return { statusCode: 409, code: 'CONTENT_PUBLISH_NOT_READY', message: 'revision is not ready to publish' };
     if (e instanceof ContentLifecycleConflictError) return { statusCode: 409, code: 'CONTENT_LIFECYCLE_CONFLICT', message: 'invalid lifecycle transition' };
     if (e instanceof ContentPublicationStateInvalidError) return { statusCode: 409, code: 'CONTENT_PUBLICATION_STATE_INVALID', message: 'publication state is invalid' };
+
+    // Lesson media (upload/attach/download). Leak-safe — never surface storageKey/path.
+    if (e instanceof MediaUploadInvalidError) return { statusCode: 400, code: 'MEDIA_UPLOAD_INVALID', message: 'no file or malformed upload' };
+    if (e instanceof MediaTypeNotAllowedError) return { statusCode: 400, code: 'MEDIA_TYPE_NOT_ALLOWED', message: 'unsupported media type' };
+    if (e instanceof MediaTooLargeError) return { statusCode: 413, code: 'MEDIA_TOO_LARGE', message: 'file too large' };
+    if (e instanceof MediaStorageUnavailableError) return { statusCode: 503, code: 'MEDIA_STORAGE_UNAVAILABLE', message: 'media storage is not available' };
+    if (e instanceof MediaAssetNotFoundError) return { statusCode: 404, code: 'MEDIA_NOT_FOUND', message: 'not found' };
+    if (e instanceof MediaAltTextRequiredError) return { statusCode: 400, code: 'MEDIA_ALT_TEXT_REQUIRED', message: 'alt text is required for an image' };
 
     // Phase 2.2D — bulk import: the specific IMPORT_* code + status travel on the error (leak-safe; no payload/body).
     if (e instanceof ContentImportError) return { statusCode: e.httpStatus, code: e.importCode, message: 'import failed' };

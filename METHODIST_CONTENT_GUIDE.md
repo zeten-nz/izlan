@@ -169,7 +169,11 @@ Hozir **qo‘llab-quvvatlanadigan** turlar:
 | **MASTERY_TEST** | Dars oxiridagi yakuniy tekshiruv | “I ___ a teacher.” → am |
 
 **Hozircha QO‘LLAB-QUVVATLANMAYDI (ishlatmang):** SPEAKING, WRITING, LISTENING, AI_INTERACTION,
-VIDEO. IMAGE va AUDIO ham hozircha to‘liq ishlamaydi — matnli darslar bilan cheklaning.
+VIDEO. Alohida **IMAGE / AUDIO faoliyat turlarini** ham ishlatmang.
+
+> **Yangi:** Endi matn yoki savol faoliyatiga **haqiqiy rasm yoki audio biriktirish** mumkin —
+> alohida faoliyat turi sifatida emas, balki mavjud faoliyatga **qo‘shimcha** sifatida.
+> Batafsil: pastdagi **“Rasm va audio qo‘shish”** bo‘limi.
 
 ### Matn (Markdown) haqida muhim eslatma
 
@@ -203,7 +207,9 @@ va **ko‘p uchraydigan xato**ni eslatma bilan:
 > To‘g‘ri: He is a student.
 ```
 
-Kursiv, havola (link) va rasm hozircha **ishlamaydi** — matnni shu vositalar doirasida yozing.
+Kursiv, havola (link) va matn ichidagi `![]()` rasm sintaksisi **ishlamaydi** — matnni shu
+vositalar doirasida yozing. Rasm yoki audio kerak bo‘lsa, quyidagi **“Rasm va audio qo‘shish”**
+bo‘limidagi biriktirish (attach) usulidan foydalaning (matn ichiga yozib bo‘lmaydi).
 Yaxshi namuna: `content/pilots/english-a1/v1/` (barcha 12 dars shu uslubda yozilgan).
 
 ---
@@ -293,6 +299,59 @@ Media qo‘shish imkoni paydo bo‘lganda, u faqat **o‘rgatadigan** joyda ishl
 emas): salomlashish/sonlar talaffuzi (audio), oila munosabatlari va kun tartibi (rasm).
 
 ---
+
+## Rasm va audio qo‘shish
+
+Ba’zan bir rasm yoki qisqa audio matndan ko‘ra tushunarliroq bo‘ladi — masalan, diagramma,
+jadval-rasm, yoki to‘g‘ri talaffuzni eshittiruvchi audio. Endi bularni darsga **haqiqiy fayl
+sifatida** qo‘shish mumkin. Bu — matn ichiga yozish emas, balki mavjud **matn yoki savol
+faoliyatiga fayl biriktirish**.
+
+### Qachon media qo‘shiladi (va qachon yo‘q)
+
+- ✅ **Qo‘shing:** rasm yoki audio mazmunni tushuntirsa — diagramma, real jadval/sxema surati,
+  talaffuz namunasi, tinglab tushunish uchun qisqa audio.
+- ❌ **Qo‘shmang:** shunchaki “chiroyli bo‘lsin” degan bezak rasm, mavzuga aloqasiz surat, diqqatni
+  chalg‘itadigan yoki shovqinli audio. Media **o‘quvchi bilimiga, XP/IZL yoki mahoratga ta’sir
+  qilmaydi** — u faqat tushuntirishga yordam beradi.
+
+### Qanday qo‘shiladi (Content Studio)
+
+Content Studio’da matn (TEXT/EXPLANATION/EXAMPLE) yoki savol (MINI_QUESTION/PRACTICE/MASTERY_TEST)
+faoliyatini oching. Faoliyat kartasida **“Rasm va audio”** paneli bor. Faqat **qoralama (DRAFT)**
+revisionda tahrirlash mumkin.
+
+1. **Alt matn** yozing — maydon nomi **“Alt matn (rasm uchun majburiy)”**, joy egasi
+   *“Rasmni qisqa tavsiflang”*. Bu — rasmni ko‘ra olmaydigan yoki rasm yuklanmagan o‘quvchi uchun
+   qisqa tavsif (audio uchun — nomi/izohi). **Rasm uchun alt matn majburiy** — uni bo‘sh
+   qoldirmang.
+2. **“Fayl tanlash”** tugmasini bosing va faylni tanlang. Panel ostidagi eslatma ruxsat etilgan
+   formatlarni ko‘rsatadi: **PNG/JPEG/WebP yoki MP3/WAV/OGG**.
+3. Yuklangach, fayl ro‘yxatda paydo bo‘ladi (**“Media biriktirildi”**). Xato bo‘lsa — panel yozadi.
+4. Olib tashlash uchun ro‘yxatdagi **“Olib tashlash”** tugmasini bosing.
+
+### Ruxsat etilgan format va hajm
+
+| Tur | Formatlar | Maksimal hajm |
+|---|---|---|
+| **Rasm** | PNG, JPEG, WebP | 5 MB |
+| **Audio** | MP3, WAV, OGG | 10 MB |
+
+Boshqa formatlar (HTML, SVG, video, bajariladigan fayllar) **rad etiladi** — bu ataylab shunday
+(xavfsizlik). Fayl nomi emas, balki fayl **ichidagi haqiqiy turi** tekshiriladi, shuning uchun
+faylni noto‘g‘ri kengaytma bilan “aldab” yuklab bo‘lmaydi.
+
+### Muhim qoidalar
+
+- **Alt matnsiz rasm qo‘shmang** — bu o‘quvchi uchun ochiqlik (accessibility) talabi.
+- **Faqat o‘zingizda huquqi bor** rasm/audiodan foydalaning — internetdan tasodifiy yoki
+  mualliflik huquqi bilan himoyalangan fayllarni yuklamang.
+- **Audio o‘zi ijro etilmaydi (autoplay yo‘q)** — o‘quvchi tugmani bosgandagina eshitiladi. Uzun
+  ma’ruza o‘rniga qisqa, aniq audio yuklang.
+- **Nashrdan oldin** har doim **“O‘quvchi ko‘rinishi (Learner preview)”** orqali rasm ko‘rinishini
+  va audio ijro bo‘lishini tekshiring.
+- Media qo‘shsangiz ham matnli tushuntirishni tashlab qo‘ymang — media matnni **to‘ldiradi**,
+  o‘rnini bosmaydi.
 
 ## 8. Test savoli yozish qoidalari
 
@@ -453,7 +512,9 @@ Har bir darsni nashr qilishdan oldin tekshiring:
 - [ ] Ko‘nikma bog‘lanishlari to‘g‘ri (aks holda dars yo‘l xaritasiga tushmaydi)
 - [ ] Talablar (prerequisites) to‘g‘ri, halqa yo‘q
 - [ ] **“O‘quvchi ko‘rinishi (Learner preview)”** orqali ko‘rib chiqildi
-- [ ] Qo‘llab-quvvatlanmaydigan faoliyat/media yo‘q
+- [ ] Qo‘llab-quvvatlanmaydigan faoliyat turi yo‘q (alohida IMAGE/AUDIO, VIDEO va h.k.)
+- [ ] Agar rasm/audio biriktirilgan bo‘lsa: har bir rasmda **alt matn** bor, format/hajm mos, va
+      preview’da rasm ko‘rinadi / audio ijro bo‘ladi
 - [ ] **“Nashrga tayyor”** (readiness) yashil
 - [ ] Ko‘rik yakunlandi
 
@@ -470,6 +531,8 @@ Har bir darsni nashr qilishdan oldin tekshiring:
 - ❌ Darsni ko‘nikma bilan bog‘lashni unutish (bog‘lanmasa, o‘quvchi darsni ko‘rmaydi).
 - ❌ O‘quvchiga ko‘rinadigan matnga **content key, UUID yoki texnik atama** yozish.
 - ❌ Grammatik/faktik xatoni tuzatmasdan ko‘rikka yoki nashrga o‘tkazish.
+- ❌ **Alt matnsiz rasm** biriktirish (ochiqlik talabi) yoki bezak/aloqasiz rasm-audio qo‘shish.
+- ❌ Internetdan **mualliflik huquqi bilan himoyalangan** yoki tasodifiy rasm/audio yuklash.
 
 ---
 

@@ -47,6 +47,9 @@ export const CONTENT_AUDIT = {
   LESSON_SKILL_REMOVE: 'content.lesson_skill.remove',
   ACTIVITY_SKILL_ADD: 'content.activity_skill.add',
   ACTIVITY_SKILL_REMOVE: 'content.activity_skill.remove',
+  // Media foundation — activity media attach/detach (DRAFT revision only)
+  ACTIVITY_MEDIA_ATTACH: 'content.activity_media.attach',
+  ACTIVITY_MEDIA_DETACH: 'content.activity_media.detach',
   PREREQUISITE_ADD: 'content.prerequisite.add',
   PREREQUISITE_REMOVE: 'content.prerequisite.remove',
   // Phase 2.2B — review + publication

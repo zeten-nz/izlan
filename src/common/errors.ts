@@ -176,6 +176,14 @@ export class ContentSkillArchivedError extends DomainError {}
 export class ContentPrerequisiteInvalidError extends DomainError {}
 export class ContentPrerequisiteCycleError extends DomainError {}
 
+// Lesson media (Phase: media foundation). Leak-safe — never carry storageKey / filesystem path in the message.
+export class MediaUploadInvalidError extends DomainError {} // no file / malformed multipart
+export class MediaTypeNotAllowedError extends DomainError {} // MIME not in the image/audio allowlist (or magic mismatch)
+export class MediaTooLargeError extends DomainError {} // over the per-type byte cap
+export class MediaStorageUnavailableError extends DomainError {} // no usable storage adapter (e.g. production without one)
+export class MediaAssetNotFoundError extends DomainError {}
+export class MediaAltTextRequiredError extends DomainError {} // attaching an IMAGE without meaningful alt text (accessibility)
+
 // Content publishing (Phase 2.2B). Readiness/lifecycle/pointer conflicts are leak-safe (never carry payload/answerKey/
 // storageKey or a full readiness report in the HTTP message).
 export class ContentReviewNotReadyError extends DomainError {}

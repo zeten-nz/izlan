@@ -390,11 +390,19 @@ export interface DiagnosticSnapshot {
 
 // ── Learning + Review (Phase 04) — learner-facing projections; NEVER carry answerKey/correctness in the payload ──
 
+/** Learner-safe media attached to an activity — id/kind/mime/altText only (fetch bytes via GET /api/media/:id/content). */
+export interface LearnerMedia {
+  id: string;
+  kind: string; // 'image' | 'audio'
+  mimeType: string;
+  altText: string | null;
+}
+
 /** A projected learner Activity. Discriminate by field: objective has `format`, prose has `markdown`, media/deferred has neither. */
 export type LearnerActivity =
-  | { id: string; type: string; position: number; format: PlacementItemFormat; prompt: string; options: { id: string; text: string }[] }
-  | { id: string; type: string; position: number; schemaVersion: string; markdown: string }
-  | { id: string; type: string; position: number };
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; format: PlacementItemFormat; prompt: string; options: { id: string; text: string }[] }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; markdown: string }
+  | { id: string; type: string; position: number; media?: LearnerMedia[] };
 
 export function isObjectiveActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: PlacementItemFormat }> {
   return 'format' in a;

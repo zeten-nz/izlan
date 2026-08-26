@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useT } from '@/lib/i18n/i18n-context';
 import { isMarkdownActivity, type LearnerActivity } from '@/lib/api/types';
+import { LessonMedia } from './LessonMedia';
 
 /**
  * Renders a VIEW-ONLY learner activity — prose (markdown) or a media/deferred placeholder. Objective activities are
@@ -127,16 +128,20 @@ function SafeMarkdown({ source }: { source: string }) {
 
 export function LessonActivityView({ activity }: { activity: LearnerActivity }) {
   const t = useT();
+  const media = activity.media;
   if (isMarkdownActivity(activity)) {
     // EXAMPLE steps get a subtle left accent + tinted surface so worked examples read as distinct from explanations.
     const isExample = activity.type === 'EXAMPLE';
     return (
-      <div className={`rounded-panel border p-5 ${isExample ? 'border-border border-l-[3px] border-l-primary bg-surface-2' : 'border-border bg-surface'}`}>
-        <SafeMarkdown source={activity.markdown} />
+      <div className="flex flex-col gap-3">
+        <div className={`rounded-panel border p-5 ${isExample ? 'border-border border-l-[3px] border-l-primary bg-surface-2' : 'border-border bg-surface'}`}>
+          <SafeMarkdown source={activity.markdown} />
+        </div>
+        <LessonMedia media={media} />
       </div>
     );
   }
-  // Metadata-only (IMAGE / AUDIO / deferred types): the learner projection carries no content in runtime v1 — a safe,
-  // honest placeholder rather than a broken media element (§16).
+  // A prose-less step: render attached media if present, otherwise a safe, honest placeholder (never a broken element).
+  if (media && media.length > 0) return <LessonMedia media={media} />;
   return <p className="rounded-panel border border-dashed border-border bg-surface-2 p-5 text-sm text-muted">{t('learner.lesson.unsupported')}</p>;
 }

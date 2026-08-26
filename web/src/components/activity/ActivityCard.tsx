@@ -17,6 +17,7 @@ import { Card, IconButton, useToast } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/status-badge';
 import { MappedSkillsPanel } from '@/components/skills/MappedSkillsPanel';
+import { ActivityMediaPanel } from '@/components/media/ActivityMediaPanel';
 import { MarkdownActivityEditor } from './MarkdownActivityEditor';
 import { ObjectiveActivityEditor } from './ObjectiveActivityEditor';
 import { describeError } from '@/lib/ui/error-text';
@@ -118,6 +119,12 @@ export function ActivityCard({
               setRevisionToken(r.revisionUpdatedAt);
             }}
           />
+        </div>
+      )}
+
+      {(category === 'markdown' || category === 'objective') && (
+        <div className="mt-3 border-t border-border pt-3">
+          <ActivityMediaPanel activityId={activity.id} editable={editable} revisionUpdatedAt={revision.updatedAt} onTokenChange={setRevisionToken} />
         </div>
       )}
 

@@ -211,6 +211,7 @@ model ActivityMedia {
   mediaAssetId String   @map("media_asset_id") @db.Uuid
   roleCode     String?  @map("role_code") // closed registry (kerak bo'lsa)
   position     Int
+  altText      String?  @map("alt_text") // learner-facing alt text for THIS attachment context (image alt / audio label); nullable at DB, IMAGE requires non-empty at the domain layer; never a URL
   createdAt    DateTime @default(now()) @map("created_at")
 
   activity Activity   @relation(fields: [activityId], references: [id], onDelete: Cascade)
