@@ -1,5 +1,6 @@
 import { AuthorizationRepository } from '../authorization/authorization.repository';
 import { CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE } from '../content-authoring/content-authoring.constants';
+import { ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH } from '../assessment-authoring/assessment-authoring.constants';
 
 /**
  * System role bootstrap (§7, TD-27). Faqat role identity — demo user YO'Q.
@@ -18,10 +19,11 @@ export const SYSTEM_ROLES: ReadonlyArray<{ code: string; name: string }> = [
  * role-name bypass. LEARNER/MODERATOR intentionally receive no content permissions.
  */
 export const SYSTEM_ROLE_PERMISSIONS: ReadonlyArray<{ roleCode: string; permissions: readonly string[] }> = [
-  // MVP self-publish (TD-250): METHODIST holds both content.author + content.publish. SubjectAssignment is still
-  // required for every mutation — there is no role-name bypass; an ADMIN without an assignment cannot publish.
-  { roleCode: 'METHODIST', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH] },
-  { roleCode: 'ADMIN', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE] },
+  // MVP self-publish (TD-250): METHODIST holds both content.author + content.publish, and the analogous
+  // assessment.author + assessment.publish. SubjectAssignment is still required for every mutation — there is no
+  // role-name bypass; an ADMIN without an assignment cannot author/publish content OR assessments.
+  { roleCode: 'METHODIST', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH, ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH] },
+  { roleCode: 'ADMIN', permissions: [CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE, ASSESSMENT_AUTHOR, ASSESSMENT_PUBLISH] },
   { roleCode: 'MODERATOR', permissions: [] },
   { roleCode: 'LEARNER', permissions: [] },
 ];

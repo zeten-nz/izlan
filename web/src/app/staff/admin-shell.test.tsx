@@ -75,11 +75,10 @@ describe('Admin shell foundation (WEB-ADMIN)', () => {
     expect(dash.closest('[aria-disabled="true"]')).toBeTruthy();
   });
 
-  it('WEB-ADMIN-05 Assessment is not exposed as a functional route (coming soon only)', () => {
+  it('WEB-ADMIN-05 Assessment (Baholash) is a navigable Studio route', () => {
     renderShell();
-    expect(screen.queryByRole('link', { name: 'Baholash' })).toBeNull();
-    const assessment = screen.getByText('Baholash');
-    expect(assessment.closest('[aria-disabled="true"]')).toBeTruthy();
+    const link = screen.getByRole('link', { name: 'Baholash' });
+    expect(link).toHaveAttribute('href', '/staff/content/assessments');
   });
 
   it('WEB-ADMIN-06 Payment Operations is not wired to any backend route in this phase', () => {

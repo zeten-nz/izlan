@@ -16,12 +16,13 @@ describe('content authoring permissions + bootstrap mapping (Phase 2.2A-1, TD-24
   });
 
   it('AUTH-03 METHODIST default receives content.author + content.publish (MVP self-publish, TD-250)', () => {
-    expect([...permsFor('METHODIST')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_PUBLISH].sort());
+    // arrayContaining, not exact: METHODIST also holds the assessment-authoring codes (assessment.author/publish).
+    expect([...permsFor('METHODIST')]).toEqual(expect.arrayContaining([CONTENT_AUTHOR, CONTENT_PUBLISH]));
     expect(isKnownPermission(CONTENT_PUBLISH)).toBe(true);
   });
 
   it('AUTH-04 ADMIN default receives all three content permissions', () => {
-    expect([...permsFor('ADMIN')].sort()).toEqual([CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE].sort());
+    expect([...permsFor('ADMIN')]).toEqual(expect.arrayContaining([CONTENT_AUTHOR, CONTENT_PUBLISH, CONTENT_SUBJECT_MANAGE]));
   });
 
   it('AUTH-05 LEARNER and MODERATOR receive no content permissions', () => {

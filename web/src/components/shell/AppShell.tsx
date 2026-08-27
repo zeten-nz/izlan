@@ -31,7 +31,7 @@ const SECTIONS: NavSection[] = [
   { header: 'sectionMain', items: [{ key: 'dashboard', icon: FiGrid, soon: true }] },
   { header: 'content', items: [
     { key: 'subjects', icon: FiFolder, href: '/staff/content' },
-    { key: 'assessment', icon: FiClipboard, soon: true },
+    { key: 'assessment', icon: FiClipboard, href: '/staff/content/assessments' },
   ] },
   { header: 'sectionAdmin', items: [
     { key: 'users', icon: FiUsers, soon: true },
@@ -42,6 +42,13 @@ const SECTIONS: NavSection[] = [
     { key: 'system', icon: FiActivity, soon: true },
   ] },
 ];
+
+// All live nav destinations — used so the MOST SPECIFIC matching href wins (e.g. /staff/content/assessments highlights
+// only the assessment item, not the subjects item whose /staff/content is a prefix of it).
+const NAV_HREFS = SECTIONS.flatMap((s) => s.items).flatMap((i) => (i.href ? [i.href] : []));
+const matchesHref = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+const isNavActive = (pathname: string, href: string) =>
+  matchesHref(pathname, href) && !NAV_HREFS.some((other) => other !== href && other.length > href.length && matchesHref(pathname, other));
 
 function NavRow({ item, collapsed, pathname, onNavigate }: { item: NavItem; collapsed: boolean; pathname: string; onNavigate?: () => void }) {
   const t = useT();
@@ -72,7 +79,7 @@ function NavRow({ item, collapsed, pathname, onNavigate }: { item: NavItem; coll
     );
   }
 
-  const active = item.href ? pathname.startsWith(item.href) : false;
+  const active = item.href ? isNavActive(pathname, item.href) : false;
   return (
     <Link
       href={item.href!}
