@@ -5,6 +5,10 @@ import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry'
 import { MissionEvidence } from './mission/daily-mission.policy';
 
 const OBJECTIVE_TYPE_LIST = [...OBJECTIVE_ACTIVITY_TYPES];
+/** Scored objective attempts count regardless of terminal status: V1 lesson/review write SUBMITTED, the V2
+ *  TeachingSession writes EVALUATED — both are real objective learning work. Additive/non-altering for every
+ *  pre-V2 history (teaching is the sole EVALUATED objective writer), so the mission rule is unchanged in reach. */
+const MISSION_ELIGIBLE_STATUSES = [ActivityAttemptStatus.SUBMITTED, ActivityAttemptStatus.EVALUATED];
 
 /** Daily-mission persistence. READS ActivityAttempt evidence + profile timezone; WRITES only append-only
  *  DailyMissionCompletion (+ its evidence). Never writes reward/skill/signal/plan/roadmap/session (§68-73). */
@@ -19,7 +23,7 @@ export class DailyMissionRepository {
   /** One own SUBMITTED objective attempt as mission evidence (automatic path); null if not own/found/objective. */
   async attemptEvidence(userId: string, attemptId: string): Promise<MissionEvidence | null> {
     const a = await this.prisma.activityAttempt.findFirst({
-      where: { id: attemptId, userId, status: ActivityAttemptStatus.SUBMITTED, activity: { type: { in: OBJECTIVE_TYPE_LIST } } },
+      where: { id: attemptId, userId, status: { in: MISSION_ELIGIBLE_STATUSES }, activity: { type: { in: OBJECTIVE_TYPE_LIST } } },
       select: { id: true, status: true, deterministicScore: true, submittedAt: true, reviewSessionId: true, activity: { select: { type: true } } },
     });
     if (!a || !a.submittedAt) return null;
@@ -29,7 +33,7 @@ export class DailyMissionRepository {
   /** All own SUBMITTED objective attempts since `sinceUtc` (reconcile day-window bound; exact localDate filtered in the service). */
   async eligibleAttempts(userId: string, sinceUtc: Date): Promise<MissionEvidence[]> {
     const rows = await this.prisma.activityAttempt.findMany({
-      where: { userId, status: ActivityAttemptStatus.SUBMITTED, submittedAt: { gte: sinceUtc }, activity: { type: { in: OBJECTIVE_TYPE_LIST } } },
+      where: { userId, status: { in: MISSION_ELIGIBLE_STATUSES }, submittedAt: { gte: sinceUtc }, activity: { type: { in: OBJECTIVE_TYPE_LIST } } },
       select: { id: true, status: true, deterministicScore: true, submittedAt: true, reviewSessionId: true, activity: { select: { type: true } } },
       orderBy: [{ submittedAt: 'asc' }, { id: 'asc' }],
     });
