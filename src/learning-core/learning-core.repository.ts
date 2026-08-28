@@ -1,0 +1,535 @@
+import { Injectable } from '@nestjs/common';
+import {
+  ActivityAttemptStatus,
+  ActivityType,
+  ContainerStatus,
+  MasteryEvaluationOutcome,
+  PointAcquisitionType,
+  Prisma,
+  RevisionStatus,
+  RoadmapAvailabilityState,
+  SkillContributionRole,
+  SkillMeasurementSource,
+  TeachingSessionStatus,
+} from '@prisma/client';
+import { PrismaService } from '../database/prisma.service';
+
+export const isUniqueViolation = (e: unknown): boolean =>
+  e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+
+const TERMINAL_SESSION_STATUSES: TeachingSessionStatus[] = [TeachingSessionStatus.COMPLETED, TeachingSessionStatus.ABANDONED];
+
+export interface PublishedPointRow {
+  pointId: string;
+  pointRevisionId: string;
+  pointKey: string;
+  title: string;
+  learningOutcome: Prisma.JsonValue | null;
+  sortOrder: number;
+  estimatedEffortMin: number | null;
+  teachable: boolean; // has published blueprint revision + current mastery requirement revision
+}
+
+export interface TeachablePoint {
+  pointId: string;
+  pointRevisionId: string;
+  title: string;
+  learningOutcome: Prisma.JsonValue | null;
+  blueprintRevisionId: string;
+  masteryRequirementRevisionId: string;
+  requiredSkills: { skillId: string; expectationRevisionId: string }[];
+  masteryGates: Prisma.JsonValue;
+}
+
+export interface BoundActivity {
+  activityId: string;
+  lessonRevisionId: string;
+  type: ActivityType;
+  position: number;
+  payload: Prisma.JsonValue;
+  stageId: string;
+  stageType?: string;
+}
+
+@Injectable()
+export class LearningCoreRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private db(tx?: Prisma.TransactionClient): Prisma.TransactionClient | PrismaService {
+    return tx ?? this.prisma;
+  }
+
+  // ── Subject / level resolution ────────────────────────────────────────────
+  async findSubjectTrack(subjectId: string): Promise<{ trackId: string; levelIds: string[] } | null> {
+    const track = await this.prisma.track.findFirst({ where: { subjectId }, select: { id: true, levels: { select: { id: true } } } });
+    if (!track) return null;
+    return { trackId: track.id, levelIds: track.levels.map((l) => l.id) };
+  }
+
+  /** Published RoadmapPoints for a subject (across its track's levels), ordered by the revision default order. */
+  async listPublishedPoints(levelIds: string[]): Promise<PublishedPointRow[]> {
+    if (levelIds.length === 0) return [];
+    const points = await this.prisma.roadmapPoint.findMany({
+      where: { levelId: { in: levelIds }, status: ContainerStatus.PUBLISHED, publishedRevisionId: { not: null } },
+      select: {
+        id: true,
+        pointKey: true,
+        publishedRevisionId: true,
+        publishedRevision: { select: { id: true, title: true, learningOutcome: true, sortOrderDefault: true, estimatedEffortMin: true } },
+        teachingBlueprint: { select: { publishedRevisionId: true } },
+        masteryRequirement: { select: { currentRevisionId: true } },
+      },
+    });
+    const rows: PublishedPointRow[] = points
+      .filter((p) => p.publishedRevision)
+      .map((p) => ({
+        pointId: p.id,
+        pointRevisionId: p.publishedRevision!.id,
+        pointKey: p.pointKey,
+        title: p.publishedRevision!.title,
+        learningOutcome: p.publishedRevision!.learningOutcome,
+        sortOrder: p.publishedRevision!.sortOrderDefault,
+        estimatedEffortMin: p.publishedRevision!.estimatedEffortMin,
+        teachable: Boolean(p.teachingBlueprint?.publishedRevisionId && p.masteryRequirement?.currentRevisionId),
+      }));
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder || (a.pointKey < b.pointKey ? -1 : 1));
+  }
+
+  /** Full teachable-point resolution (published blueprint revision + current mastery requirement + required skills). */
+  async getTeachablePoint(pointId: string): Promise<TeachablePoint | null> {
+    const point = await this.prisma.roadmapPoint.findFirst({
+      where: { id: pointId, status: ContainerStatus.PUBLISHED, publishedRevisionId: { not: null } },
+      select: {
+        id: true,
+        publishedRevisionId: true,
+        publishedRevision: {
+          select: {
+            id: true,
+            title: true,
+            learningOutcome: true,
+            skillExpectations: {
+              where: { role: SkillContributionRole.REQUIRED },
+              select: { expectation: { select: { id: true, skillId: true, currentRevisionId: true } } },
+            },
+          },
+        },
+        teachingBlueprint: { select: { publishedRevisionId: true } },
+        masteryRequirement: { select: { currentRevisionId: true, currentRevision: { select: { id: true, gates: true } } } },
+      },
+    });
+    if (!point || !point.publishedRevision || !point.teachingBlueprint?.publishedRevisionId || !point.masteryRequirement?.currentRevision) {
+      return null;
+    }
+    const requiredSkills = point.publishedRevision.skillExpectations
+      .filter((se) => se.expectation.currentRevisionId)
+      .map((se) => ({ skillId: se.expectation.skillId, expectationRevisionId: se.expectation.currentRevisionId! }));
+    return {
+      pointId: point.id,
+      pointRevisionId: point.publishedRevision.id,
+      title: point.publishedRevision.title,
+      learningOutcome: point.publishedRevision.learningOutcome,
+      blueprintRevisionId: point.teachingBlueprint.publishedRevisionId,
+      masteryRequirementRevisionId: point.masteryRequirement.currentRevision.id,
+      requiredSkills,
+      masteryGates: point.masteryRequirement.currentRevision.gates,
+    };
+  }
+
+  // ── Roadmap generation / projection ───────────────────────────────────────
+  async findCurrentGeneration(userId: string, subjectId: string) {
+    return this.prisma.learnerRoadmapGeneration.findFirst({
+      where: { userId, subjectId, status: 'CURRENT' },
+    });
+  }
+
+  async maxGenerationNo(userId: string, subjectId: string): Promise<number> {
+    const row = await this.prisma.learnerRoadmapGeneration.aggregate({ where: { userId, subjectId }, _max: { generationNo: true } });
+    return row._max.generationNo ?? 0;
+  }
+
+  /** Create a CURRENT generation + projections for the given published points, atomically. */
+  async createGeneration(userId: string, subjectId: string, trackId: string, engineVersion: string, points: PublishedPointRow[]) {
+    const nextNo = (await this.maxGenerationNo(userId, subjectId)) + 1;
+    return this.prisma.$transaction(async (tx) => {
+      const generation = await tx.learnerRoadmapGeneration.create({
+        data: { userId, subjectId, trackId, generationNo: nextNo, engineVersion, status: 'CURRENT' },
+      });
+      for (const p of points) {
+        await tx.roadmapPointProjection.create({
+          data: {
+            roadmapGenerationId: generation.id,
+            roadmapPointId: p.pointId,
+            roadmapPointRevisionId: p.pointRevisionId,
+            sortOrder: p.sortOrder,
+            availability: p.teachable ? RoadmapAvailabilityState.AVAILABLE : RoadmapAvailabilityState.CONTENT_UNAVAILABLE,
+          },
+        });
+      }
+      return generation;
+    });
+  }
+
+  async getProjections(generationId: string) {
+    return this.prisma.roadmapPointProjection.findMany({
+      where: { roadmapGenerationId: generationId },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        roadmapPointId: true,
+        roadmapPointRevisionId: true,
+        sortOrder: true,
+        acquisition: true,
+        availability: true,
+        attention: true,
+        pointRevision: { select: { title: true, learningOutcome: true, estimatedEffortMin: true } },
+        point: { select: { pointKey: true } },
+      },
+    });
+  }
+
+  /** Authoritative acquisition overlay: which of these points the user has a LEARNED event for. */
+  async learnedPointIds(userId: string, pointIds: string[]): Promise<Set<string>> {
+    if (pointIds.length === 0) return new Set();
+    const rows = await this.prisma.pointAcquisitionEvent.findMany({
+      where: { userId, roadmapPointId: { in: pointIds }, acquisitionType: PointAcquisitionType.LEARNED },
+      select: { roadmapPointId: true },
+    });
+    return new Set(rows.map((r) => r.roadmapPointId));
+  }
+
+  async setProjectionAcquisition(generationId: string, pointId: string, acquisition: PointAcquisitionType): Promise<void> {
+    await this.prisma.roadmapPointProjection.updateMany({
+      where: { roadmapGenerationId: generationId, roadmapPointId: pointId },
+      data: { acquisition, availability: RoadmapAvailabilityState.AVAILABLE },
+    });
+  }
+
+  async activeSessionIdForPoints(userId: string, pointIds: string[]): Promise<Map<string, string>> {
+    if (pointIds.length === 0) return new Map();
+    const rows = await this.prisma.teachingSession.findMany({
+      where: { userId, roadmapPointId: { in: pointIds }, status: { notIn: TERMINAL_SESSION_STATUSES } },
+      select: { id: true, roadmapPointId: true },
+    });
+    return new Map(rows.map((r) => [r.roadmapPointId, r.id]));
+  }
+
+  // ── Teaching session lifecycle ────────────────────────────────────────────
+  async findNonTerminalSession(userId: string, pointId: string) {
+    return this.prisma.teachingSession.findFirst({
+      where: { userId, roadmapPointId: pointId, status: { notIn: TERMINAL_SESSION_STATUSES } },
+    });
+  }
+
+  async findOwnSession(userId: string, sessionId: string) {
+    return this.prisma.teachingSession.findFirst({ where: { id: sessionId, userId } });
+  }
+
+  /** Create a session pinning the point + blueprint revisions and the resolved content-revision set. */
+  async createSession(userId: string, point: TeachablePoint, contentLessonRevisionIds: string[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const session = await tx.teachingSession.create({
+        data: {
+          userId,
+          roadmapPointId: point.pointId,
+          roadmapPointRevisionId: point.pointRevisionId,
+          blueprintRevisionId: point.blueprintRevisionId,
+          status: TeachingSessionStatus.TEACHING,
+          startedAt: new Date(),
+        },
+      });
+      for (const lessonRevisionId of [...new Set(contentLessonRevisionIds)]) {
+        await tx.teachingSessionContentPin.create({ data: { teachingSessionId: session.id, lessonRevisionId } });
+      }
+      return session;
+    });
+  }
+
+  async markSessionCompleted(sessionId: string): Promise<void> {
+    await this.prisma.teachingSession.updateMany({
+      where: { id: sessionId, status: { notIn: TERMINAL_SESSION_STATUSES } },
+      data: { status: TeachingSessionStatus.COMPLETED, completedAt: new Date() },
+    });
+  }
+
+  async updateSessionStatus(sessionId: string, status: TeachingSessionStatus, currentStep?: Prisma.InputJsonValue): Promise<void> {
+    await this.prisma.teachingSession.updateMany({
+      where: { id: sessionId, status: { notIn: TERMINAL_SESSION_STATUSES } },
+      data: { status, ...(currentStep !== undefined ? { currentStep } : {}) },
+    });
+  }
+
+  // ── Blueprint stages / bound activities ───────────────────────────────────
+  async getStagesWithActivities(blueprintRevisionId: string): Promise<{
+    stages: { id: string; position: number; stageType: string; config: Prisma.JsonValue }[];
+    bindings: (BoundActivity & { role: string; bindingPosition: number })[];
+  }> {
+    const stages = await this.prisma.teachingBlueprintStage.findMany({
+      where: { blueprintRevisionId },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        position: true,
+        stageType: true,
+        config: true,
+        bindings: {
+          where: { activityId: { not: null } },
+          orderBy: { position: 'asc' },
+          select: {
+            role: true,
+            position: true,
+            activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true } },
+          },
+        },
+      },
+    });
+    const bindings: (BoundActivity & { role: string; bindingPosition: number })[] = [];
+    for (const s of stages) {
+      for (const b of s.bindings) {
+        if (!b.activity) continue;
+        bindings.push({
+          stageId: s.id,
+          role: b.role,
+          bindingPosition: b.position,
+          activityId: b.activity.id,
+          lessonRevisionId: b.activity.lessonRevisionId,
+          type: b.activity.type,
+          position: b.activity.position,
+          payload: b.activity.payload,
+        });
+      }
+    }
+    return { stages: stages.map((s) => ({ id: s.id, position: s.position, stageType: s.stageType, config: s.config })), bindings };
+  }
+
+  /** Verify the activity belongs to this session's pinned blueprint revision; returns it or null. */
+  async findBoundActivity(blueprintRevisionId: string, activityId: string): Promise<BoundActivity | null> {
+    const binding = await this.prisma.teachingBlueprintContentBinding.findFirst({
+      where: { activityId, stage: { blueprintRevisionId } },
+      select: { blueprintStageId: true, stage: { select: { stageType: true } }, activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true } } },
+    });
+    if (!binding?.activity) return null;
+    return {
+      stageId: binding.blueprintStageId,
+      stageType: binding.stage.stageType,
+      activityId: binding.activity.id,
+      lessonRevisionId: binding.activity.lessonRevisionId,
+      type: binding.activity.type,
+      position: binding.activity.position,
+      payload: binding.activity.payload,
+    };
+  }
+
+  /** Skills each mastery activity is attributed to (ActivitySkill). */
+  async activitySkillIds(activityIds: string[]): Promise<Map<string, string[]>> {
+    if (activityIds.length === 0) return new Map();
+    const rows = await this.prisma.activitySkill.findMany({ where: { activityId: { in: activityIds } }, select: { activityId: true, skillId: true } });
+    const map = new Map<string, string[]>();
+    for (const r of rows) map.set(r.activityId, [...(map.get(r.activityId) ?? []), r.skillId]);
+    return map;
+  }
+
+  // ── Activity attempts (append-only, idempotent) ───────────────────────────
+  async findAttemptByClientRequest(userId: string, clientRequestId: string) {
+    return this.prisma.activityAttempt.findFirst({ where: { userId, clientRequestId } });
+  }
+
+  async maxAttemptNo(userId: string, activityId: string): Promise<number> {
+    const row = await this.prisma.activityAttempt.aggregate({ where: { userId, activityId }, _max: { attemptNo: true } });
+    return row._max.attemptNo ?? 0;
+  }
+
+  createAttempt(data: {
+    userId: string;
+    activityId: string;
+    lessonRevisionId: string;
+    teachingSessionId: string;
+    attemptNo: number;
+    answer: Prisma.InputJsonValue;
+    isCorrect: boolean;
+    deterministicScore: number;
+    clientRequestId: string;
+  }) {
+    return this.prisma.activityAttempt.create({
+      data: {
+        userId: data.userId,
+        activityId: data.activityId,
+        lessonRevisionId: data.lessonRevisionId,
+        teachingSessionId: data.teachingSessionId,
+        attemptNo: data.attemptNo,
+        status: ActivityAttemptStatus.EVALUATED,
+        answer: data.answer,
+        isCorrect: data.isCorrect,
+        deterministicScore: data.deterministicScore,
+        clientRequestId: data.clientRequestId,
+        submittedAt: new Date(),
+      },
+    });
+  }
+
+  /** All the learner's attempts in this session (for progress + best-score derivation). */
+  async sessionAttempts(userId: string, sessionId: string) {
+    return this.prisma.activityAttempt.findMany({
+      where: { userId, teachingSessionId: sessionId },
+      select: { id: true, activityId: true, deterministicScore: true, isCorrect: true, attemptNo: true, submittedAt: true },
+    });
+  }
+
+  /** Subject that owns a roadmap point (point -> level -> track -> subject), for projection scoping. */
+  async subjectIdForPoint(pointId: string): Promise<string | null> {
+    const row = await this.prisma.roadmapPoint.findUnique({
+      where: { id: pointId },
+      select: { level: { select: { track: { select: { subjectId: true } } } } },
+    });
+    return row?.level.track.subjectId ?? null;
+  }
+
+  // ── Evidence + mastery + acquisition (the LEARNED lineage) ─────────────────
+  /**
+   * Append one TEACHING_MASTERY SkillMeasurement per skill (idempotent via the teaching partial-unique) +
+   * SkillMeasurementEvidenceRef rows to the contributing attempts, in one transaction. Returns the measurement
+   * ids for the skills that now have evidence (freshly created or pre-existing).
+   */
+  async appendTeachingEvidence(input: {
+    userId: string;
+    teachingSessionId: string;
+    source: SkillMeasurementSource;
+    derivationVersion: string;
+    evidenceKind: string;
+    independenceLevel: number;
+    observedAt: Date;
+    perSkill: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; expectationRevisionId: string | null; attemptIds: string[] }[];
+  }): Promise<{ skillId: string; measurementId: string }[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const result: { skillId: string; measurementId: string }[] = [];
+      for (const s of input.perSkill) {
+        // Idempotent append: unique on (teaching_session_id, skill_id, source, derivation_version).
+        await tx.skillMeasurement.createMany({
+          data: [{
+            userId: input.userId,
+            skillId: s.skillId,
+            source: input.source,
+            teachingSessionId: input.teachingSessionId,
+            scoreBp: s.scoreBp,
+            confidenceBp: s.confidenceBp,
+            evidenceCount: s.evidenceCount,
+            observedAt: input.observedAt,
+            derivationVersion: input.derivationVersion,
+            evidenceKind: input.evidenceKind,
+            independenceLevel: input.independenceLevel,
+            expectationRevisionId: s.expectationRevisionId,
+          }],
+          skipDuplicates: true,
+        });
+        const measurement = await tx.skillMeasurement.findFirst({
+          where: { userId: input.userId, skillId: s.skillId, source: input.source, teachingSessionId: input.teachingSessionId, derivationVersion: input.derivationVersion },
+          select: { id: true },
+        });
+        if (!measurement) continue;
+        result.push({ skillId: s.skillId, measurementId: measurement.id });
+        // Evidence refs to the contributing attempts (idempotent per (measurement, attempt)).
+        for (const attemptId of [...new Set(s.attemptIds)]) {
+          await tx.skillMeasurementEvidenceRef.createMany({
+            data: [{ skillMeasurementId: measurement.id, activityAttemptId: attemptId }],
+            skipDuplicates: true,
+          });
+        }
+      }
+      return result;
+    });
+  }
+
+  /**
+   * Create the MasteryEvaluation + its exact MasteryEvaluationEvidence rows (idempotent via the evaluation
+   * idempotency unique on (user, point, requirementRev, cutoff)). Returns the evaluation id + whether it was new.
+   */
+  async recordMasteryEvaluation(input: {
+    userId: string;
+    roadmapPointId: string;
+    roadmapPointRevisionId: string;
+    requirementRevisionId: string;
+    outcome: MasteryEvaluationOutcome;
+    policyVersion: string;
+    evidenceCutoffAt: Date;
+    gateSummary: Prisma.InputJsonValue;
+    measurementIds: string[];
+  }): Promise<{ evaluationId: string }> {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.masteryEvaluation.findFirst({
+        where: {
+          userId: input.userId,
+          roadmapPointId: input.roadmapPointId,
+          requirementRevisionId: input.requirementRevisionId,
+          evidenceCutoffAt: input.evidenceCutoffAt,
+        },
+        select: { id: true },
+      });
+      if (existing) return { evaluationId: existing.id };
+      const evaluation = await tx.masteryEvaluation.create({
+        data: {
+          userId: input.userId,
+          roadmapPointId: input.roadmapPointId,
+          roadmapPointRevisionId: input.roadmapPointRevisionId,
+          requirementRevisionId: input.requirementRevisionId,
+          outcome: input.outcome,
+          policyVersion: input.policyVersion,
+          evidenceCutoffAt: input.evidenceCutoffAt,
+          gateSummary: input.gateSummary,
+        },
+      });
+      for (const skillMeasurementId of [...new Set(input.measurementIds)]) {
+        await tx.masteryEvaluationEvidence.create({ data: { masteryEvaluationId: evaluation.id, skillMeasurementId } });
+      }
+      return { evaluationId: evaluation.id };
+    });
+  }
+
+  /** Idempotently create the LEARNED acquisition event (cause-based unique on (user, point, evaluation)). */
+  async recordLearnedAcquisition(input: {
+    userId: string;
+    roadmapPointId: string;
+    roadmapPointRevisionId: string;
+    masteryEvaluationId: string;
+    policyVersion: string;
+  }): Promise<{ acquisitionId: string; created: boolean }> {
+    try {
+      const event = await this.prisma.pointAcquisitionEvent.create({
+        data: {
+          userId: input.userId,
+          roadmapPointId: input.roadmapPointId,
+          roadmapPointRevisionId: input.roadmapPointRevisionId,
+          acquisitionType: PointAcquisitionType.LEARNED,
+          masteryEvaluationId: input.masteryEvaluationId,
+          policyVersion: input.policyVersion,
+        },
+      });
+      return { acquisitionId: event.id, created: true };
+    } catch (e) {
+      if (isUniqueViolation(e)) {
+        const existing = await this.prisma.pointAcquisitionEvent.findFirst({
+          where: { userId: input.userId, roadmapPointId: input.roadmapPointId, masteryEvaluationId: input.masteryEvaluationId },
+          select: { id: true },
+        });
+        if (existing) return { acquisitionId: existing.id, created: false };
+      }
+      throw e;
+    }
+  }
+
+  async findLatestEvaluation(userId: string, roadmapPointId: string) {
+    return this.prisma.masteryEvaluation.findFirst({
+      where: { userId, roadmapPointId },
+      orderBy: { evaluatedAt: 'desc' },
+    });
+  }
+
+  async hasLearnedAcquisition(userId: string, roadmapPointId: string): Promise<boolean> {
+    const row = await this.prisma.pointAcquisitionEvent.findFirst({
+      where: { userId, roadmapPointId, acquisitionType: PointAcquisitionType.LEARNED },
+      select: { id: true },
+    });
+    return Boolean(row);
+  }
+
+  outcomeEnum = MasteryEvaluationOutcome;
+  revisionStatusEnum = RevisionStatus;
+}
