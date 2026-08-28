@@ -205,4 +205,142 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
       expect(kinds).not.toContain('free-production'); // objective items never claim free/independent production
     }
   });
+
+  // ─────────────────────────── real learner journey ───────────────────────────
+
+  const srv = () => app.getHttpServer();
+  let learnerSeq = 0;
+  const A = (r: request.Test, token: string) => r.set('Authorization', `Bearer ${token}`);
+  const pointId = async (key: string) => (await prisma.roadmapPoint.findUniqueOrThrow({ where: { pointKey: key } })).id;
+
+  /** Register + onboard + fresh-start placement → a learner who can reach Today/Roadmap for the A1 subject. */
+  async function makeLearner(): Promise<{ token: string; userId: string }> {
+    const phone = `+99890${String(7900000 + learnerSeq++).slice(-7)}`;
+    const otp = await request(srv()).post('/api/auth/otp/request').send({ phone });
+    const reg = await request(srv()).post('/api/auth/register').send({ challengeId: otp.body.challengeId, code: sms.latestCode(), password: 'LearnerPass!123' });
+    const token = reg.body.accessToken as string;
+    const user = await prisma.user.findUniqueOrThrow({ where: { phone } });
+    await A(request(srv()).patch('/api/profile/me'), token).send({ displayName: 'QA', dateOfBirth: '2004-01-01', timezone: 'Asia/Tashkent' });
+    const sid = await subjectId();
+    const track = (await A(request(srv()).get(`/api/onboarding/subjects/${sid}/tracks`), token)).body[0];
+    await A(request(srv()).put('/api/onboarding/learning-intent'), token).send({ subjectId: sid, trackId: track.id });
+    await A(request(srv()).post('/api/onboarding/complete'), token).send({});
+    await A(request(srv()).post(`/api/v2/placement/subjects/${sid}/from-zero`), token).send({ clientRequestId: randomUUID() });
+    return { token, userId: user.id };
+  }
+
+  /** The correct answer for an objective activity (read from the server-side answerKey — never exposed to the client). */
+  async function correctAnswer(activityId: string): Promise<Record<string, unknown>> {
+    const a = await prisma.activity.findUniqueOrThrow({ where: { id: activityId }, select: { payload: true } });
+    const payload = a.payload as { format?: string; answerKey?: { correctOptionIds?: string[] } };
+    const ids = payload.answerKey?.correctOptionIds ?? [];
+    return payload.format === 'multiple_choice' ? { selectedOptionIds: ids } : { selectedOptionId: ids[0] };
+  }
+
+  /** Learn a point through the REAL teaching flow: answer every objective activity correctly, then mastery-check → LEARNED. */
+  async function learnPoint(token: string, key: string): Promise<void> {
+    const pid = await pointId(key);
+    const start = await A(request(srv()).post(`/api/v2/roadmap-points/${pid}/teaching-session/start`), token);
+    expect(start.status).toBe(200);
+    const sessionId = start.body.id as string;
+    const stages = start.body.stages as { activities: { id: string; kind: string }[] }[];
+    for (const stage of stages) {
+      for (const act of stage.activities) {
+        if (act.kind !== 'OBJECTIVE') continue;
+        await A(request(srv()).post(`/api/v2/teaching-sessions/${sessionId}/activities/${act.id}/attempts`), token).send({ clientRequestId: randomUUID(), answer: await correctAnswer(act.id) });
+      }
+    }
+    const check = await A(request(srv()).post(`/api/v2/teaching-sessions/${sessionId}/mastery-check`), token);
+    expect(check.body.learned).toBe(true);
+  }
+
+  const roadmap = async (token: string) => (await A(request(srv()).get(`/api/v2/roadmap/subjects/${await subjectId()}`), token)).body;
+  const genToday = (token: string) => A(request(srv()).post('/api/v2/daily/me/today'), token);
+  const getToday = (token: string) => A(request(srv()).get('/api/v2/daily/me/today'), token);
+
+  it('CUR-E2E-04 fresh-start placement does NOT silently validate the new authored points (they stay learnable, not VALIDATED)', async () => {
+    const { token } = await makeLearner();
+    const rm = await roadmap(token);
+    const points: { pointKey: string; acquisition: string | null; validated: boolean }[] = rm.points;
+    for (const spec of CURRICULUM_POINT_PLAN) {
+      const p = points.find((x) => x.pointKey === spec.pointKey);
+      expect(p).toBeDefined();
+      expect(p!.acquisition).toBeNull(); // never VALIDATED by adjacent grammar
+      expect(p!.validated).toBe(false);
+    }
+    expect(JSON.stringify(rm)).not.toMatch(/answerKey|correctOptionIds/);
+  });
+
+  it('CUR-E2E-05 after learning "to be", MULTIPLE new points become available; daily plans exactly ONE per local day', async () => {
+    const { token, userId } = await makeLearner();
+    await learnPoint(token, 'ENG-A1-GREETINGS-INTRO');
+    await learnPoint(token, 'ENG-A1-VERB-BE');
+
+    // Branch unlocked: ≥2 unlearned AVAILABLE points (real multi-point availability, not a synthetic graph).
+    const rm = await roadmap(token);
+    const availableUnlearned = (rm.points as { availability: string; learned: boolean; validated: boolean; pointKey: string }[]).filter((p) => p.availability === 'AVAILABLE' && !p.learned && !p.validated);
+    expect(availableUnlearned.length).toBeGreaterThanOrEqual(2);
+    expect(availableUnlearned.map((p) => p.pointKey)).toEqual(expect.arrayContaining(['ENG-A1-ARTICLES']));
+
+    // Daily picks exactly ONE main new point; a same-day repeat is idempotent (generationNo stays 1).
+    const day1 = await genToday(token);
+    expect(day1.body.action.type).toBe('LEARN');
+    const mainKey = day1.body.mainGoal.pointKey as string;
+    expect((await genToday(token)).body.generationNo).toBe(1);
+    expect((await prisma.dailyLearningPlan.count({ where: { userId, status: 'CURRENT' } }))).toBe(1);
+
+    // Finish the main point → SAME local day stays DONE for new curriculum (one-new-point-per-day; no next point unlocks today).
+    await learnPoint(token, mainKey);
+    const after = await getToday(token);
+    expect(after.body.progress.mainGoalDone).toBe(true);
+    expect(after.body.action.type).toBe('DONE');
+    expect(after.body.done).toBe(true);
+
+    // Next local day → a NEW plan selects a DIFFERENT next point.
+    clock.current = new Date('2026-09-02T06:00:00.000Z');
+    const day2 = await genToday(token);
+    expect(day2.body.localDate).toBe('2026-09-02');
+    expect(day2.body.action.type).toBe('LEARN');
+    expect(day2.body.mainGoal.pointKey).not.toBe(mainKey);
+    clock.current = new Date('2026-09-01T06:00:00.000Z');
+  });
+
+  it('CUR-E2E-06 a learner can enter a Content-Studio-authored point (Articles) and LEARN it — LEARNED acquisition persists', async () => {
+    const { token, userId } = await makeLearner();
+    await learnPoint(token, 'ENG-A1-GREETINGS-INTRO');
+    await learnPoint(token, 'ENG-A1-VERB-BE');
+    await learnPoint(token, 'ENG-A1-ARTICLES'); // a NEW point, not an old pilot point
+
+    const articles = await pointId('ENG-A1-ARTICLES');
+    const learned = await prisma.pointAcquisitionEvent.findMany({ where: { userId, roadmapPointId: articles, acquisitionType: 'LEARNED' } });
+    expect(learned.length).toBe(1); // durable LEARNED acquisition
+    const rm = await roadmap(token);
+    const p = (rm.points as { pointKey: string; learned: boolean; acquisition: string }[]).find((x) => x.pointKey === 'ENG-A1-ARTICLES')!;
+    expect(p.learned).toBe(true);
+    expect(p.acquisition).toBe('LEARNED');
+  });
+
+  it('CUR-E2E-07 review/repair adaptation is generic: a REPEATED_MISTAKE signal on Articles drives REPAIR (repair > new learning)', async () => {
+    const { token, userId } = await makeLearner();
+    await learnPoint(token, 'ENG-A1-GREETINGS-INTRO');
+    await learnPoint(token, 'ENG-A1-VERB-BE');
+    await learnPoint(token, 'ENG-A1-ARTICLES');
+
+    // Seed a REAL active repair signal on the Articles skill (the fact); attention is derived at read time.
+    const sid = await subjectId();
+    const skill = await prisma.skill.findUniqueOrThrow({ where: { subjectId_code: { subjectId: sid, code: 'ENG-A1-ARTICLES' } } });
+    await prisma.learnerSignal.create({ data: { userId, subjectId: sid, skillId: skill.id, type: 'REPEATED_MISTAKE', status: 'ACTIVE' } });
+
+    // The generic roadmap projection shows REPAIR on a NON-Present-Simple point, in learner language.
+    const rm = await roadmap(token);
+    const articles = (rm.points as { pointKey: string; attention: string; attentionReason: string }[]).find((p) => p.pointKey === 'ENG-A1-ARTICLES')!;
+    expect(articles.attention).toBe('REPAIR_REQUIRED');
+    expect(articles.attentionReason).toBe('REPEATED_MISTAKE');
+
+    // And the daily action prioritizes REPAIR over new learning.
+    const today = await genToday(token);
+    expect(today.body.action.type).toBe('REPAIR');
+    expect(today.body.action.point.pointKey).toBe('ENG-A1-ARTICLES');
+    expect(userId).toBeTruthy();
+  });
 });
