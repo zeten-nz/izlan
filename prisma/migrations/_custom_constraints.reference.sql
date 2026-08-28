@@ -180,3 +180,11 @@ ALTER TABLE "subscription_cycle" ADD CONSTRAINT "chk_cycle_reward_config_coheren
 -- FP-DB-04: at most one REDEEM ledger entry per redemption (not a global redemption_id UNIQUE — future REVERSAL/
 -- ADJUSTMENT audit entries may share the provenance). Also: ALTER TYPE "IzlReservationStatus" ADD VALUE 'CONSUMED'.
 CREATE UNIQUE INDEX "uq_izl_ledger_redeem_per_redemption" ON "izl_ledger_entry" ("redemption_id") WHERE "redemption_id" IS NOT NULL AND "entry_type" = 'REDEEM';
+
+-- ── Content Quality V2 (Wave E) — migration 20260828160000_content_quality_v2 ──
+-- chk_cqpv_code_nonempty / chk_source_reference_title_nonempty / chk_eid_policy_version_nonempty — non-empty strings
+-- chk_content_provenance_target_xor — ContentSourceProvenance exactly one revision target; uq_content_provenance_{point,blueprint,lesson} dedup source→target
+-- chk_content_review_target_xor — ContentReview exactly one review target
+-- chk_content_quality_issue_target_xor — ContentQualityIssue exactly one issue target
+-- uq_eid_client_request — EvidenceIntegrityDecision command idempotency (client_request_id WHERE NOT NULL)
+-- chk_eis_target_xor — EvidenceIntegrityScope exactly one defective-object target; uq_eis_{activity,assessment_item,version_item,def_version,media,lesson_revision,blueprint_stage} per-target dedup

@@ -68,6 +68,8 @@ model AssessmentDefinitionVersion {
   currentForDef AssessmentDefinition?   @relation("DefinitionCurrentVersion")
   versionItems  AssessmentVersionItem[]
   attempts      AssessmentAttempt[]
+  contentReviews  ContentReview[] // Content Quality V2
+  integrityScopes EvidenceIntegrityScope[] // Content Quality V2
 
   @@unique([definitionId, versionNo])
   @@index([definitionId, status])
@@ -92,6 +94,8 @@ model AssessmentItem {
   versionItems AssessmentVersionItem[]
   responses    AssessmentResponse[]
   media        AssessmentItemMedia[]
+  qualityIssues   ContentQualityIssue[] // Content Quality V2
+  integrityScopes EvidenceIntegrityScope[] // Content Quality V2
 
   @@index([definitionId])
   @@index([skillId])
@@ -108,6 +112,7 @@ model AssessmentVersionItem {
 
   version AssessmentDefinitionVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
   item    AssessmentItem              @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  integrityScopes EvidenceIntegrityScope[] // Content Quality V2
 
   @@unique([versionId, itemId])
   @@index([itemId])

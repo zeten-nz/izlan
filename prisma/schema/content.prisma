@@ -187,6 +187,10 @@ model LessonRevision {
   blueprintBindings  TeachingBlueprintContentBinding[] // V2 Wave B
   teachingSessionPins TeachingSessionContentPin[] // V2 Wave C
   taskMeasurements   SkillMeasurement[]               @relation("MeasurementTaskContentRevision") // V2 Wave C
+  sourceProvenance   ContentSourceProvenance[] // Content Quality V2
+  contentReviews     ContentReview[] // Content Quality V2
+  qualityIssues      ContentQualityIssue[] // Content Quality V2
+  integrityScopes    EvidenceIntegrityScope[] // Content Quality V2
 
   @@unique([lessonId, version])
   @@index([lessonId, status])
@@ -213,6 +217,8 @@ model Activity {
   reviewSessionActivities LearnerReviewSessionActivity[]
   blueprintBindings   TeachingBlueprintContentBinding[] // V2 Wave B
   teachingSessionPins TeachingSessionContentPin[] // V2 Wave C
+  qualityIssues       ContentQualityIssue[] // Content Quality V2
+  integrityScopes     EvidenceIntegrityScope[] // Content Quality V2
 
   @@unique([lessonRevisionId, position])
   @@index([lessonRevisionId])
@@ -465,6 +471,9 @@ model RoadmapPointRevision {
   acquisitionEvents PointAcquisitionEvent[]
   projections       RoadmapPointProjection[]
   placementValidations PlacementDecisionValidation[] // Placement V2 (point-target)
+  sourceProvenance  ContentSourceProvenance[] // Content Quality V2
+  contentReviews    ContentReview[] // Content Quality V2
+  qualityIssues     ContentQualityIssue[] // Content Quality V2
 
   @@unique([roadmapPointId, versionNo])
   @@index([roadmapPointId, status])
@@ -542,6 +551,8 @@ model TeachingBlueprintRevision {
   publishedByUser User?              @relation("BlueprintRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
   stages          TeachingBlueprintStage[]
   teachingSessions TeachingSession[]
+  sourceProvenance ContentSourceProvenance[] // Content Quality V2
+  contentReviews   ContentReview[] // Content Quality V2
 
   @@unique([blueprintId, versionNo])
   @@map("teaching_blueprint_revision")
@@ -562,6 +573,8 @@ model TeachingBlueprintStage {
   branchFromStage TeachingBlueprintStage?  @relation("StageBranch", fields: [branchFromStageId], references: [id], onDelete: Restrict)
   branchTargets  TeachingBlueprintStage[]  @relation("StageBranch")
   bindings       TeachingBlueprintContentBinding[]
+  qualityIssues  ContentQualityIssue[] // Content Quality V2
+  integrityScopes EvidenceIntegrityScope[] // Content Quality V2
 
   @@unique([blueprintRevisionId, position])
   @@index([blueprintRevisionId, position])

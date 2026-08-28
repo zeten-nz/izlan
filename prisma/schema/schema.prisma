@@ -438,3 +438,31 @@ enum ReportStatus {
   ACTIONED
   DISMISSED
 }
+
+// ── Content Quality System V2 (Wave E) ──
+enum ContentPolicyStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ContentReviewOutcome {
+  APPROVED
+  CHANGES_REQUESTED
+  BLOCKED
+}
+
+enum ContentQualityIssueStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+// Current admissibility of historical evidence (§35a) — a DERIVED, versioned decision, never a flag on the measurement.
+enum EvidenceIntegrityOutcome {
+  VALID
+  UNDER_REVIEW
+  INVALIDATED
+  QUALIFIED
+}
