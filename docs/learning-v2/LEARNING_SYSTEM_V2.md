@@ -5,12 +5,13 @@
 > remains the running system and is untouched.
 >
 > **Scope of this document:** the umbrella picture — the engines that make Izlan a real self-study teaching
-> system, and how they connect. Four engines are specified in depth so far: the **Placement Engine** (see
+> system, and how they connect. Five engines are specified in depth so far: the **Placement Engine** (see
 > [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)), the **Roadmap Engine** (see
 > [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)), the **Teaching Engine** (see
-> [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)), and the **Skills Engine** (see
-> [`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md)). The remaining engines are described at contract altitude
-> only; each earns its own deep spec later.
+> [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)), the **Skills Engine** (see
+> [`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md)), and the **Mastery & Review Engine** (see
+> [`MASTERY_REVIEW_ENGINE_V2.md`](./MASTERY_REVIEW_ENGINE_V2.md)). The remaining engine (Content Quality) is
+> described at contract altitude only; it earns its own deep spec later.
 >
 > **Grounding.** This builds on the accepted product decisions (`docs/PRODUCT_DECISIONS.md` D-01…D-43) and
 > the existing implementation (`src/assessment/**`, `src/skill-profile/**`, `src/roadmap/**`,
@@ -133,11 +134,18 @@ independence, exposure≠evidence, NOT_ASSESSED≠0), and domain/level **project
   This domain+level roll-up is the pivotal shared dependency between Placement and Roadmap. Exact schema is
   deferred.
 
-### 2.5 Mastery / Review Engine
-- **In:** `SkillMeasurement` history.
-- **Out:** merged `LearnerSkillState` (`masteryScoreBp`, `confidenceBp`, `evidenceCount`) + review-due signals.
-- **Reuse:** the single-writer merge (`LearningProgressService`, anchors = DIAGNOSTIC/CHECKPOINT) is sound and
-  V2 keeps it. **Open:** no decay/half-life field exists yet (needed for "knowledge fades" review).
+### 2.5 Mastery / Review Engine — *specified now*
+Decides whether a skill/point is sufficiently demonstrated (with what evidence kind + independence), whether the
+knowledge is still fresh, and when/what to review — separating **demonstrated mastery** (durable) from
+**retention/freshness** (current). Full spec:
+[`MASTERY_REVIEW_ENGINE_V2.md`](./MASTERY_REVIEW_ENGINE_V2.md).
+- **In:** append-only `SkillMeasurement` evidence (kind/independence-aware in V2).
+- **Out:** recomputed current projection (mastery + freshness + sufficiency + misconception), point-mastery
+  evaluations, and prioritized review candidates for Daily Plan.
+- **Reuse + rework:** V2 keeps the **single-writer recompute discipline** (`LearningProgressService`) and
+  append-only evidence, but the **merge blending needs rework** — today it drops pre-anchor evidence, blends all
+  evidence kinds into one `masteryScoreBp`, and lets review recall (confidence hard-coded 10000) move mastery
+  like a lesson; historical evidence must never decay (spec §29 risk analysis).
 
 ### 2.6 Content Quality System (cross-cutting)
 - Encodes pedagogical principle #8: *if the material failed to explain a concept, don't automatically blame the
