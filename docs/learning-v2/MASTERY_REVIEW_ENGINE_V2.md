@@ -106,6 +106,15 @@ legitimate past `LEARNED` (B), yet a lower **current** competence projection (C)
 `REPAIR_REQUIRED` (§7). The append-only substrate freezes A/B; the merge/recompute produces C — V2 must not add
 any path that mutates old measurements, and must not freeze C forever either.
 
+**Evidence admissibility representation (audit M7).** When Content Quality confirms a content defect, the
+`SkillMeasurement`/response stays immutable — the fix must **not** be a mutable `isValid`/`admissible` flag
+written onto the measurement (that would break append-only). Instead: **Content Quality emits an
+immutable/versioned evidence-integrity *decision*** for a scoped area (Content Quality §35a); **current evidence
+admissibility** is then a **derived interpretation** over `historical evidence + applicable integrity decisions
++ policy`, which the merge/recompute (C) **consumes** by excluding/qualifying affected evidence. A materialized
+admissibility cache may exist only if explicitly recomputable and **not** the source of truth. Content Quality
+**never** rewrites `LearnerSkillState`, `PlacementDecision`, or Roadmap acquisition/attention.
+
 ## 6. Current projections
 
 Preserve the valuable architecture: **append-only evidence → deterministic/versioned derivation → compact
@@ -160,6 +169,22 @@ unresolved-misconception restrictions · cumulative/mixed evidence · optional *
 pedagogically justified. It uses Skills Engine **Skill-Level Expectations** as input. Exact schema/numbers
 deferred.
 
+**Ownership: authoring vs evaluation (audit M6).** The Mastery Requirement is **authored once** as
+Methodist/canonical curriculum content (versioned, attached to the Skill-Level Expectation and/or point
+blueprint) — **no engine recreates a second requirement for the same point.** Division of labour:
+- **Skills Engine** — defines the *semantics* the requirement references (skills, expectations, evidence kinds,
+  sufficiency) (Skills §8); does not author the requirement.
+- **Canonical curriculum / content authoring (Methodist)** — **authors** the actual requirement.
+- **Content Quality** — **validates before publication** that the Teaching Blueprint/activity set can actually
+  produce the required evidence (Content Quality §20).
+- **Teaching Engine** — **reads** the requirement so its approved path emits appropriate evidence; does not
+  decide global satisfaction.
+- **Mastery & Review Engine (here)** — **evaluates** learner evidence against the **pinned requirement
+  version**.
+- **Roadmap Engine** — **consumes** the evaluation result to decide acquisition (§11/§34).
+- **AI** — must not invent or silently alter a canonical Mastery Requirement.
+(Canonical table: `LEARNING_SYSTEM_V2.md` §7.1.)
+
 ## 11. Point mastery
 
 Teaching-session completion ≠ Roadmap-Point mastery (`TEACHING_ENGINE_V2.md` §21). Flow:
@@ -171,6 +196,14 @@ Teaching session completes → evidence emitted → skill state/projections reco
 ```
 Point mastery must **not** be "all activities viewed" or "one final MC ≥ 90%". (Today `deriveLessonMastery` =
 mean of best MASTERY_TEST — a single-format proxy; EXTEND, §43.)
+
+**Write-authority (audit M2).** Mastery **evaluates** the requirement and **emits a (recomputable) result**; it
+**must not** persist a competing global `point.mastered = true` as another source of truth. **Roadmap is the
+sole writer of the durable point-acquisition event** (`LEARNED`), applied *after* consuming this evaluation
+(Roadmap §11/§12). A Roadmap Point may span multiple lessons/sessions, so the evaluation aggregates the point's
+evidence — it is **not** any single `LearnerLessonCompletion` (per-lesson) or TeachingSession completion
+(per-session). Mastery may reproduce/store its evaluation result for explainability, but ownership of
+acquisition history stays with Roadmap.
 
 ## 12. Evidence sufficiency / diversity
 
@@ -403,9 +436,19 @@ task/version context for reproducibility (Scenario K; today `ActivityAttempt` id
 ## 39. Versioning / reproducibility
 
 Pin: review **selection policy** version · skill **expectation** version (where needed) · **activity/content
-revision** · **scoring/rubric** version · **mastery derivation** version. Historical review outcomes must remain
-interpretable if policies evolve (Scenario L; today `derivationVersion` + `review-due-signal-v1`/
-`review-session-v1` identifiers exist — extend the set).
+revision** · **scoring/rubric** version · **mastery derivation** version · **Mastery Requirement** version ·
+**evidence-integrity/admissibility policy** version (§5). Historical review outcomes must remain interpretable if
+policies evolve (Scenario L; today `derivationVersion` + `review-due-signal-v1`/`review-session-v1` identifiers
+exist — extend the set).
+
+**AI-evaluation version contract (audit m5).** Any AI-assisted evaluation allowed to emit learner evidence
+(productive writing/speaking rubric scoring) must remain reproducible/auditable enough to answer conceptually:
+which **approved evaluation policy / rubric version** was used · which **prompt/instruction-contract version**
+where relevant · which **model/provider/configuration** metadata is relevant and available · which
+**content/activity revision** was evaluated · which **response** was evaluated. **The pinned approved
+rubric/evaluation policy is authoritative — the AI provider/model alone is NOT the canonical scoring policy.**
+If AI evaluation is unavailable, **do not fabricate evidence** — the dimension is `NOT_ASSESSED` (§26). Exact
+fields/provider deferred.
 
 ## 40. Rewards boundary
 

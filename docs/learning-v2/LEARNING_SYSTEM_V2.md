@@ -277,3 +277,86 @@ Carried from the owner's pedagogical principles and accepted decisions (D-05, D-
 
 See the Placement Engine spec's §24 (migration/compatibility) and §21–23 (reuse / can't-support / likely
 schema+API changes) for the concrete, per-field plan.
+
+---
+
+## 7. Cross-engine source-of-truth contract (canonical)
+
+> This is the **canonical cross-engine summary** produced by the reconciliation pass over
+> `CROSS_ENGINE_CONSISTENCY_AUDIT.md` (findings M1–M7, m1–m5). Every engine spec follows it; detailed mechanics
+> stay in the engine specs. **One canonical owner per concept; immutable fact vs recomputable projection kept
+> distinct; one write-authority per truth; no competing mutable truth in another engine.** Schema/table/enum
+> names remain deferred — this fixes ownership and semantics only.
+
+### 7.1 Source-of-truth table
+
+| Concept | Authoritative fact / owner | Derived view (recomputable) | Consumers |
+|---|---|---|---|
+| **Learner response** | immutable evidence fact (lesson-exec / assessment / review) | — | scoring, evidence |
+| **`PlacementDecision`** | Placement — **immutable versioned decision** (recommended study level, validated/weak/prereq areas, policy+provenance) | — | Roadmap, UX, audit |
+| **Assessment validation** | Placement decision (above) + the `SkillMeasurement` evidence behind it | — | Roadmap (records a point VALIDATION event, M1) |
+| **`SkillMeasurement`** | **immutable append-only** evidence fact (+ kind/independence/derivationVersion) | — | Skills, Mastery |
+| **Current `LearnerSkillState` / competence projection** | single-writer merge (`LearningProgressService`) | **projection** over measurements + policy | Placement, Roadmap, Mastery, UX |
+| **Current domain / skill / level-expectation projection** | Skills — projection over evidence (+ Mastery evaluation) | **projection** | Placement, Roadmap, UX |
+| **Mastery Requirement** | **Methodist / canonical curriculum content** — authored once, versioned (M6) | — | Content Quality (validate), Teaching (read), Mastery (evaluate), Roadmap (consume) |
+| **Mastery evaluation** | Mastery & Review — versioned evaluation of evidence vs pinned requirement | **projection** (recomputable) | Roadmap |
+| **`LearnerLessonCompletion`** | lesson-exec — **immutable per-lesson** completion fact (+XP/IZL/time) | — | Roadmap, rewards |
+| **TeachingSession completion** | Teaching — **immutable per-session** terminal-state fact | — | Mastery, Roadmap |
+| **Roadmap Point acquisition** (`LEARNED`/`VALIDATED`) | **Roadmap** — sole writer of the durable acquisition **event** (after Mastery eval / Placement validation), with provenance (M1/M2) | acquisition *state* view | UX, DailyPlan |
+| **`REVIEW_DUE` / `REPAIR_REQUIRED` (Roadmap Attention)** | the underlying **signals/causes** (Mastery / Placement-prereq, with provenance) are the fact | **derived** Roadmap Attention over active signals + policy (M3) | UX, DailyPlan |
+| **Content publication / readiness** | **Content Quality / published content state** (approved Blueprint revision + required deps) | — | Roadmap, Teaching, Placement |
+| **Content availability projection** | derived from publication state (M4) | Roadmap `CONTENT_UNAVAILABLE`; Placement diagnostic-availability | UX |
+| **Evidence-integrity decision** | **Content Quality** — immutable/versioned scoped decision (M7) | — | Skills/Mastery recompute; Placement/Roadmap regenerate |
+| **Current evidence admissibility** | — | **derived** over evidence + integrity decisions + policy (M7) | Skills, Mastery |
+| **Recommended study level** | Placement `PlacementDecision.recommendedStudyLevel` — **decision** (M5.A) | — | Roadmap, UX |
+| **Roadmap curricular position** | Roadmap — progression state through the canonical path (M5.C) | projection | UX, DailyPlan |
+| **`displayLevel`** | — | **cache/denormalized display projection only** (M5.D); never authoritative | UX |
+
+### 7.2 Write-authority (one writer per truth)
+
+Immutable facts are **appended, never mutated**: responses, `SkillMeasurement`, `LearnerLessonCompletion`,
+TeachingSession completion, `PlacementDecision`, Roadmap acquisition events, Content-Quality integrity
+decisions. Recomputable projections have **exactly one recompute owner**: `LearnerSkillState`/competence →
+merge; domain/level projections → Skills; mastery evaluation → Mastery; Roadmap projection + Attention +
+Availability → Roadmap; current admissibility → Skills/Mastery recompute (per CQ decision). **No engine writes
+another engine's truth** — notably Content Quality **never** rewrites `LearnerSkillState`, `PlacementDecision`,
+Roadmap acquisition, or Roadmap attention; it emits decisions the others *consume by recomputing* (M7).
+
+### 7.3 The source-of-truth chain (M1–M7)
+
+`Teaching → response/session fact (immutable) → scoring/eval → SkillMeasurement (immutable) → Skills evidence
+semantics + current projection → Mastery evaluates the pinned Mastery Requirement → Roadmap applies the result
+to point acquisition (event) + projection → Mastery/Placement/prereq produce actionable signals/reasons →
+Roadmap derives Attention (REVIEW_DUE/REPAIR_REQUIRED) → Content Quality owns publication/quality/integrity
+decisions → integrity decisions influence recomputation without rewriting history.` There is **no competing
+writer for any single truth**.
+
+### 7.4 Naming / terminology convention (conceptual, not schema)
+
+To prevent overloaded words at implementation time, qualify concepts by role (these are *semantics*, not
+required suffixes):
+- **…Decision** — a versioned decision an owning engine made at a time (`PlacementDecision`, integrity
+  decision).
+- **…Event / historical fact** — an immutable record that something occurred (completion, acquisition event).
+- **…Measurement / Evidence** — an immutable observed/evaluated evidence fact (`SkillMeasurement`).
+- **…Projection** — a recomputable current interpretation (`LearnerSkillState`, domain/level projection,
+  attention, availability, current admissibility).
+- **…Signal** — an actionable interpretation with reason/category/**provenance**/lifecycle (`LearnerSignal`).
+- **…Requirement / Policy** — a versioned canonical rule (Mastery Requirement, threshold/quality policy).
+- **…Revision** — an immutable published content/config revision (`LessonRevision`, Blueprint revision).
+
+**Never use unqualified** *level · mastery · validation · confidence · completion · availability · review ·
+repair* inside an engine/persistence contract — always say *which* (e.g. "recommended **study** level" vs
+"current competence **projection**" vs "curricular **position**"; "`confidenceBp` = evidence **coverage**", not
+certainty).
+
+### 7.5 State families (keep distinct — never collapse)
+
+Distinct dimensions that may share adjectives; qualify in prose whenever a word recurs:
+content **revision status** · Teaching **session status** · Roadmap **acquisition** (`LEARNED`/`VALIDATED`) ·
+Roadmap **availability** (`AVAILABLE`/`LOCKED`/`CONTENT_UNAVAILABLE`) · Roadmap **attention**
+(`REVIEW_DUE`/`REPAIR_REQUIRED`) · assessment/evidence **sufficiency** (`NOT_ASSESSED`/`INSUFFICIENT_EVIDENCE`/
+`SUFFICIENTLY_ASSESSED`) · **current competence** projection · **retention/freshness** · **review session**
+state · **misconception signal** state · content **quality-review** state · **quality-issue** lifecycle ·
+**evidence-integrity decision** / current **admissibility**. A value from one family must never be stored on
+another family's axis.

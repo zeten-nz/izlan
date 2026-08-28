@@ -307,8 +307,11 @@ new revision** (V1 already enforces immutable published revisions — reuse).
 
 Reuse the `LessonRevision` philosophy. Future **Teaching Blueprint revisions, content revisions,
 activity revisions/references, rubrics, and quality-review provenance** must remain reproducible. A learner
-session pinned to **v3** stays explainable after **v4** exists — **do not mutate historical session content
-behind the learner** (Teaching §28; Mastery §5).
+session pins the **Blueprint revision plus the content-revision *set* it orchestrates** (the single canonical
+phrase used in Teaching §4/§28; audit m4) — pinned to **v3**, it stays explainable after **v4** exists, and we
+**do not mutate historical session content behind the learner** (Teaching §28; Mastery §5). All of these are
+`…Revision`s in the naming convention (`LEARNING_SYSTEM_V2.md` §7.4): immutable published content/config
+revisions.
 
 ## 35. Published-content correction
 
@@ -347,11 +350,20 @@ exactly as recorded; but current projections may treat the resulting mastery evi
 invalidated / needing recomputation** — **never** rewrite history to pretend the original system produced a
 different result.
 
+**Representation (audit M7).** Do **not** solve a defect by writing a mutable authoritative `isValid`/
+`isInvalid`/`admissible` flag **onto the immutable `SkillMeasurement`/response** — that would break append-only
+history (Mastery §5). The authoritative artifact is the **scoped, immutable/versioned integrity *decision***
+above; **current admissibility** is a **derived interpretation** over `historical evidence + applicable
+integrity decisions + versioned policy`. A materialized admissibility cache may exist in a future implementation
+**only** if it is explicitly recomputable and **not** the source of truth.
+
 **Cross-engine boundary (orchestration open).** The Content Quality System does **not** directly rewrite learner
 mastery. It emits an **authoritative quality/evidence-integrity outcome**; **Mastery/Skills/Placement/Roadmap
-consume it under their own versioned policies** — flagging/qualifying affected evidence, **recomputing**
+consume it under their own versioned policies** — qualifying affected evidence, **recomputing**
 `LearnerSkillState`/competence projections (Mastery §5.C/§29; Skills §16), reconsidering Placement-derived
 interpretation where materially affected, and regenerating Roadmap repair/review recommendations where needed.
+Content Quality **never** writes `LearnerSkillState`, `PlacementDecision`, or Roadmap acquisition/attention
+(canonical: `LEARNING_SYSTEM_V2.md` §7.1/§7.2).
 
 **Invalid item ≠ learner failure, and ≠ learner mastery.** Responses to a confirmed wrong/ambiguous item must
 **not** keep counting as clean mastery evidence merely because they were historically recorded — **learners are
@@ -431,6 +443,15 @@ so diagnostic authoring gets the same quality gate as teaching content.
 Roadmap must know whether a canonical point has **publish-ready teaching content**. Distinguish **curriculum
 exists** from **publish-ready teaching content exists** — this powers Roadmap V2's honest `CONTENT_UNAVAILABLE`
 (`ROADMAP_ENGINE_V2.md` §21). Never expose a point as fully teachable if required blueprint/content is missing.
+
+**Authority (audit M4).** Publish-ready availability — an approved/published Teaching Blueprint revision **plus
+all required content/media dependencies** — is owned **here** (Content Quality / published content state) and is
+the **source of truth**. Roadmap `CONTENT_UNAVAILABLE` is a **derived projection** over it, recomputed when
+publication/withdrawal changes; Roadmap must **not** maintain an independently editable content-availability
+truth. Keep **teaching-content availability** (this section, → Roadmap) distinct from **placement/diagnostic
+assessment availability** (published diagnostic definitions + coverage + policy, → Placement §18.3
+`LEVEL_UNAVAILABLE`) — both derive from published-content state, not conflated because both may display
+"unavailable" (canonical: `LEARNING_SYSTEM_V2.md` §7.1).
 
 ## 46. Level coverage
 

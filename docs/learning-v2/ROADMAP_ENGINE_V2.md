@@ -181,6 +181,16 @@ Rules:
 - A validated point that later shows decay can become `REVIEW_DUE` or `REPAIR_REQUIRED` (§12) — validation is
   durable but not immune to new evidence.
 
+**Source-of-truth (audit M1).** Distinguish the **Placement validation *decision*** from the **Roadmap point
+validation *event***. The `PlacementDecision` (Placement §15) is the authoritative, immutable record of *what
+Placement decided* (including `validatedAreas`). Roadmap **does not recompute** that diagnostic validation; it
+**consumes** it and writes a durable **point validation/acquisition event** meaning *"this point was accepted
+into the learner's roadmap history as validated at T"*, carrying **provenance** to the source
+`PlacementDecision`/evidence/policy version. The Roadmap event is **not** a competing statement about what
+Placement decided. Reassessment, competence regression, or an evidence-admissibility change (Content Quality
+§35a) **never rewrite** either historical fact — a new `PlacementDecision` may supersede the decision and the
+current roadmap projection may regenerate (§17), but history survives.
+
 ## 11. Completion semantics
 
 `COMPLETED_BY_LEARNING` = the learner actually worked the point's content (`LearnerLessonCompletion`, with its
@@ -190,6 +200,21 @@ XP/IZL/time side effects). It is a durable historical fact. Distinctions the mod
 - `reconcileCompletion` today marks a roadmap COMPLETED only when **every** item's lesson has an authoritative
   completion; V2 generalizes "satisfied" to *completed **or** validated* at the point level, without faking
   completion rows (§29).
+
+**Granularity & write-authority (audit M2).** Four distinct facts must never be interchanged:
+- **`LearnerLessonCompletion`** — immutable **per-lesson** fact (+XP/IZL/time), written by lesson execution.
+- **TeachingSession completion** — immutable **per-session** terminal-state fact, written by Teaching
+  (Teaching §21). A session reaching its end is **not** point mastery.
+- **Mastery evaluation** — the Mastery Engine's versioned evaluation of evidence vs the pinned Mastery
+  Requirement (Mastery §11) — a recomputable result, not an acquisition fact.
+- **Roadmap Point acquisition event** — the durable **per-point** `LEARNED`/`VALIDATED` fact.
+
+A **Roadmap Point may span multiple lessons/content pieces/sessions** (§5), so its acquisition is **not** the
+same as any single `LearnerLessonCompletion`. **Roadmap is the sole writer of point-acquisition history**, after
+consuming a **Mastery evaluation** (for `LEARNED`) or a **Placement validation** (for `VALIDATED`, §10). The
+Mastery Engine **must not** persist a competing global `point.mastered = true` — it may reproduce the evaluation
+result, but Roadmap owns its application to acquisition history. No fabricated `LearnerLessonCompletion` is ever
+created when a point is validated.
 
 ## 12. Point state model
 
@@ -215,6 +240,21 @@ three independent axes that can coexist:
   and Attention are **recomputed** each projection.
 - **Current gap:** `RoadmapItemStatus` is a single scalar (`PENDING|IN_PROGRESS|COMPLETED|SKIPPED`) — it cannot
   represent LEARNED-and-REVIEW_DUE, or VALIDATED-vs-LEARNED, at all (§29).
+
+**Source-of-truth per axis (audit M2/M3).**
+- **Acquisition** is a **durable fact written only by Roadmap** (§11), from a Mastery evaluation or Placement
+  validation, with provenance. It is the historical acquisition event; regeneration preserves it.
+- **Availability** is a **derived projection** recomputed from the point graph + prerequisites + **published
+  content state** (the availability source of truth is Content Quality/publication, audit M4, §21) — Roadmap
+  does not own an independent content-availability truth.
+- **Attention** (`REVIEW_DUE`/`REPAIR_REQUIRED`) is a **derived projection over the active signals/causes +
+  policy** — **not** an independent source of *why* the learner needs review/repair (audit M3). The underlying
+  **`LearnerSignal`/cause** (with reason, category, provenance, lifecycle) is the fact; Roadmap Attention
+  answers *"what should this point currently show/do because of active evidence and signals?"*. Repair **causes**
+  may originate from **Mastery review** *or* from **Placement/prerequisite analysis** (§9/§13) — the origin is
+  not forced into one engine; Roadmap merely derives the attention view over whichever causes are active.
+- `LEARNED + REVIEW_DUE` and `LEARNED + REPAIR_REQUIRED` remain valid coexisting combinations (Mastery §7);
+  **repair ≠ review** stays a hard distinction (Mastery §8; §13/§14).
 
 ## 13. Repair model
 
@@ -255,6 +295,12 @@ three independent axes that can coexist:
 - **Current support:** module-scoped `Checkpoint` (one per module, backed by an `AssessmentDefinition`) exists
   and is the natural evidence source for level/section exit — REUSE. But there is no level-progression state or
   policy today (§29).
+- **"Current level" disambiguation (audit M5).** Roadmap owns the learner's **curricular position/progression**
+  — *where the learner currently is in the canonical path*. This is **not** automatically the same as their
+  **current competence/proficiency level** (a Skills/Mastery recomputable projection, Skills §20) or the
+  **recommended study level** (the Placement `…Decision`, Placement §15). Never use a bare "current level" in
+  the roadmap contract; say **curricular position** (`LEARNING_SYSTEM_V2.md` §7.1/§7.4). `displayLevel` is a UX
+  cache only, never authoritative here.
 
 ## 16. Generation algorithm — conceptual
 
@@ -345,6 +391,13 @@ Three **separate** concepts — never conflated (owner #13):
   learned).
 - This mirrors Placement's honest degradation (`LEVEL_UNAVAILABLE`, placement §18.3): the macro spine stays
   visible; unavailable points are labeled, not hidden or faked (Scenario G).
+- **Authority (audit M4).** Publish-ready teaching availability is owned by **Content Quality / published
+  content state** (an approved/published Teaching Blueprint revision + all required content/media dependencies,
+  Content Quality §45). Roadmap `CONTENT_UNAVAILABLE` is a **derived Availability projection** over that state —
+  Roadmap **must not** maintain an independently editable content-availability truth; when publication or
+  withdrawal changes, availability is **recomputed**. This is **teaching-content** availability, distinct from
+  **placement/diagnostic** availability (Placement §18.3 `LEVEL_UNAVAILABLE`) — both derive from published-content
+  state, not conflated.
 
 ## 22. Multi-subject compatibility
 

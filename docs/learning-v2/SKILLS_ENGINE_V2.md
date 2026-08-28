@@ -125,6 +125,12 @@ express: **introduced** · **expected** · **reinforced/reviewed** · **assessed
   a related skill.
 - **Current gap:** no skill↔level association at all (`displayLevel` is a nullable derived cache with no FK).
   NEW (§32/§35). Exact thresholds/descriptors deferred.
+- **Boundary vs Mastery Requirement (audit M6).** The Skill-Level Expectation defines the **semantics** a
+  Mastery Requirement *references* (required evidence kinds, independence, sufficiency, exit criticality). It is
+  **not** itself the Mastery Requirement: the **Mastery Requirement is authored once as Methodist/canonical
+  curriculum content**, versioned (attached to the expectation and/or the point blueprint), **evaluated by the
+  Mastery Engine**, and **consumed by Roadmap** (Mastery §10; `LEARNING_SYSTEM_V2.md` §7.1). Skills owns the
+  *vocabulary of ability*; it does not own the requirement.
 
 ## 9. CEFR / product-level semantics
 
@@ -213,7 +219,9 @@ misconception signals where relevant.
 
 V1 `confidenceBp` means evidence **coverage** — **not** psychometric certainty and **not** "probability the
 learner knows the skill." Preserve this. V2 keeps **four** notions distinct and never overloads one field:
-- **A. Mastery/performance estimate** — how well the learner performs (`masteryScoreBp` today).
+- **A. Mastery/performance estimate** — how well the learner performs (`masteryScoreBp` today). Its recomputable
+  current form is canonically the **current competence projection** (audit m2; the single agreed label, Mastery
+  §5.C / §4.A) — always qualify it "current" and treat it as a projection, never a frozen fact.
 - **B. Evidence coverage** — how much evidence relative to a target (today's `confidenceBp`;
   `LESSON_/REVIEW_MASTERY` even hard-code it to `10000`).
 - **C. Evidence sufficiency** — is there *enough* of the *right kinds* to decide at all (feeds
@@ -303,6 +311,18 @@ The Skills Engine provides domain/skill evidence and projections; it must **not*
 certificate." **Placement** uses these projections to recommend a **study level** (e.g. "Recommended study
 level: B2") while **showing domain differences**. Do not collapse `Grammar B2 / Listening B1 / Writing
 NOT_ASSESSED` into a deceptive universal "B2" (`PLACEMENT_ENGINE_V2.md` §4).
+
+**"Current level" disambiguation (audit M5).** There is **no single generic mutable `currentLevel` truth.** Four
+distinct concepts must be kept separate (canonical table in `LEARNING_SYSTEM_V2.md` §7.1):
+- **A — Recommended study level** = the Placement `…Decision` (`PlacementDecision.recommendedStudyLevel`),
+  versioned, made at placement/reassessment time (Placement §15). A **decision**, not a live state.
+- **B — Current proficiency projection** = the Skills/Mastery **recomputable** per-skill/domain/level-expectation
+  projections over evidence (this section + §19/§20). Owned by Skills; changes with evidence.
+- **C — Curricular position** = *where the learner is in the canonical path* (Roadmap §15) — **not** automatically
+  the same as proficiency.
+- **D — `displayLevel`** = a denormalized **UX display cache only**; recomputable; **must not** be the
+  authoritative source for any Placement/Skills/Roadmap decision.
+Never use unqualified "current level" inside an engine/persistence contract — name the exact concept (A/B/C/D).
 
 ## 22. Content / activity mapping
 

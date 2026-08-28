@@ -249,8 +249,9 @@ placementThresholdPolicy/v1 (per subject, Methodist-owned, versioned):
 
 **Overall score alone can never validate a level** (owner decision #5). Passing `validateLevel` makes a level a
 *candidate*; validation additionally requires **all** of: every **required domain** ≥ `requiredDomainFloorBp`,
-sufficient **evidence** across those domains, adequate **assessment coverage** (required domains actually
-measured — not "not assessed"), and no **prerequisite-critical gap**. Worked counter-example: overall 96% but
+sufficient **evidence** across those domains (each required domain `SUFFICIENTLY_ASSESSED`, not `NOT_ASSESSED`
+or `INSUFFICIENT_EVIDENCE` — the three states of Skills §18; audit m1), adequate **assessment coverage**, and no
+**prerequisite-critical gap**. Worked counter-example: overall 96% but
 Listening 42% → **not** `LEVEL_VALIDATED` and **no** C1 offer; instead `CONTINUE_WITH_REPAIR` targeting
 listening + any prerequisite gap (Scenario C, §18a).
 
@@ -382,6 +383,24 @@ Contract obligations: it must be **explainable** (every area traces to evidence)
 (dimensions may be "not assessed"), and **additive** to what roadmap consumes today (which is a per-skill
 diagnostic snapshot) so the roadmap can migrate incrementally (§24).
 
+**Source-of-truth (audit M1/M5).** The `PlacementDecision` is the **authoritative, immutable, versioned
+decision** of the Placement Engine — *what Placement decided at time T*, including the **recommended study
+level** (`recommendedStart`/`recommendedStudyLevel`), `validatedAreas`, weak/prerequisite areas, and its
+policy+provenance. It is a **`…Decision`**, not a mutable state (naming convention, `LEARNING_SYSTEM_V2.md`
+§7.4). Downstream:
+- **Roadmap must NOT independently recompute the diagnostic validation.** It **consumes** `validatedAreas` and
+  may create a durable **Roadmap Point validation/acquisition *event*** (Roadmap §10/§12) meaning *"this point
+  was accepted into the learner's roadmap history as validated at T"* — carrying **provenance** back to this
+  `PlacementDecision`/evidence/policy. That event is **not** a competing statement about what Placement decided
+  (audit M1).
+- The **recommended study level here is a decision**, distinct from the learner's **current competence
+  projection** (Skills/Mastery, recomputable) and the **roadmap curricular position** (Roadmap) — never
+  conflate them under a bare "current level" (audit M5; `LEARNING_SYSTEM_V2.md` §7.1). `displayLevel` is only a
+  UX cache, never authoritative.
+- Reassessment, competence regression, and evidence-admissibility changes **do not rewrite** this historical
+  decision; a **new** `PlacementDecision` may supersede it (§ reassessment) and the current roadmap projection
+  may regenerate — history survives.
+
 ## 15a. Validated-by-assessment ≠ completed-by-learning
 
 A hard semantic distinction the contract must carry (owner decision #6):
@@ -450,8 +469,11 @@ Honest capability matrix — **V2 must not claim to measure what it doesn't**:
 
 These seven are English's initial **subject-scoped** domains (decision #3); another Subject defines its own
 domain set — there is no architecture-wide, English-only domain enum. Rule: a `PlacementDecision`'s
-`domainScores` carries an explicit **"not assessed"** state for any domain not measured. Roadmap and UX must treat "not assessed" as *unknown* (schedule it for teaching/later assessment),
-**never** as a failing 0.
+`domainScores` carries an explicit **assessment state** per domain — `NOT_ASSESSED` (no meaningful evidence) or
+`INSUFFICIENT_EVIDENCE` (some, but not enough for a reliable decision), distinct from `SUFFICIENTLY_ASSESSED`
+(the three states owned by Skills §18; audit m1). Roadmap and UX must treat `NOT_ASSESSED`/`INSUFFICIENT_EVIDENCE`
+as *unknown/undecidable* (schedule for teaching/later assessment), **never** as a failing 0, and required
+domains in either state can block a level-validation decision (§10).
 
 ## 18. Edge cases
 
@@ -462,7 +484,12 @@ domain set — there is no architecture-wide, English-only domain enum. Rule: a 
    must **not** fabricate a result for the unavailable level. The learner is told the level isn't published yet
    and offered explicit choices (e.g. be notified when it opens, or begin at the highest published level) — the
    decision records `LEVEL_UNAVAILABLE` with a reason. The *architecture* is designed for A1–C2 now;
-   *availability* rolls out level-by-level.
+   *availability* rolls out level-by-level. **Availability authority (audit M4):** this `LEVEL_UNAVAILABLE` is
+   about **placement/diagnostic** availability (whether a published diagnostic definition + coverage + policy
+   exist for the level) — a **different** projection from **teaching-content** availability (Roadmap
+   `CONTENT_UNAVAILABLE`, derived from Content Quality publication state). Both derive from published-content
+   state (the source of truth, `LEARNING_SYSTEM_V2.md` §7.1); they are not conflated merely because both may
+   display "unavailable".
 4. **Router can't disambiguate** (answers inconsistent across levels) → pick the **lower** plausible level
    (safe: under-place rather than over-place) and let level-up recover it.
 5. **Listening unavailable mid-diagnostic** (media 503) → that domain = "not assessed"; the rest of the
