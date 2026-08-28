@@ -627,6 +627,37 @@ model DailyPlanItem {
   @@map("daily_plan_item")
 }
 
+/// V2 Daily Learning Plan (Wave F) — a per (learner, subject, local-day) snapshot of "what should I do today".
+/// It SNAPSHOTS the one new-learning RoadmapPoint chosen for the day (enforcing one-new-point-per-day +
+/// reproducibility) and the decision context; the read overlays LIVE attention/repair/review from the V2 roadmap
+/// and routes into the existing Teaching/Review flows. It writes no learner evidence/acquisition/reward and never
+/// mutates a past day's plan (CURRENT/SUPERSEDED generations, like the roadmap generation model).
+model DailyLearningPlan {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  subjectId          String          @map("subject_id") @db.Uuid
+  localDate          DateTime        @map("local_date") @db.Date // calendar date in the learner's timezone (never server UTC)
+  timezoneSnapshot   String          @map("timezone_snapshot") // IANA tz frozen at generation (TD-91)
+  generationNo       Int             @map("generation_no")
+  status             DailyPlanStatus @default(CURRENT)
+  policyVersion      String          @map("policy_version") // non-empty CHECK — the prioritization policy
+  engineVersion      String          @map("engine_version") // non-empty CHECK
+  mainRoadmapPointId String?         @map("main_roadmap_point_id") @db.Uuid // the day's chosen new-learning point (NULL = none/all-done)
+  decision           Json            @db.JsonB // immutable decision snapshot at generation (action, reason, effort, chosen point)
+  generatedAt        DateTime        @default(now()) @map("generated_at")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject   Subject       @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  mainPoint RoadmapPoint? @relation(fields: [mainRoadmapPointId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, subjectId, localDate, generationNo])
+  @@index([userId, subjectId, localDate])
+  // Partial UNIQUE (custom SQL): ux_current_daily_learning_plan (user_id, subject_id, local_date) WHERE status = 'CURRENT'
+  @@map("daily_learning_plan")
+}
+
 // DailyMissionCompletion + Evidence (TD-84) — append-only immutable evidence
 model DailyMissionCompletion {
   id               String   @id @default(uuid(7)) @db.Uuid
