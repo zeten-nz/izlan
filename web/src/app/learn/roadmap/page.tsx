@@ -70,10 +70,25 @@ function RoadmapInner() {
             )}
           </header>
 
+          <PresentSimpleV2Card />
           {!d.roadmap ? <PlacementCta intent={d.selected} /> : <RoadmapPath roadmap={d.roadmap} />}
         </div>
       )}
     </ResourceView>
+  );
+}
+
+/** Entry to the V2 teaching experience — the Present Simple roadmap point (grammar). Additive alongside V1. */
+function PresentSimpleV2Card() {
+  const t = useT();
+  return (
+    <Card className="flex flex-col gap-3 border-primary/30 bg-primary-tint p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="text-lg font-semibold">{t('learner.roadmap.v2Title')}</h2>
+        <p className="mt-1 text-muted">{t('learner.roadmap.v2Body')}</p>
+      </div>
+      <ButtonLink href="/learn/present-simple" className="shrink-0">{t('learner.roadmap.v2Cta')}</ButtonLink>
+    </Card>
   );
 }
 

@@ -53,6 +53,68 @@ enum SkillStatus {
   ARCHIVED
 }
 
+// ---- Learning V2 — canonical curriculum (Wave A; DATA_MODEL_V2_PRISMA_CHANGE_PLAN §3) ----
+// Role an expectation plays when CONSUMED by a RoadmapPoint / MasteryRequirement (Wave B consumers).
+// Expectation lifecycle facets (introduced/expected/reinforced/assessed/required-for-exit) are BOOLEAN
+// columns on SkillLevelExpectationRevision — NOT an enum (correction 1: no SkillExpectationRole).
+enum SkillContributionRole {
+  REQUIRED
+  SUPPORTING
+  OPTIONAL
+}
+
+// Wave B: role a bound content unit plays inside a teaching-blueprint stage.
+enum BlueprintBindingRole {
+  TEACH
+  PRACTICE
+  EVIDENCE
+  EXPOSURE
+}
+
+// Wave C: acquisition provenance kind (XOR-checked). Reused (nullable) as the projection cache.
+enum PointAcquisitionType {
+  LEARNED
+  VALIDATED
+}
+
+// Wave C: V2 teaching-session execution state machine.
+enum TeachingSessionStatus {
+  NOT_STARTED
+  TEACHING
+  PRACTICING
+  REMEDIATING
+  MASTERY_CHECK
+  COMPLETED
+  ABANDONED
+}
+
+// Wave C: mastery evaluation outcome.
+enum MasteryEvaluationOutcome {
+  SATISFIED
+  NOT_SATISFIED
+  INSUFFICIENT_EVIDENCE
+}
+
+// Wave D: roadmap generation lifecycle (own enum, not reused cross-domain).
+enum RoadmapGenerationStatus {
+  CURRENT
+  SUPERSEDED
+}
+
+// Wave D: derived projection caches (non-authoritative).
+enum RoadmapAvailabilityState {
+  LOCKED
+  AVAILABLE
+  IN_PROGRESS
+  CONTENT_UNAVAILABLE
+}
+
+enum RoadmapAttentionState {
+  NONE
+  REVIEW_DUE
+  REPAIR_REQUIRED
+}
+
 // Activity block turlari — TD-21 (VIDEO: lesson content uchun future qiymat)
 enum ActivityType {
   TEXT
@@ -133,6 +195,7 @@ enum SkillMeasurementSource {
   CHECKPOINT
   LESSON_MASTERY
   REVIEW_MASTERY // Phase 1.9C (TD-129) — normalized completed-review evidence; merge-v2 incremental (not anchor)
+  TEACHING_MASTERY // V2 Wave C — mastery evidence produced inside a V2 TeachingSession; merge-v2 incremental (not anchor)
   AI_EVALUATION
   ENGINE_RECALC
 }

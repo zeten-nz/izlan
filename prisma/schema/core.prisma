@@ -39,6 +39,29 @@ model User {
   createdAssessmentDefs AssessmentDefinition[]        @relation("AssessmentDefCreatedBy")
   createdAssessmentVers AssessmentDefinitionVersion[] @relation("AssessmentVerCreatedBy")
 
+  // Learning V2 canonical curriculum (content.prisma) — Wave A
+  createdSubjectDomains         SubjectDomain[]                 @relation("SubjectDomainCreatedBy")
+  reviewedExpectationRevisions  SkillLevelExpectationRevision[] @relation("ExpectationRevReviewedBy")
+  publishedExpectationRevisions SkillLevelExpectationRevision[] @relation("ExpectationRevPublishedBy")
+
+  // Learning V2 canonical curriculum (content.prisma) — Wave B
+  createdRoadmapPoints          RoadmapPoint[]                  @relation("RoadmapPointCreatedBy")
+  reviewedRoadmapPointRevisions RoadmapPointRevision[]          @relation("RoadmapPointRevReviewedBy")
+  publishedRoadmapPointRevisions RoadmapPointRevision[]         @relation("RoadmapPointRevPublishedBy")
+  createdTeachingBlueprints     TeachingBlueprint[]             @relation("BlueprintCreatedBy")
+  reviewedBlueprintRevisions    TeachingBlueprintRevision[]     @relation("BlueprintRevReviewedBy")
+  publishedBlueprintRevisions   TeachingBlueprintRevision[]     @relation("BlueprintRevPublishedBy")
+  createdMasteryRequirements    MasteryRequirement[]            @relation("RequirementCreatedBy")
+  reviewedRequirementRevisions  MasteryRequirementRevision[]    @relation("RequirementRevReviewedBy")
+  publishedRequirementRevisions MasteryRequirementRevision[]    @relation("RequirementRevPublishedBy")
+
+  // Learning V2 learner facts (learning.prisma) — Wave C/D
+  placementDecisions            PlacementDecision[]
+  teachingSessions              TeachingSession[]
+  masteryEvaluations            MasteryEvaluation[]
+  pointAcquisitionEvents        PointAcquisitionEvent[]
+  learnerRoadmapGenerations     LearnerRoadmapGeneration[]
+
   // Learning (learning.prisma)
   assessmentAttempts AssessmentAttempt[]
   skillStates        LearnerSkillState[]
@@ -299,6 +322,8 @@ model MediaAsset {
   communityPostMedia   CommunityPostMedia[]
   activityAttemptMedia ActivityAttempt[]     @relation("AttemptResponseMedia")
   assessmentRespMedia  AssessmentResponse[]  @relation("ResponseMedia")
+  blueprintBindings    TeachingBlueprintContentBinding[] // V2 Wave B
+  teachingSessionPins  TeachingSessionContentPin[] // V2 Wave C
 
   @@index([uploadedBy])
   @@map("media_asset")

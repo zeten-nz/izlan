@@ -106,6 +106,13 @@ export class ActivityPayloadInvalidError extends DomainError {}
 export class ActivityInvalidResponseError extends DomainError {}
 export class ActivityAttemptRequestConflictError extends DomainError {}
 
+// V2 Learning Core (teaching session / mastery / acquisition)
+export class RoadmapPointNotFoundError extends DomainError {}
+export class RoadmapPointNotTeachableError extends DomainError {}
+export class TeachingSessionNotFoundError extends DomainError {}
+export class TeachingActivityNotAvailableError extends DomainError {}
+export class TeachingSessionNotResumableError extends DomainError {}
+
 // Lesson completion + mastery (Phase 1.7C)
 export class LessonConfigurationInvalidError extends DomainError {}
 export class LessonNotReadyForCompletionError extends DomainError {}

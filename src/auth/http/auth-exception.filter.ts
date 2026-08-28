@@ -10,6 +10,11 @@ import {
   ActivityInvalidResponseError,
   ActivityNotFoundError,
   ActivityNotInPinnedRevisionError,
+  RoadmapPointNotFoundError,
+  RoadmapPointNotTeachableError,
+  TeachingSessionNotFoundError,
+  TeachingActivityNotAvailableError,
+  TeachingSessionNotResumableError,
   ActivityPayloadInvalidError,
   ActivityTypeNotSupportedError,
   AssessmentAlreadyCompletedError,
@@ -241,6 +246,12 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof ActivityPayloadInvalidError) return { statusCode: 409, code: 'ACTIVITY_PAYLOAD_INVALID', message: 'activity temporarily unavailable' };
     if (e instanceof ActivityInvalidResponseError) return { statusCode: 400, code: 'ACTIVITY_INVALID_RESPONSE', message: 'invalid response' };
     if (e instanceof ActivityAttemptRequestConflictError) return { statusCode: 409, code: 'ACTIVITY_ATTEMPT_REQUEST_CONFLICT', message: 'request id already used with a different submission' };
+    // V2 Learning Core
+    if (e instanceof RoadmapPointNotFoundError) return { statusCode: 404, code: 'ROADMAP_POINT_NOT_FOUND', message: 'not found' };
+    if (e instanceof RoadmapPointNotTeachableError) return { statusCode: 409, code: 'ROADMAP_POINT_NOT_TEACHABLE', message: 'roadmap point is not teachable yet' };
+    if (e instanceof TeachingSessionNotFoundError) return { statusCode: 404, code: 'TEACHING_SESSION_NOT_FOUND', message: 'not found' };
+    if (e instanceof TeachingActivityNotAvailableError) return { statusCode: 404, code: 'TEACHING_ACTIVITY_NOT_AVAILABLE', message: 'not found' };
+    if (e instanceof TeachingSessionNotResumableError) return { statusCode: 409, code: 'TEACHING_SESSION_NOT_RESUMABLE', message: 'teaching session is not resumable' };
     if (e instanceof LessonConfigurationInvalidError) return { statusCode: 409, code: 'LESSON_CONFIGURATION_INVALID', message: 'lesson content configuration invalid' };
     if (e instanceof LessonNotReadyForCompletionError) return { statusCode: 409, code: 'LESSON_NOT_READY_FOR_COMPLETION', message: 'lesson not ready for completion' };
     if (e instanceof LessonCompletionUnsupportedActivityError) return { statusCode: 409, code: 'LESSON_COMPLETION_UNSUPPORTED_ACTIVITY', message: 'lesson contains an activity not completable yet' };
