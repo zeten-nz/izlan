@@ -5,10 +5,11 @@
 > remains the running system and is untouched.
 >
 > **Scope of this document:** the umbrella picture — the engines that make Izlan a real self-study teaching
-> system, and how they connect. Three engines are specified in depth so far: the **Placement Engine** (see
+> system, and how they connect. Four engines are specified in depth so far: the **Placement Engine** (see
 > [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)), the **Roadmap Engine** (see
-> [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)), and the **Teaching Engine** (see
-> [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)). The remaining engines are described at contract altitude
+> [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)), the **Teaching Engine** (see
+> [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)), and the **Skills Engine** (see
+> [`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md)). The remaining engines are described at contract altitude
 > only; each earns its own deep spec later.
 >
 > **Grounding.** This builds on the accepted product decisions (`docs/PRODUCT_DECISIONS.md` D-01…D-43) and
@@ -112,7 +113,11 @@ practice from recognition to production across skills, and emits recognition-vs-
   checks/remediation/hints/productive-listening-reading-speaking and no teaching-session lifecycle (spec §34
   gap analysis).
 
-### 2.4 Skills Engine
+### 2.4 Skills Engine — *specified now*
+The shared vocabulary of ability every other engine speaks: subject **domains**, skills with a primary domain,
+**skill↔level expectations** (not one owning level), a typed **evidence taxonomy** (recognition vs production,
+independence, exposure≠evidence, NOT_ASSESSED≠0), and domain/level **projections over evidence**. Full spec:
+[`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md).
 - **In:** attempts/answers from Teaching + Placement.
 - **Out:** append-only `SkillMeasurement` evidence, attributed via `ActivitySkill`/`LessonSkill`.
 - **V2 extension (owner decisions):** attribution must roll up to two new dimensions `Skill` cannot express
