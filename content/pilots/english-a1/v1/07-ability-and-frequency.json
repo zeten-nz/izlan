@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-CAN-ABILITY", "name": "can / can't (qobiliyat)", "sortOrder": 180 },
+    { "code": "ENG-A1-FREQUENCY-ADVERBS", "name": "Takror ravishlari (always/usually/never)", "sortOrder": 190 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-017-CAN-ABILITY",
+      "slug": "eng-a1-017-can-ability",
+      "sortOrder": 170,
+      "skillCodes": ["ENG-A1-CAN-ABILITY"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "can / can't — qobiliyat",
+        "description": "can + asosiy fe'l; can't (inkor); Can...? (savol).",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBiror ishni **qila olish** yoki **qila olmaslik**ni aytish uchun **can** va **can't** ishlatiladi: *I can swim.* (suza olaman)" }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Shakl | Tuzilishi | Misol |\n| --- | --- | --- |\n| Tasdiq | ega + **can** + asosiy fe'l | I **can** swim. |\n| Inkor | ega + **can't** (cannot) + fe'l | She **can't** drive. |\n| Savol | **Can** + ega + fe'l ? | **Can** you cook? |\n\n**Muhim:** *can* hamma ega bilan bir xil — *he/she/it* bilan ham **-s qo'shilmaydi**. Fe'l doim **asosiy shakl**da (can swim, can go)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **can** speak English.\n- He **can** play football.\n- We **can't** see the board.\n- **Can** you help me?\n- She **can't** come today." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ swim very well.", "options": [ { "id": "a", "text": "can" }, { "id": "b", "text": "cans" }, { "id": "c", "text": "can to" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> *can* dan keyin **to** qo'ymang; *he/she/it* bilan **-s** qo'shmang.\n>\n> Noto'g'ri: *He can to swim.* → To'g'ri: **He can swim.**\n> Noto'g'ri: *She cans drive.* → To'g'ri: **She can drive.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "They ___ come to the party. (inkor)", "options": [ { "id": "a", "text": "can't" }, { "id": "b", "text": "doesn't can" }, { "id": "c", "text": "can't to" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ you speak French?", "options": [ { "id": "a", "text": "Do you can" }, { "id": "b", "text": "Can" }, { "id": "c", "text": "Are you can" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My brother ___ play the guitar.", "options": [ { "id": "a", "text": "can" }, { "id": "b", "text": "cans" }, { "id": "c", "text": "is can" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "He ___ read, but he can't write yet.", "options": [ { "id": "a", "text": "can" }, { "id": "b", "text": "cans" }, { "id": "c", "text": "can to" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-CAN-ABILITY"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We ___ find the keys. (inkor — topa olmayapmiz)", "options": [ { "id": "a", "text": "can't" }, { "id": "b", "text": "don't can" }, { "id": "c", "text": "aren't can" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **can / can't** + asosiy fe'l (to yo'q, -s yo'q).\n- Savol: **Can** + ega + fe'l?" }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-018-FREQUENCY-ADVERBS",
+      "slug": "eng-a1-018-frequency-adverbs",
+      "sortOrder": 180,
+      "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+      "prerequisiteContentKeys": ["ENG-A1-012-PRESENT-SIMPLE-QUESTIONS"],
+      "revision": {
+        "title": "Takror ravishlari: always, usually, sometimes, never",
+        "description": "Qanchalik tez-tez? Ravishning gapda o'rni (asosiy fe'ldan oldin; be dan keyin).",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBir ishni **qanchalik tez-tez** qilishimizni aytish uchun takror ravishlari kerak: *always* (doim), *never* (hech qachon). Ular Present Simple bilan yaxshi ishlaydi." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n**Chastota (100% → 0%):** always → usually → often → sometimes → never.\n\n**O'rni:**\n| Fe'l turi | O'rni | Misol |\n| --- | --- | --- |\n| Oddiy fe'l | ravish **fe'ldan oldin** | I **usually** get up at 7. |\n| **be** (am/is/are) | ravish **be dan keyin** | She **is** **often** late. |\n\nEslatma: *never* o'zi inkor ma'noni beradi — yana *don't* qo'shilmaydi." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **always** brush my teeth in the morning.\n- We **usually** have lunch at one.\n- He **sometimes** plays football.\n- They **never** drink coffee at night.\n- She **is** **always** happy." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Qaysi gap to'g'ri joylashgan?", "options": [ { "id": "a", "text": "I always drink tea." }, { "id": "b", "text": "I drink always tea." }, { "id": "c", "text": "Always I drink tea." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Ravishni oddiy fe'l **oldiga** qo'ying; *never* bilan yana *don't* ishlatmang.\n>\n> Noto'g'ri: *She goes usually to school.* → To'g'ri: **She usually goes to school.**\n> Noto'g'ri: *I don't never smoke.* → To'g'ri: **I never smoke.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "He ___ late for work.", "options": [ { "id": "a", "text": "is never" }, { "id": "b", "text": "never is" }, { "id": "c", "text": "is don't" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We ___ watch TV in the evening.", "options": [ { "id": "a", "text": "usually" }, { "id": "b", "text": "usually don't need order" }, { "id": "c", "text": "are usually" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My parents ___ visit us on Sundays.", "options": [ { "id": "a", "text": "often" }, { "id": "b", "text": "are often" }, { "id": "c", "text": "often are" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ eats meat. She is a vegetarian.", "options": [ { "id": "a", "text": "never" }, { "id": "b", "text": "always" }, { "id": "c", "text": "usually" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FREQUENCY-ADVERBS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Qaysi gap to'g'ri?", "options": [ { "id": "a", "text": "They are sometimes at home." }, { "id": "b", "text": "They sometimes are at home." }, { "id": "c", "text": "Sometimes they are being at home." } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Chastota: always > usually > often > sometimes > never.\n- Ravish: oddiy fe'ldan **oldin**, *be* dan **keyin**." }
+          }
+        ]
+      }
+    }
+  ]
+}
