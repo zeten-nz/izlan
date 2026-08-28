@@ -5,6 +5,7 @@ import { parseObjectiveActivityPayload } from '../../lesson-execution/activity/o
 import { parseMarkdownActivityPayload } from './markdown-activity-payload';
 import { parseMediaActivityPayload } from './media-activity-payload';
 import { isStructuredSchema, parseStructuredActivityPayload } from './structured-activity-payload';
+import { isListeningSchema, parseListeningActivityPayload } from './listening-activity-payload';
 
 /**
  * ONE canonical authoring-time Activity payload dispatcher (Phase 2.2A-2, §18/TD-248). It consumes the canonical
@@ -26,7 +27,9 @@ export function validateActivityPayloadForAuthoring(type: ActivityType, raw: unk
       // (lesson-activity-structured/v1) — dispatched by schemaVersion. Both are deterministically scored and
       // learner-projected answer-key-free; the pedagogical role stays the ActivityType (MINI_QUESTION/PRACTICE/…).
       try {
-        return (isStructuredSchema(raw) ? parseStructuredActivityPayload(raw) : parseObjectiveActivityPayload(raw)) as unknown as Record<string, unknown>;
+        if (isStructuredSchema(raw)) return parseStructuredActivityPayload(raw) as unknown as Record<string, unknown>;
+        if (isListeningSchema(raw)) return parseListeningActivityPayload(raw) as unknown as Record<string, unknown>;
+        return parseObjectiveActivityPayload(raw) as unknown as Record<string, unknown>;
       } catch {
         throw new ContentActivityPayloadInvalidError('activity payload invalid');
       }

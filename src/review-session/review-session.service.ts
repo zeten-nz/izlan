@@ -14,7 +14,8 @@ import {
   ReviewSessionNotReadyError,
 } from '../common/errors';
 import { ReviewService } from '../review/review.service';
-import { parseInteractiveActivity, scoreInteractive, canonicalizeInteractive, projectInteractiveForLearner, type InteractiveActivity } from '../content/activity/activity-interaction';
+import { parseInteractiveActivity, scoreInteractive, canonicalizeInteractive, type InteractiveActivity } from '../content/activity/activity-interaction';
+import { projectActivityForLearnerRuntime } from '../content/activity/learner-activity-projection';
 import { isObjectiveActivityType } from '../content/activity/activity-registry';
 import { ActivityType } from '@prisma/client';
 import { ReviewSessionRepository } from './review-session.repository';
@@ -139,7 +140,7 @@ export class ReviewSessionService {
       activities: activities.map((a) => {
         const s = summary.get(a.activity.id);
         return {
-          ...this.projectActivity(a.activity.id, a.activity.type, a.position, a.activity.payload),
+          ...this.projectActivity(a.activity.id, a.activity.type, a.position, a.activity.payload, a.activity.media),
           attempted: !!s,
           attemptCount: s?.attemptCount ?? 0,
           bestDeterministicScore: s?.bestDeterministicScore ?? 0,
@@ -241,11 +242,9 @@ export class ReviewSessionService {
     return { attemptId: a.id, activityId: a.activityId, attemptNo: a.attemptNo, isCorrect: a.isCorrect === true, deterministicScore: a.deterministicScore ?? 0, status: a.status, reviewSessionId: a.reviewSessionId, submittedAt: a.submittedAt ? a.submittedAt.toISOString() : null };
   }
 
-  private projectActivity(id: string, type: ActivityType, position: number, rawPayload: unknown) {
-    try {
-      return projectInteractiveForLearner(id, type, position, parseInteractiveActivity(rawPayload)); // learner-safe: no answerKey / accepted set (§35)
-    } catch {
-      return { id, type, position }; // malformed payload → metadata only, never leak
-    }
+  private projectActivity(id: string, type: ActivityType, position: number, rawPayload: unknown, media: { mediaAssetId: string; altText: string | null; media: { mimeType: string } }[]) {
+    // The shared runtime projector: learner-safe (no answerKey / accepted set, §35), dispatches choice/structured/
+    // listening by schemaVersion, and attaches the READY audio stimulus (id = MediaAsset id) for listening activities.
+    return projectActivityForLearnerRuntime({ id, type, position, payload: rawPayload, media: media.map((m) => ({ id: m.mediaAssetId, mimeType: m.media.mimeType, altText: m.altText })) });
   }
 }

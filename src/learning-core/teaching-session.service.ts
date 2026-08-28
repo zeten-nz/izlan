@@ -159,7 +159,7 @@ export class TeachingSessionService {
       const acts = bindings
         .filter((b) => b.stageId === s.id)
         .map<TeachingActivityView>((b) => {
-          const projected = projectActivityForLearnerRuntime({ id: b.activityId, type: b.type, position: b.position, payload: b.payload });
+          const projected = projectActivityForLearnerRuntime({ id: b.activityId, type: b.type, position: b.position, payload: b.payload, media: b.media });
           const kind = getActivityDefinition(b.type).executionKind;
           const last = bestByActivity.get(b.activityId) ?? null;
           return { ...projected, role: b.role, kind, attempted: bestByActivity.has(b.activityId), lastResult: last };

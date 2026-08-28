@@ -126,25 +126,25 @@
             "type": "PRACTICE",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PREP-PLACE"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The bank is ___ the post office. (yonida)", "options": [ { "id": "a", "text": "next to" }, { "id": "b", "text": "under" }, { "id": "c", "text": "in" } ], "answerKey": { "correctOptionIds": ["a"] } }
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: bank pochta bo'limining YONIDA.", "segments": [ { "text": "The bank is " }, { "blankId": "b1" }, { "text": " the post office." } ], "blanks": { "b1": { "accepted": ["next to"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Yonida = next to." }
           },
           {
             "type": "PRACTICE",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PREP-PLACE"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The photos are ___ the wall.", "options": [ { "id": "a", "text": "in" }, { "id": "b", "text": "on" }, { "id": "c", "text": "under" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: suratlar devor USTIDA.", "segments": [ { "text": "The photos are " }, { "blankId": "b1" }, { "text": " the wall." } ], "blanks": { "b1": { "accepted": ["on"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Devorga tegib turgan narsa uchun 'on'." }
           },
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PREP-PLACE"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "There is a car ___ the house. (oldida)", "options": [ { "id": "a", "text": "in front of" }, { "id": "b", "text": "in" }, { "id": "c", "text": "on" } ], "answerKey": { "correctOptionIds": ["a"] } }
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: uy OLDIDA mashina bor.", "segments": [ { "text": "There is a car " }, { "blankId": "b1" }, { "text": " the house." } ], "blanks": { "b1": { "accepted": ["in front of"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Oldida = in front of." }
           },
           {
             "type": "MASTERY_TEST",
             "estimatedDurationMin": 2,
             "skillCodes": ["ENG-A1-PREP-PLACE"],
-            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My shoes are ___ the bed. (ostida)", "options": [ { "id": "a", "text": "on" }, { "id": "b", "text": "under" }, { "id": "c", "text": "next to" } ], "answerKey": { "correctOptionIds": ["b"] } }
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: poyabzalim karavot ostida.", "tokens": [ { "id": "t1", "text": "My" }, { "id": "t2", "text": "shoes" }, { "id": "t3", "text": "are" }, { "id": "t4", "text": "under" }, { "id": "t5", "text": "the" }, { "id": "t6", "text": "bed" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5", "t6"] }, "remediation": "Tartib: Ega + are + o'rin predlogi + ot." }
           },
           {
             "type": "TEXT",

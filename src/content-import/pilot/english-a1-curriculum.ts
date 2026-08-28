@@ -64,6 +64,8 @@ export const CURRICULUM_DOMAIN_CODE = 'GRAMMAR';
  * production (typed output, speaking), so we deliberately do NOT claim 'free-production' (the pilot over-claimed it).
  */
 export const CURRICULUM_EVIDENCE_KINDS = ['recognition', 'controlled-production'] as const;
+/** The structured-production dogfood point (PREP-PLACE) requires controlled-production ONLY — recognition can't satisfy it. */
+export const PREP_PLACE_MASTERY_EVIDENCE_KINDS = ['controlled-production'] as const;
 export const CURRICULUM_MASTERY_THRESHOLD_BP = 8000; // 80%
 export const CURRICULUM_MASTERY_MIN_INDEPENDENCE = 1;
 export const CURRICULUM_MASTERY_POLICY_VERSION = 'v2-a1-curriculum-mastery-v1';
@@ -78,6 +80,13 @@ export interface CurriculumPointSpec {
   skillCode: string; // the REQUIRED skill (1:1 with the lesson's mastery skill)
   lessonContentKey: string; // the lesson whose activities the blueprint orchestrates
   prerequisitePointKeys: string[];
+  /**
+   * Optional per-point mastery override. A point whose lesson uses STRUCTURED production for its mastery evidence
+   * genuinely requires controlled-production at independence 2 — recognition (choice) can no longer satisfy it. Points
+   * without an override keep the default recognition gate ([recognition, controlled-production] @ independence 1).
+   */
+  masteryEvidenceKinds?: readonly string[];
+  masteryMinIndependence?: number;
 }
 
 /** Existing roadmap point keys this expansion builds upon (from provision-v2-english-a1-roadmap.ts). */
@@ -108,7 +117,10 @@ export const CURRICULUM_POINT_PLAN: CurriculumPointSpec[] = [
   {
     pointKey: 'ENG-A1-PREP-PLACE', title: 'O‘rin predloglari', sortOrder: 70, estimatedEffortMin: 20,
     skillCode: 'ENG-A1-PREP-PLACE', lessonContentKey: 'ENG-A1-016-PREP-PLACE', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
-    canDo: ['in/on/under/next to bilan narsa qayerdaligini aytish'],
+    canDo: ['in/on/under/next to bilan narsa qayerdaligini aytish', 'o‘rin predlogli gapni so‘zlardan tuzish (tuzilma ishlab chiqarish)'],
+    // Dogfood: the FIRST non-Present-Simple A1 point taught via STRUCTURED production. Its mastery evidence is
+    // sentence_order + fill_blank, so it honestly requires controlled-production @ independence 2 (Scenario C).
+    masteryEvidenceKinds: PREP_PLACE_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
   },
   {
     pointKey: 'ENG-A1-CAN-ABILITY', title: 'can / can’t — qobiliyat', sortOrder: 80, estimatedEffortMin: 18,
