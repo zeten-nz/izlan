@@ -15,6 +15,9 @@ import {
   TeachingSessionNotFoundError,
   TeachingActivityNotAvailableError,
   TeachingSessionNotResumableError,
+  PlacementSubjectNotAvailableError,
+  PlacementAttemptNotFoundError,
+  PlacementDiagnosticNotReadyError,
   ActivityPayloadInvalidError,
   ActivityTypeNotSupportedError,
   AssessmentAlreadyCompletedError,
@@ -252,6 +255,10 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof TeachingSessionNotFoundError) return { statusCode: 404, code: 'TEACHING_SESSION_NOT_FOUND', message: 'not found' };
     if (e instanceof TeachingActivityNotAvailableError) return { statusCode: 404, code: 'TEACHING_ACTIVITY_NOT_AVAILABLE', message: 'not found' };
     if (e instanceof TeachingSessionNotResumableError) return { statusCode: 409, code: 'TEACHING_SESSION_NOT_RESUMABLE', message: 'teaching session is not resumable' };
+    // Placement V2
+    if (e instanceof PlacementSubjectNotAvailableError) return { statusCode: 404, code: 'PLACEMENT_SUBJECT_NOT_AVAILABLE', message: 'subject not available' };
+    if (e instanceof PlacementAttemptNotFoundError) return { statusCode: 404, code: 'PLACEMENT_ATTEMPT_NOT_FOUND', message: 'not found' };
+    if (e instanceof PlacementDiagnosticNotReadyError) return { statusCode: 409, code: 'PLACEMENT_DIAGNOSTIC_NOT_READY', message: 'diagnostic evidence not available yet' };
     if (e instanceof LessonConfigurationInvalidError) return { statusCode: 409, code: 'LESSON_CONFIGURATION_INVALID', message: 'lesson content configuration invalid' };
     if (e instanceof LessonNotReadyForCompletionError) return { statusCode: 409, code: 'LESSON_NOT_READY_FOR_COMPLETION', message: 'lesson not ready for completion' };
     if (e instanceof LessonCompletionUnsupportedActivityError) return { statusCode: 409, code: 'LESSON_COMPLETION_UNSUPPORTED_ACTIVITY', message: 'lesson contains an activity not completable yet' };

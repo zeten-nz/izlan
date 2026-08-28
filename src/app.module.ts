@@ -27,6 +27,7 @@ import { AssessmentAuthoringModule } from './assessment-authoring/assessment-aut
 import { ContentImportModule } from './content-import/content-import.module';
 import { MediaModule } from './media/media.module';
 import { LearningCoreModule } from './learning-core/learning-core.module';
+import { PlacementV2Module } from './placement-v2/placement-v2.module';
 
 /**
  * AppModule — foundational (Config/Database/Health) + auth core + learner flow (…/LearningProgress/
@@ -63,6 +64,7 @@ import { LearningCoreModule } from './learning-core/learning-core.module';
     ContentImportModule,
     MediaModule,
     LearningCoreModule,
+    PlacementV2Module,
   ],
 })
 export class AppModule {}

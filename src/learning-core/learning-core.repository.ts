@@ -181,7 +181,7 @@ export class LearningCoreRepository {
         acquisition: true,
         availability: true,
         attention: true,
-        pointRevision: { select: { title: true, learningOutcome: true, estimatedEffortMin: true } },
+        pointRevision: { select: { title: true, learningOutcome: true, estimatedEffortMin: true, prerequisites: { select: { prerequisitePointId: true } } } },
         point: { select: { pointKey: true } },
       },
     });
@@ -195,6 +195,22 @@ export class LearningCoreRepository {
       select: { roadmapPointId: true },
     });
     return new Set(rows.map((r) => r.roadmapPointId));
+  }
+
+  /** Latest acquisition kind per point from the authoritative event log (LEARNED preferred over VALIDATED). */
+  async acquisitionByPoint(userId: string, pointIds: string[]): Promise<Map<string, PointAcquisitionType>> {
+    if (pointIds.length === 0) return new Map();
+    const rows = await this.prisma.pointAcquisitionEvent.findMany({
+      where: { userId, roadmapPointId: { in: pointIds } },
+      select: { roadmapPointId: true, acquisitionType: true },
+    });
+    const map = new Map<string, PointAcquisitionType>();
+    for (const r of rows) {
+      const prev = map.get(r.roadmapPointId);
+      if (prev === PointAcquisitionType.LEARNED) continue; // LEARNED wins
+      map.set(r.roadmapPointId, r.acquisitionType);
+    }
+    return map;
   }
 
   async setProjectionAcquisition(generationId: string, pointId: string, acquisition: PointAcquisitionType): Promise<void> {
