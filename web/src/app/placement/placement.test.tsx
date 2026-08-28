@@ -251,6 +251,14 @@ describe('Placement (WEB-PL)', () => {
     expect(h.replace).toHaveBeenCalledWith('/learn');
   });
 
+  it('WEB-PL-25 with ?v2=1 a COMPLETED diagnostic routes to the V2 decision/result flow (not the V1 result)', async () => {
+    h.params = { learningIntentId: 'li1', attempt: 'att1', v2: '1' };
+    h.getAttempt.mockResolvedValue(completed());
+    renderPage();
+    await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/placement/v2/result/att1'));
+    expect(screen.queryByText('Boshlash nuqtangiz tayyor')).toBeNull(); // never the V1 snapshot result
+  });
+
   it('WEB-PL-19 a no-eligible-content roadmap failure is recoverable (message + a continue link)', async () => {
     h.params = { learningIntentId: 'li1', attempt: 'att1' };
     h.getAttempt.mockResolvedValue(completed());

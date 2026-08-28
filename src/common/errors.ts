@@ -113,6 +113,11 @@ export class TeachingSessionNotFoundError extends DomainError {}
 export class TeachingActivityNotAvailableError extends DomainError {}
 export class TeachingSessionNotResumableError extends DomainError {}
 
+// Placement V2 (decision / roadmap generation)
+export class PlacementSubjectNotAvailableError extends DomainError {}
+export class PlacementAttemptNotFoundError extends DomainError {}
+export class PlacementDiagnosticNotReadyError extends DomainError {}
+
 // Lesson completion + mastery (Phase 1.7C)
 export class LessonConfigurationInvalidError extends DomainError {}
 export class LessonNotReadyForCompletionError extends DomainError {}

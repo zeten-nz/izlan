@@ -394,6 +394,7 @@ model SkillLevelExpectationRevision {
   publishedByUser       User?                  @relation("ExpectationRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
   masteryReqExpectations MasteryRequirementSkillExpectation[] // V2 Wave B
   skillMeasurements     SkillMeasurement[] // V2 Wave C (measurements pin this revision)
+  placementValidations  PlacementDecisionValidation[] // Placement V2 (expectation-target)
 
   @@unique([expectationId, versionNo])
   @@map("skill_level_expectation_revision")
@@ -428,6 +429,7 @@ model RoadmapPoint {
   masteryEvaluations MasteryEvaluation[]
   acquisitionEvents PointAcquisitionEvent[]
   projections       RoadmapPointProjection[]
+  placementValidations PlacementDecisionValidation[] // Placement V2
 
   @@index([levelId])
   @@map("roadmap_point")
@@ -462,6 +464,7 @@ model RoadmapPointRevision {
   masteryEvaluations MasteryEvaluation[]
   acquisitionEvents PointAcquisitionEvent[]
   projections       RoadmapPointProjection[]
+  placementValidations PlacementDecisionValidation[] // Placement V2 (point-target)
 
   @@unique([roadmapPointId, versionNo])
   @@index([roadmapPointId, status])

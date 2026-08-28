@@ -19,9 +19,10 @@ export interface V2RoadmapPoint {
   estimatedEffortMin: number | null;
   sortOrder: number;
   availability: 'LOCKED' | 'AVAILABLE' | 'IN_PROGRESS' | 'CONTENT_UNAVAILABLE';
-  acquisition: string | null;
+  acquisition: string | null; // null | LEARNED | VALIDATED
   attention: string;
   learned: boolean;
+  validated: boolean; // acquired via placement evidence (acknowledged, skippable) — distinct from LEARNED
   activeSessionId: string | null;
 }
 

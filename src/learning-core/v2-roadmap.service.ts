@@ -15,6 +15,7 @@ export interface V2RoadmapPointView {
   acquisition: string | null; // null | LEARNED | VALIDATED
   attention: string; // NONE | REVIEW_DUE | REPAIR_REQUIRED
   learned: boolean;
+  validated: boolean;
   activeSessionId: string | null;
 }
 
@@ -53,15 +54,28 @@ export class V2RoadmapService {
 
     const projections = await this.repo.getProjections(generation.id);
     const pointIds = projections.map((p) => p.roadmapPointId);
-    const [learned, activeSessions] = await Promise.all([
-      this.repo.learnedPointIds(userId, pointIds),
+    const [acquisitionMap, activeSessions] = await Promise.all([
+      this.repo.acquisitionByPoint(userId, pointIds),
       this.repo.activeSessionIdForPoints(userId, pointIds),
     ]);
+    const acquired = new Set([...acquisitionMap.keys()]); // learned OR validated points
 
     const points: V2RoadmapPointView[] = projections.map((p) => {
-      const isLearned = learned.has(p.roadmapPointId);
+      const acq = acquisitionMap.get(p.roadmapPointId) ?? null; // LEARNED | VALIDATED | null (authoritative overlay)
+      const isAcquired = acq !== null;
       const activeSessionId = activeSessions.get(p.roadmapPointId) ?? null;
-      const availability = isLearned ? 'AVAILABLE' : activeSessionId ? 'IN_PROGRESS' : p.availability;
+      const prereqsSatisfied = p.pointRevision.prerequisites.every((pre) => acquired.has(pre.prerequisitePointId));
+      // Availability is derived: acquired → AVAILABLE; else IN_PROGRESS if a session is open; else gated by prereqs
+      // (validated/learned prerequisites unlock dependents); CONTENT_UNAVAILABLE is preserved.
+      const availability = isAcquired
+        ? 'AVAILABLE'
+        : activeSessionId
+          ? 'IN_PROGRESS'
+          : p.availability === 'CONTENT_UNAVAILABLE'
+            ? 'CONTENT_UNAVAILABLE'
+            : prereqsSatisfied
+              ? 'AVAILABLE'
+              : 'LOCKED';
       return {
         roadmapPointId: p.roadmapPointId,
         pointKey: p.point.pointKey,
@@ -70,9 +84,10 @@ export class V2RoadmapService {
         estimatedEffortMin: p.pointRevision.estimatedEffortMin,
         sortOrder: p.sortOrder,
         availability,
-        acquisition: isLearned ? 'LEARNED' : p.acquisition,
+        acquisition: acq,
         attention: p.attention,
-        learned: isLearned,
+        learned: acq === 'LEARNED',
+        validated: acq === 'VALIDATED',
         activeSessionId,
       };
     });

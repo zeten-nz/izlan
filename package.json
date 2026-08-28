@@ -21,7 +21,8 @@
     "generate:jwt-keys": "ts-node scripts/generate-jwt-keys.ts",
     "content:pilot:a1:validate": "ts-node scripts/validate-english-a1-pilot.ts",
     "dev:provision:english-a1": "ts-node scripts/provision-english-a1.ts",
-    "dev:provision:v2-present-simple": "ts-node src/bootstrap/provision-v2-present-simple.ts"
+    "dev:provision:v2-present-simple": "ts-node src/bootstrap/provision-v2-present-simple.ts",
+    "dev:provision:v2-english-a1-roadmap": "ts-node src/bootstrap/provision-v2-english-a1-roadmap.ts"
   },
   "dependencies": {
     "@fastify/multipart": "^9.4.0",

@@ -726,6 +726,7 @@ model PlacementDecision {
   supersededBy          PlacementDecision[] @relation("PlacementSupersession")
   acquisitionEvents     PointAcquisitionEvent[]
   roadmapGenerations    LearnerRoadmapGeneration[]
+  validations           PlacementDecisionValidation[] // Placement V2 — normalized validated areas
 
   @@index([userId, subjectId, decidedAt])
   // Partial UNIQUE (custom SQL): uq_placement_decision_attempt_policy (source_assessment_attempt_id, policy_version) WHERE source_assessment_attempt_id IS NOT NULL
@@ -866,6 +867,7 @@ model PointAcquisitionEvent {
   pointRevision     RoadmapPointRevision @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
   masteryEvaluation MasteryEvaluation?   @relation(fields: [masteryEvaluationId], references: [id], onDelete: Restrict)
   placementDecision PlacementDecision?   @relation(fields: [placementDecisionId], references: [id], onDelete: Restrict)
+  validationRefs    PointAcquisitionValidationRef[] // Placement V2 — VALIDATED lineage
 
   @@index([userId, roadmapPointId, acquiredAt])
   // CHECK (custom SQL): chk_pae_provenance — LEARNED⇒eval set & placement null; VALIDATED⇒placement set & eval null
@@ -927,4 +929,52 @@ model RoadmapPointProjection {
   @@unique([roadmapGenerationId, roadmapPointId])
   @@index([roadmapGenerationId, sortOrder])
   @@map("roadmap_point_projection")
+}
+
+// ============================================================================
+// PLACEMENT VALIDATION LINEAGE (docs/learning-v2/DATA_MODEL_V2_PRISMA_CHANGE_PLAN §10, §15a)
+// PlacementDecision -> PlacementDecisionValidation -> PointAcquisitionValidationRef ->
+// PointAcquisitionEvent(VALIDATED). Immutable; never JSON. VALIDATED != COMPLETED/LEARNED.
+// ============================================================================
+
+// PlacementDecisionValidation — one validated area per row (XOR target). What Roadmap consumes to write VALIDATED.
+model PlacementDecisionValidation {
+  id                              String                        @id @default(uuid(7)) @db.Uuid
+  placementDecisionId             String                        @map("placement_decision_id") @db.Uuid
+  targetKind                      PlacementValidationTargetKind @map("target_kind")
+  skillLevelExpectationRevisionId String?                       @map("skill_level_expectation_revision_id") @db.Uuid
+  roadmapPointId                  String?                       @map("roadmap_point_id") @db.Uuid
+  roadmapPointRevisionId          String?                       @map("roadmap_point_revision_id") @db.Uuid // set iff roadmapPointId set (CHECK)
+  validationKind                  PlacementValidationKind       @map("validation_kind")
+  policyVersion                   String                        @map("policy_version")
+  createdAt                       DateTime                      @default(now()) @map("created_at")
+
+  decision            PlacementDecision              @relation(fields: [placementDecisionId], references: [id], onDelete: Cascade)
+  expectationRevision SkillLevelExpectationRevision? @relation(fields: [skillLevelExpectationRevisionId], references: [id], onDelete: Restrict)
+  point               RoadmapPoint?                  @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  pointRevision       RoadmapPointRevision?          @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  validationRefs      PointAcquisitionValidationRef[]
+
+  @@index([placementDecisionId])
+  // CHECK chk_placement_validation_target_xor: exactly one of {expectationRev, point} non-null
+  // CHECK chk_pdv_point_revision_paired: roadmap_point_revision_id set iff roadmap_point_id set
+  // Partial UNIQUE uq_pdv_point (placement_decision_id, roadmap_point_id) WHERE roadmap_point_id IS NOT NULL
+  // Partial UNIQUE uq_pdv_expectation (placement_decision_id, skill_level_expectation_revision_id) WHERE ... IS NOT NULL
+  @@map("placement_decision_validation")
+}
+
+// PointAcquisitionValidationRef — pins the exact PlacementDecisionValidation facts a VALIDATED event consumed.
+model PointAcquisitionValidationRef {
+  id                            String   @id @default(uuid(7)) @db.Uuid
+  pointAcquisitionEventId       String   @map("point_acquisition_event_id") @db.Uuid
+  placementDecisionValidationId String   @map("placement_decision_validation_id") @db.Uuid
+  createdAt                     DateTime @default(now()) @map("created_at")
+
+  event      PointAcquisitionEvent       @relation(fields: [pointAcquisitionEventId], references: [id], onDelete: Cascade)
+  validation PlacementDecisionValidation @relation(fields: [placementDecisionValidationId], references: [id], onDelete: Restrict)
+
+  @@unique([pointAcquisitionEventId, placementDecisionValidationId])
+  @@index([placementDecisionValidationId])
+  @@index([pointAcquisitionEventId])
+  @@map("point_acquisition_validation_ref")
 }
