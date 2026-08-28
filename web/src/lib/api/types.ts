@@ -488,17 +488,12 @@ export interface ReviewCandidateResult {
   uncoveredSkillIds: string[];
 }
 
-export interface ReviewSessionActivity {
-  id: string;
-  type: string;
-  position: number;
-  format: PlacementItemFormat;
-  prompt: string;
-  options: { id: string; text: string }[];
+/** A review activity is a projected learner activity (choice / structured / listening) plus this session's attempt state. */
+export type ReviewSessionActivity = LearnerActivity & {
   attempted: boolean;
   attemptCount: number;
   bestDeterministicScore: number;
-}
+};
 export interface ReviewSessionView {
   id: string;
   status: string; // ACTIVE | COMPLETED

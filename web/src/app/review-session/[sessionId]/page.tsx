@@ -8,11 +8,13 @@ import { useResource } from '@/lib/hooks/use-resource';
 import { completeReviewSession, getReviewSession, submitReviewActivity } from '@/lib/api/review';
 import { isAbortError, isApiError } from '@/lib/api/errors';
 import { describeError } from '@/lib/ui/error-text';
-import type { ActivityAnswer, ReviewSessionView } from '@/lib/api/types';
+import { isObjectiveActivity, isStructuredActivity, isListeningActivity, type ActivityAnswer, type StructuredAnswer, type ReviewSessionView } from '@/lib/api/types';
 import { Button, ButtonLink, Spinner } from '@/components/ui';
 import { ErrorState } from '@/components/ui/states';
 import { FocusLearningShell } from '@/components/learning/FocusLearningShell';
 import { QuestionCard } from '@/components/learning/QuestionCard';
+import { StructuredActivityCard } from '@/components/learning/StructuredActivityCard';
+import { ListeningActivityCard } from '@/components/learning/ListeningActivityCard';
 import { FeedbackBanner } from '@/components/learning/FeedbackBanner';
 
 export default function ReviewSessionPage() {
@@ -60,7 +62,7 @@ function Runner({ initial, onExit }: { initial: ReviewSessionView; onExit: () =>
     setIndex((i) => Math.min(i + 1, activities.length));
   }
 
-  async function onSubmit(activityId: string, answer: ActivityAnswer) {
+  async function onSubmit(activityId: string, answer: ActivityAnswer | StructuredAnswer) {
     setActionError(null);
     setBusy(true);
     try {
@@ -108,18 +110,34 @@ function Runner({ initial, onExit }: { initial: ReviewSessionView; onExit: () =>
         </div>
       ) : feedback ? (
         <div className="flex flex-col gap-6">
-          <p className="text-lg font-semibold text-text">{current.prompt}</p>
+          <p className="text-lg font-semibold text-text">{'prompt' in current ? current.prompt : ''}</p>
           <FeedbackBanner isCorrect={feedback.isCorrect} />
           <div className="flex justify-end"><Button size="xl" onClick={advance} className="min-w-[200px]">{t('learner.review.next')}</Button></div>
         </div>
-      ) : (
+      ) : isStructuredActivity(current) ? (
+        <StructuredActivityCard
+          key={current.id}
+          activity={current}
+          onSubmit={(answer) => onSubmit(current.id, answer)}
+          submitting={busy}
+          submitLabel={t('learner.review.check')}
+        />
+      ) : isListeningActivity(current) ? (
+        <ListeningActivityCard
+          key={current.id}
+          activity={current}
+          onSubmit={(answer) => onSubmit(current.id, answer)}
+          submitting={busy}
+          submitLabel={t('learner.review.check')}
+        />
+      ) : isObjectiveActivity(current) ? (
         <QuestionCard
           item={{ id: current.id, type: current.type, format: current.format, prompt: current.prompt, options: current.options }}
           onSubmit={(answer) => onSubmit(current.id, answer)}
           submitting={busy}
           submitLabel={t('learner.review.check')}
         />
-      )}
+      ) : null}
     </FocusLearningShell>
   );
 }
