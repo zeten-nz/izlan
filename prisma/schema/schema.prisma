@@ -95,6 +95,17 @@ enum MasteryEvaluationOutcome {
   INSUFFICIENT_EVIDENCE
 }
 
+// Placement V2: how a validated area was justified, and which typed target a validation row pins.
+enum PlacementValidationKind {
+  EVIDENCE_BACKED
+  POLICY_PREREQ
+}
+
+enum PlacementValidationTargetKind {
+  EXPECTATION_REVISION
+  ROADMAP_POINT
+}
+
 // Wave D: roadmap generation lifecycle (own enum, not reused cross-domain).
 enum RoadmapGenerationStatus {
   CURRENT
