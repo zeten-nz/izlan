@@ -5,9 +5,10 @@
 > remains the running system and is untouched.
 >
 > **Scope of this document:** the umbrella picture — the engines that make Izlan a real self-study teaching
-> system, and how they connect. Two engines are specified in depth so far: the **Placement Engine** (see
-> [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)) and the **Roadmap Engine** (see
-> [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)). The remaining engines are described at contract altitude
+> system, and how they connect. Three engines are specified in depth so far: the **Placement Engine** (see
+> [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)), the **Roadmap Engine** (see
+> [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)), and the **Teaching Engine** (see
+> [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)). The remaining engines are described at contract altitude
 > only; each earns its own deep spec later.
 >
 > **Grounding.** This builds on the accepted product decisions (`docs/PRODUCT_DECISIONS.md` D-01…D-43) and
@@ -98,13 +99,18 @@ Full spec: [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md).
   skip (it only omits already-*completed* lessons, never lessons placement deems *known*), multi-axis state, or
   regeneration history — see the spec's §29 gap analysis.
 
-### 2.3 Teaching Engine
-- **In:** one roadmap point (a topic / learning path).
-- **Out:** the **micro learning path** — an adaptive sequence within the point (see §3), emitting attempts and
-  mastery evidence.
-- **Biggest open question:** none of the micro-path stages (recognition vs production vs guided writing) are
-  modeled as distinct, adaptively-sequenced units today; `Activity` is a flat typed list under a
-  `LessonRevision`.
+### 2.3 Teaching Engine — *specified now*
+Owns *how* a point is taught: a Methodist-authored **Teaching Blueprint** driving a micro path that teaches,
+checks understanding early, **diagnoses misconceptions**, remediates with contrasting examples, scaffolds
+practice from recognition to production across skills, and emits recognition-vs-production evidence. Full spec:
+[`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md).
+- **In:** one roadmap point + its pinned blueprint revision.
+- **Out:** a taught session emitting attempts + mastery evidence (recognition vs production, scaffold usage,
+  misconception signals) — never scheduling, never re-deciding the point.
+- **Central redesign:** today a lesson is present-and-test — the whole `Activity[]` shown at once, only
+  objective (`single/multiple/true_false`) items answerable, deterministic score → next, no
+  checks/remediation/hints/productive-listening-reading-speaking and no teaching-session lifecycle (spec §34
+  gap analysis).
 
 ### 2.4 Skills Engine
 - **In:** attempts/answers from Teaching + Placement.
