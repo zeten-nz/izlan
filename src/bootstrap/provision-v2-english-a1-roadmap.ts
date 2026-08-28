@@ -73,7 +73,10 @@ export const A1_POINT_PLAN: PointSpec[] = [
   { key: 'ENG-A1-VERB-BE', title: 'The verb to be', sortOrder: 20, skillCodes: ['ENG-A1-BE-AFFIRMATIVE', 'ENG-A1-BE-NEGATIVE', 'ENG-A1-BE-QUESTIONS'], lessonKeys: ['ENG-A1-003-BE-AFFIRMATIVE', 'ENG-A1-004-BE-NEGATIVE', 'ENG-A1-005-BE-QUESTIONS'], canDo: ['am/is/are tasdiq, inkor va savol shakllari'] },
   { key: 'ENG-A1-PERSONAL-INFO', title: 'Numbers & Personal info', sortOrder: 30, skillCodes: ['ENG-A1-NUMBERS', 'ENG-A1-PERSONAL-INFO'], lessonKeys: ['ENG-A1-006-NUMBERS-PERSONAL-INFO'], canDo: ['Sonlar (0–100) va shaxsiy ma’lumot'] },
   { key: 'ENG-A1-FAMILY-POSSESSION', title: 'Family & Possession', sortOrder: 40, skillCodes: ['ENG-A1-POSSESSIVE-ADJECTIVES', 'ENG-A1-FAMILY-VOCAB', 'ENG-A1-HAVE-HAS'], lessonKeys: ['ENG-A1-007-POSSESSIVE-ADJECTIVES', 'ENG-A1-008-FAMILY', 'ENG-A1-009-HAVE-HAS'], canDo: ['Egalik sifatlari, oila a’zolari, have/has'] },
-  { key: 'ENG-A1-PRESENT-SIMPLE', title: 'Present Simple', sortOrder: 100, skillCodes: ['ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-PRESENT-SIMPLE-QUESTIONS'], lessonKeys: ['ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-011-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-012-PRESENT-SIMPLE-QUESTIONS'], canDo: ['Present simple: odat, fakt; -s; inkor va savol'] },
+  // Reconciled with provision-v2-present-simple.ts (which authors the richer 6-stage blueprint for THIS point): same
+  // learning outcome so the two dev provisioners agree on the point's data regardless of which runs first (both are
+  // idempotent on pointKey+versionNo). Run present-simple for the deeper blueprint; this superset for the whole graph.
+  { key: 'ENG-A1-PRESENT-SIMPLE', title: 'Present Simple', sortOrder: 100, skillCodes: ['ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-PRESENT-SIMPLE-QUESTIONS'], lessonKeys: ['ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-011-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-012-PRESENT-SIMPLE-QUESTIONS'], canDo: ['Present simple’dan odat, kundalik ish va umumiy faktlar uchun foydalanish', 'He/She/It bilan -s qo‘shimchasini to‘g‘ri qo‘llash', 'Inkor (don’t/doesn’t) va savol (do/does) shakllarini tuzish'] },
 ];
 
 const REQUIRED_EVIDENCE_KINDS = ['controlled-production', 'free-production'];
