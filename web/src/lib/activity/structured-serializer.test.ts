@@ -15,7 +15,7 @@ describe('structured-serializer (mirrors backend lesson-activity-structured/v1)'
     expect(structuredDraftError(d)).toBeNull();
     const p = serializeStructuredPayload(d) as { segments: unknown[]; blanks: Record<string, { accepted: string[] }> };
     expect(p.segments).toEqual([{ text: 'I have ' }, { blankId: 'b1' }, { text: ' apple.' }]);
-    expect(p.blanks.b1.accepted).toEqual(['an', 'a']);
+    expect(p.blanks.b1!.accepted).toEqual(['an', 'a']);
   });
 
   it('SS-03 controlled_text: one accepted answer per line', () => {

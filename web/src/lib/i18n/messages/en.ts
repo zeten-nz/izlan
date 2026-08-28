@@ -1047,6 +1047,10 @@ const en: Messages = {
         controlled_text: 'Check spelling and word choice, then try again.',
       },
     },
+    listening: {
+      listenFirst: 'Listen first',
+      noAudio: 'Audio is not available yet.',
+    },
     daily: {
       title: 'Today',
       subtitle: 'Izlan picked what you should do today.',

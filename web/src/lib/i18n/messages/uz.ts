@@ -1082,6 +1082,10 @@ const uz = {
         controlled_text: 'Imlo va so‘z tanlashni tekshiring va yana urinib ko‘ring.',
       },
     },
+    listening: {
+      listenFirst: 'Avval tinglang',
+      noAudio: 'Audio hozircha mavjud emas.',
+    },
     daily: {
       title: 'Bugun',
       subtitle: 'Bugun nima qilishingiz kerakligini Izlan tanladi.',

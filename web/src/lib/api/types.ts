@@ -408,6 +408,7 @@ export type LearnerActivity =
   | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'sentence_order'; prompt: string; tokens: { id: string; text: string }[] }
   | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'fill_blank'; prompt: string; segments: FillBlankSegment[]; blankIds: string[] }
   | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'controlled_text'; prompt: string }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'listening_comprehension'; prompt: string; options: { id: string; text: string }[] }
   | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; markdown: string }
   | { id: string; type: string; position: number; media?: LearnerMedia[] };
 
@@ -419,6 +420,14 @@ export function isObjectiveActivity(a: LearnerActivity): a is Extract<LearnerAct
 }
 export function isStructuredActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: StructuredFormat }> {
   return 'format' in a && STRUCTURED_FORMATS.includes(a.format);
+}
+/** A listening comprehension activity: a canonical audio stimulus (in `media`) + a single-choice comprehension question. */
+export function isListeningActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: 'listening_comprehension' }> {
+  return 'format' in a && a.format === 'listening_comprehension';
+}
+/** The audio stimulus attached to a listening activity, if any (id → GET /api/media/:id/content). */
+export function audioMediaOf(a: LearnerActivity): LearnerMedia | undefined {
+  return a.media?.find((m) => m.kind === 'audio');
 }
 export function isMarkdownActivity(a: LearnerActivity): a is Extract<LearnerActivity, { markdown: string }> {
   return 'markdown' in a;
