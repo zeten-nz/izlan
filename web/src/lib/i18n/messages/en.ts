@@ -1012,6 +1012,18 @@ const en: Messages = {
       backToRoadmap: 'Back to roadmap',
       stage: { concept: 'Concept', recognition: 'Recognition', production: 'Practice', mastery: 'Mastery check' },
     },
+    structured: {
+      typeAnswer: 'Type your answer…',
+      yourSentence: 'Your sentence',
+      tapToBuild: 'Tap the words in order.',
+      reset: 'Reset',
+      blanksToFix: 'Fix {n} more blank(s).',
+      retry: {
+        sentence_order: 'Check the word order and try again.',
+        fill_blank: 'Fill each blank carefully.',
+        controlled_text: 'Check spelling and word choice, then try again.',
+      },
+    },
     daily: {
       title: 'Today',
       subtitle: 'Izlan picked what you should do today.',

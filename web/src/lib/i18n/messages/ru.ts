@@ -1012,6 +1012,18 @@ const ru: Messages = {
       backToRoadmap: 'Назад к маршруту',
       stage: { concept: 'Понятие', recognition: 'Распознавание', production: 'Практика', mastery: 'Итоговая проверка' },
     },
+    structured: {
+      typeAnswer: 'Введите ответ…',
+      yourSentence: 'Ваше предложение',
+      tapToBuild: 'Нажимайте слова по порядку.',
+      reset: 'Сбросить',
+      blanksToFix: 'Исправьте ещё {n} пропуск(ов).',
+      retry: {
+        sentence_order: 'Проверьте порядок слов и попробуйте снова.',
+        fill_blank: 'Внимательно заполните пропуски.',
+        controlled_text: 'Проверьте орфографию и выбор слов, затем попробуйте снова.',
+      },
+    },
     daily: {
       title: 'Сегодня',
       subtitle: 'Izlan выбрал, что вам стоит сделать сегодня.',

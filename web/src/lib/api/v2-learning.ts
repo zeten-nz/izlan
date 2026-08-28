@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import type { LearnerActivity, ActivityAnswer } from './types';
+import type { LearnerActivity, ActivityAnswer, StructuredAnswer, StructuredFeedback } from './types';
 
 /**
  * V2 Learning Core API wrappers (roadmap generation/projection + teaching session lifecycle). Server is the sole
@@ -77,7 +77,8 @@ export interface TeachingAttemptView {
   attemptNo: number;
   isCorrect: boolean;
   deterministicScore: number;
-  remediation: string | null;
+  remediation: string | null; // generic nudge (choice)
+  feedback: StructuredFeedback | null; // structured-format learner-safe feedback
 }
 
 export interface MasteryCheckView {
@@ -118,7 +119,7 @@ export function fetchTeachingSession(sessionId: string): Promise<TeachingSession
   return apiRequest(`/api/v2/teaching-sessions/${sessionId}`);
 }
 
-export function submitTeachingActivity(sessionId: string, activityId: string, answer: ActivityAnswer): Promise<TeachingAttemptView> {
+export function submitTeachingActivity(sessionId: string, activityId: string, answer: ActivityAnswer | StructuredAnswer): Promise<TeachingAttemptView> {
   return apiRequest(`/api/v2/teaching-sessions/${sessionId}/activities/${activityId}/attempts`, {
     method: 'POST',
     body: { clientRequestId: crypto.randomUUID(), answer },

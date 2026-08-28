@@ -1047,6 +1047,18 @@ const uz = {
       backToRoadmap: 'Yo‘l xaritasiga qaytish',
       stage: { concept: 'Tushuncha', recognition: 'Tanib olish', production: 'Mashq', mastery: 'Yakuniy tekshiruv' },
     },
+    structured: {
+      typeAnswer: 'Javobingizni yozing…',
+      yourSentence: 'Sizning gapingiz',
+      tapToBuild: 'So‘zlarni tartib bilan bosing.',
+      reset: 'Tozalash',
+      blanksToFix: 'Yana {n} ta joyni to‘g‘rilang.',
+      retry: {
+        sentence_order: 'So‘z tartibini qayta ko‘rib chiqing va yana urinib ko‘ring.',
+        fill_blank: 'Bo‘sh joylarni diqqat bilan to‘ldiring.',
+        controlled_text: 'Imlo va so‘z tanlashni tekshiring va yana urinib ko‘ring.',
+      },
+    },
     daily: {
       title: 'Bugun',
       subtitle: 'Bugun nima qilishingiz kerakligini Izlan tanladi.',
