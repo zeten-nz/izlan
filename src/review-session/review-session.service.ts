@@ -14,8 +14,7 @@ import {
   ReviewSessionNotReadyError,
 } from '../common/errors';
 import { ReviewService } from '../review/review.service';
-import { ObjectiveActivityScorerService } from '../lesson-execution/activity/objective-activity-scorer.service';
-import { parseObjectiveActivityPayload, projectActivityForLearner } from '../lesson-execution/activity/objective-activity-payload';
+import { parseInteractiveActivity, scoreInteractive, canonicalizeInteractive, projectInteractiveForLearner, type InteractiveActivity } from '../content/activity/activity-interaction';
 import { isObjectiveActivityType } from '../content/activity/activity-registry';
 import { ActivityType } from '@prisma/client';
 import { ReviewSessionRepository } from './review-session.repository';
@@ -37,7 +36,6 @@ export class ReviewSessionService {
     private readonly prisma: PrismaService,
     private readonly repo: ReviewSessionRepository,
     private readonly reviewCandidates: ReviewService,
-    private readonly scorer: ObjectiveActivityScorerService,
     private readonly reviewMastery: ReviewMasteryService,
     private readonly learningProgress: LearningProgressService,
     private readonly signals: LearnerSignalsService,
@@ -175,12 +173,12 @@ export class ReviewSessionService {
     const activity = await this.repo.activityById(activityId);
     if (!activity || activity.lessonRevisionId !== session.lessonRevisionId || !isObjectiveActivityType(activity.type)) throw new ReviewSessionActivityNotAvailableError('activity not available'); // cross-revision / type (§29)
 
-    const payload = parseObjectiveActivityPayload(activity.payload); // ACTIVITY_PAYLOAD_INVALID (safe)
-    const scored = this.scorer.score(payload, answer); // ACTIVITY_INVALID_RESPONSE
-    const canonical = this.scorer.canonicalize(payload, answer);
+    const interactive = parseInteractiveActivity(activity.payload); // ACTIVITY_PAYLOAD_INVALID (safe) — choice OR structured
+    const scored = scoreInteractive(interactive, answer); // ACTIVITY_INVALID_RESPONSE
+    const canonical = canonicalizeInteractive(interactive, answer);
 
     const prior = await this.repo.findAttemptByClientRequest(userId, clientRequestId); // durable idempotency (§41)
-    if (prior) return this.replayOrConflict(prior, sessionId, activityId, payload, canonical);
+    if (prior) return this.replayOrConflict(prior, sessionId, activityId, interactive, canonical);
 
     for (let tries = 0; tries < 6; tries++) {
       const attemptNo = (await this.repo.maxAttemptNo(userId, activityId)) + 1; // shared normal+review sequence (§42)
@@ -190,7 +188,7 @@ export class ReviewSessionService {
       } catch (e) {
         if (!this.repo.isUniqueViolation(e)) throw e;
         const byReq = await this.repo.findAttemptByClientRequest(userId, clientRequestId);
-        if (byReq) return this.replayOrConflict(byReq, sessionId, activityId, payload, canonical); // concurrent same request
+        if (byReq) return this.replayOrConflict(byReq, sessionId, activityId, interactive, canonical); // concurrent same request
         // else attemptNo raced with a different request — retry with a fresh number.
       }
     }
@@ -234,8 +232,8 @@ export class ReviewSessionService {
 
   // ── internal ──
 
-  private replayOrConflict(prior: NonNullable<AttemptRow>, sessionId: string, activityId: string, payload: Parameters<ObjectiveActivityScorerService['canonicalize']>[0], canonical: string) {
-    if (prior.reviewSessionId === sessionId && prior.activityId === activityId && this.scorer.canonicalize(payload, prior.answer) === canonical) return this.attemptView(prior); // idempotent replay
+  private replayOrConflict(prior: NonNullable<AttemptRow>, sessionId: string, activityId: string, interactive: InteractiveActivity, canonical: string) {
+    if (prior.reviewSessionId === sessionId && prior.activityId === activityId && canonicalizeInteractive(interactive, prior.answer) === canonical) return this.attemptView(prior); // idempotent replay
     throw new ActivityAttemptRequestConflictError('client request id already used with a different submission'); // §41
   }
 
@@ -245,7 +243,7 @@ export class ReviewSessionService {
 
   private projectActivity(id: string, type: ActivityType, position: number, rawPayload: unknown) {
     try {
-      return projectActivityForLearner(id, type, position, parseObjectiveActivityPayload(rawPayload)); // learner-safe: no answerKey (§35)
+      return projectInteractiveForLearner(id, type, position, parseInteractiveActivity(rawPayload)); // learner-safe: no answerKey / accepted set (§35)
     } catch {
       return { id, type, position }; // malformed payload → metadata only, never leak
     }

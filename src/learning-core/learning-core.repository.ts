@@ -518,10 +518,10 @@ export class LearningCoreRepository {
     teachingSessionId: string;
     source: SkillMeasurementSource;
     derivationVersion: string;
-    evidenceKind: string;
-    independenceLevel: number;
     observedAt: Date;
-    perSkill: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; expectationRevisionId: string | null; attemptIds: string[] }[];
+    // evidenceKind + independenceLevel are PER SKILL — honestly derived from the mastery activities' formats
+    // (recognition@1 for choice, controlled-production@2 for structured, listening-comprehension@1).
+    perSkill: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; evidenceKind: string; independenceLevel: number; expectationRevisionId: string | null; attemptIds: string[] }[];
   }): Promise<{ skillId: string; measurementId: string }[]> {
     return this.prisma.$transaction(async (tx) => {
       const result: { skillId: string; measurementId: string }[] = [];
@@ -538,8 +538,8 @@ export class LearningCoreRepository {
             evidenceCount: s.evidenceCount,
             observedAt: input.observedAt,
             derivationVersion: input.derivationVersion,
-            evidenceKind: input.evidenceKind,
-            independenceLevel: input.independenceLevel,
+            evidenceKind: s.evidenceKind,
+            independenceLevel: s.independenceLevel,
             expectationRevisionId: s.expectationRevisionId,
           }],
           skipDuplicates: true,

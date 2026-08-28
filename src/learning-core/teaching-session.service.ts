@@ -9,8 +9,8 @@ import {
   TeachingSessionNotResumableError,
 } from '../common/errors';
 import { getActivityDefinition } from '../content/activity/activity-registry';
-import { parseObjectiveActivityPayload } from '../lesson-execution/activity/objective-activity-payload';
-import { ObjectiveActivityScorerService } from '../lesson-execution/activity/objective-activity-scorer.service';
+import { parseInteractiveActivity, scoreInteractive, canonicalizeInteractive } from '../content/activity/activity-interaction';
+import type { StructuredFeedback } from '../content/activity/structured-activity-scorer';
 import { projectActivityForLearnerRuntime, LearnerProjectedActivity } from '../content/activity/learner-activity-projection';
 import { LearningProgressService } from '../learning-progress/learning-progress.service';
 import { LearnerSignalsService } from '../learner-signals/learner-signals.service';
@@ -20,11 +20,11 @@ import {
   MasteryGates,
   TEACHING_MASTERY_DERIVATION_VERSION,
   TEACHING_MASTERY_EVALUATION_POLICY,
-  TEACHING_MASTERY_EVIDENCE_KIND,
-  TEACHING_MASTERY_INDEPENDENCE_LEVEL,
   deriveTeachingMastery,
   evaluateTeachingMastery,
 } from './mastery/teaching-mastery.engine';
+import { interactionKindOf } from '../content/activity/activity-interaction';
+import { evidenceForActivity } from '../content/activity/activity-evidence';
 
 const TERMINAL: TeachingSessionStatus[] = [TeachingSessionStatus.COMPLETED, TeachingSessionStatus.ABANDONED];
 
@@ -80,7 +80,8 @@ export interface TeachingAttemptView {
   attemptNo: number;
   isCorrect: boolean;
   deterministicScore: number;
-  remediation: string | null;
+  remediation: string | null; // generic stage-typed nudge (choice); structured formats use `feedback`
+  feedback: StructuredFeedback | null; // learner-safe structured feedback (hint code / incorrect blanks / authored remediation)
 }
 
 export interface MasteryCheckView {
@@ -103,7 +104,6 @@ export interface MasteryCheckView {
 export class TeachingSessionService {
   constructor(
     private readonly repo: LearningCoreRepository,
-    private readonly scorer: ObjectiveActivityScorerService,
     private readonly learningProgress: LearningProgressService,
     private readonly signals: LearnerSignalsService,
     private readonly missions: DailyMissionService,
@@ -201,18 +201,19 @@ export class TeachingSessionService {
     if (!bound) throw new TeachingActivityNotAvailableError('activity is not part of this session');
     if (getActivityDefinition(bound.type).executionKind !== 'OBJECTIVE') throw new ActivityInvalidResponseError('activity is not answerable');
 
-    const payload = parseObjectiveActivityPayload(bound.payload);
+    // ONE interaction engine over choice + structured production, dispatched on the payload's schemaVersion.
+    const activity = parseInteractiveActivity(bound.payload);
 
     // Idempotency by clientRequestId: replay an identical submission, conflict on a different one.
     const prior = await this.repo.findAttemptByClientRequest(userId, clientRequestId);
     if (prior) {
       if (prior.activityId !== activityId) throw new ActivityAttemptRequestConflictError('request id already used for a different activity');
-      const sameAnswer = this.scorer.canonicalize(payload, prior.answer as unknown) === this.scorer.canonicalize(payload, answer);
+      const sameAnswer = canonicalizeInteractive(activity, prior.answer as unknown) === canonicalizeInteractive(activity, answer);
       if (!sameAnswer) throw new ActivityAttemptRequestConflictError('request id already used with a different submission');
-      return this.toAttemptView(prior.id, prior.activityId, prior.attemptNo, prior.isCorrect ?? false, prior.deterministicScore ?? 0, bound.stageType);
+      return this.toAttemptView(prior.id, prior.activityId, prior.attemptNo, prior.isCorrect ?? false, prior.deterministicScore ?? 0, bound.stageType, null);
     }
 
-    const score = this.scorer.score(payload, answer); // throws ActivityInvalidResponseError on malformed answers
+    const score = scoreInteractive(activity, answer); // throws ActivityInvalidResponseError on malformed answers
 
     // Append-only create with attemptNo retry (mirrors V1 lesson attempts).
     let created: { id: string; activityId: string; attemptNo: number; isCorrect: boolean | null; deterministicScore: number | null } | null = null;
@@ -236,7 +237,7 @@ export class TeachingSessionService {
         const replay = await this.repo.findAttemptByClientRequest(userId, clientRequestId);
         if (replay && replay.activityId === activityId) {
           // Concurrent duplicate → idempotent replay; the winning creation already fired signals, so don't re-fire.
-          return this.toAttemptView(replay.id, replay.activityId, replay.attemptNo, replay.isCorrect ?? false, replay.deterministicScore ?? 0, bound.stageType);
+          return this.toAttemptView(replay.id, replay.activityId, replay.attemptNo, replay.isCorrect ?? false, replay.deterministicScore ?? 0, bound.stageType, null);
         }
         // else attemptNo collision → retry with a fresh number
       }
@@ -253,7 +254,7 @@ export class TeachingSessionService {
     // this REAL persisted attempt, never fabricated for a displayed daily task.
     await this.evaluateAttemptMissions(userId, created.id);
 
-    return this.toAttemptView(created.id, created.activityId, created.attemptNo, created.isCorrect ?? false, created.deterministicScore ?? 0, bound.stageType);
+    return this.toAttemptView(created.id, created.activityId, created.attemptNo, created.isCorrect ?? false, created.deterministicScore ?? 0, bound.stageType, score.feedback ?? null);
   }
 
   /** Fire the REPEATED_MISTAKE detector for an attempted activity's skills. Never throws (advisory). */
@@ -275,14 +276,16 @@ export class TeachingSessionService {
     }
   }
 
-  private toAttemptView(attemptId: string, activityId: string, attemptNo: number, isCorrect: boolean, deterministicScore: number, stageType: string | undefined): TeachingAttemptView {
+  private toAttemptView(attemptId: string, activityId: string, attemptNo: number, isCorrect: boolean, deterministicScore: number, stageType: string | undefined, feedback: StructuredFeedback | null): TeachingAttemptView {
     return {
       attemptId,
       activityId,
       attemptNo,
       isCorrect,
       deterministicScore,
-      remediation: isCorrect ? null : ((stageType && REMEDIATION[stageType]) ?? REMEDIATION_DEFAULT),
+      // Structured formats carry their own learner-safe feedback; choice falls back to the generic stage-typed nudge.
+      remediation: isCorrect || feedback ? null : ((stageType && REMEDIATION[stageType]) ?? REMEDIATION_DEFAULT),
+      feedback,
     };
   }
 
@@ -322,9 +325,14 @@ export class TeachingSessionService {
 
     const activitySkillIds = await this.repo.activitySkillIds([...bestByActivity.keys()]);
     const requiredSet = new Set(requiredSkillIds);
+    // Honest per-activity evidence descriptor from the mastery activity's FORMAT (choice → recognition@1;
+    // structured → controlled-production@2). No longer a single fabricated 'free-production' for the whole session.
+    const evidenceByActivity = new Map(bindings.filter((b) => b.type === ActivityType.MASTERY_TEST).map((b) => [b.activityId, evidenceForActivity(interactionKindOf(b.payload) ?? 'CHOICE')]));
     const masteryInputs = [...bestByActivity.entries()].map(([activityId, v]) => ({
       activityId,
       bestScoreBp: v.score,
+      evidenceKind: (evidenceByActivity.get(activityId) ?? evidenceForActivity('CHOICE')).evidenceKind,
+      independenceLevel: (evidenceByActivity.get(activityId) ?? evidenceForActivity('CHOICE')).independenceLevel,
       skillIds: (activitySkillIds.get(activityId) ?? []).filter((id) => requiredSet.has(id)),
     }));
 
@@ -345,14 +353,14 @@ export class TeachingSessionService {
       teachingSessionId: sessionId,
       source: SkillMeasurementSource.TEACHING_MASTERY,
       derivationVersion: TEACHING_MASTERY_DERIVATION_VERSION,
-      evidenceKind: TEACHING_MASTERY_EVIDENCE_KIND,
-      independenceLevel: TEACHING_MASTERY_INDEPENDENCE_LEVEL,
       observedAt,
       perSkill: entries.map((e) => ({
         skillId: e.skillId,
         scoreBp: e.scoreBp,
         confidenceBp: e.confidenceBp,
         evidenceCount: e.evidenceCount,
+        evidenceKind: e.evidenceKind, // honest, per-skill (from the format of its mastery activities)
+        independenceLevel: e.independenceLevel,
         expectationRevisionId: expectationBySkill.get(e.skillId) ?? null,
         attemptIds: attemptIdsBySkill.get(e.skillId) ?? [],
       })),
@@ -363,7 +371,7 @@ export class TeachingSessionService {
 
     // 3) Evaluate the exact evidence against the gates.
     const gates = parseGates(point.masteryGates);
-    const evaluation = evaluateTeachingMastery(requiredSkillIds, entries, TEACHING_MASTERY_INDEPENDENCE_LEVEL, gates);
+    const evaluation = evaluateTeachingMastery(requiredSkillIds, entries, gates);
     const gateSummary = { gates: evaluation.gates, thresholdBp: gates.thresholdBp, minIndependence: gates.minIndependence };
 
     // 4) Record the MasteryEvaluation + its exact evidence rows (idempotent by evidence watermark).

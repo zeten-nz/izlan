@@ -216,7 +216,7 @@ describe('V2 Content Authoring & Quality — content factory (e2e)', () => {
     const r3 = await request(srv()).put(`/api/staff/content/v2/mastery-revisions/${d.mastery.revision.id}`).set(auth(token)).send({
       expectedUpdatedAt: d.mastery.revision.updatedAt,
       gates: { thresholdBp: 8000, minIndependence: 1, requireAllRequiredSkills: true },
-      skillGates: BE.map((c) => ({ skillId: skillIdByCode.get(c), role: 'REQUIRED', requiredEvidenceKinds: ['controlled-production', 'free-production'], minIndependence: 1 })),
+      skillGates: BE.map((c) => ({ skillId: skillIdByCode.get(c), role: 'REQUIRED', requiredEvidenceKinds: ['recognition'], minIndependence: 1 })), // choice EVIDENCE → recognition@1 (honest; free-production is not producible by choice)
     });
     if (r3.status !== 200) throw new Error("mastery: " + JSON.stringify(r3.body));
     d = r3.body;
@@ -402,7 +402,7 @@ describe('V2 Content Authoring & Quality — content factory (e2e)', () => {
     const code = BE[0];
     let d = (await request(srv()).put(`/api/staff/content/v2/point-revisions/${d0.revision.id}/skills`).set(auth(token)).send({ expectedUpdatedAt: d0.revision.updatedAt, skills: [{ skillId: skillIdByCode.get(code), role: 'REQUIRED' }] })).body;
     d = (await request(srv()).put(`/api/staff/content/v2/blueprint-revisions/${d.blueprint.revision.id}/stages`).set(auth(token)).send({ expectedUpdatedAt: d.blueprint.revision.updatedAt, stages: [{ stageType: 'mastery', title: 'Mastery', bindings: [{ activityId: masteryActByCode.get(code), role: 'EVIDENCE' }] }] })).body;
-    d = (await request(srv()).put(`/api/staff/content/v2/mastery-revisions/${d.mastery.revision.id}`).set(auth(token)).send({ expectedUpdatedAt: d.mastery.revision.updatedAt, gates: { thresholdBp: 8000, minIndependence: 1, requireAllRequiredSkills: true }, skillGates: [{ skillId: skillIdByCode.get(code), role: 'REQUIRED', requiredEvidenceKinds: ['free-production'], minIndependence: 1 }] })).body;
+    d = (await request(srv()).put(`/api/staff/content/v2/mastery-revisions/${d.mastery.revision.id}`).set(auth(token)).send({ expectedUpdatedAt: d.mastery.revision.updatedAt, gates: { thresholdBp: 8000, minIndependence: 1, requireAllRequiredSkills: true }, skillGates: [{ skillId: skillIdByCode.get(code), role: 'REQUIRED', requiredEvidenceKinds: ['recognition'], minIndependence: 1 }] })).body; // choice EVIDENCE → recognition@1 (honest)
     await approveAndPublish(token, d.revision.id, d.revision.updatedAt);
     return d;
   }
