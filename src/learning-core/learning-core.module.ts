@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ClockModule } from '../common/clock.module';
+import { LearnerSignalsModule } from '../learner-signals/learner-signals.module';
 import { LearningProgressModule } from '../learning-progress/learning-progress.module';
 import { ObjectiveActivityScorerService } from '../lesson-execution/activity/objective-activity-scorer.service';
 import { LearningCoreRepository } from './learning-core.repository';
@@ -14,7 +16,7 @@ import { TeachingSessionController } from './teaching-session.controller';
  * writer of LearnerSkillState. Reuses the V1 ObjectiveActivityScorerService (stateless) for server-side scoring.
  */
 @Module({
-  imports: [LearningProgressModule],
+  imports: [LearningProgressModule, ClockModule, LearnerSignalsModule],
   controllers: [V2RoadmapController, TeachingSessionController],
   providers: [LearningCoreRepository, V2RoadmapService, TeachingSessionService, ObjectiveActivityScorerService],
   exports: [V2RoadmapService, TeachingSessionService],

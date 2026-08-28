@@ -13,6 +13,7 @@ import { parseObjectiveActivityPayload } from '../lesson-execution/activity/obje
 import { ObjectiveActivityScorerService } from '../lesson-execution/activity/objective-activity-scorer.service';
 import { projectActivityForLearnerRuntime, LearnerProjectedActivity } from '../content/activity/learner-activity-projection';
 import { LearningProgressService } from '../learning-progress/learning-progress.service';
+import { LearnerSignalsService } from '../learner-signals/learner-signals.service';
 import { LearningCoreRepository, TeachablePoint, isUniqueViolation } from './learning-core.repository';
 import {
   MasteryGates,
@@ -103,6 +104,7 @@ export class TeachingSessionService {
     private readonly repo: LearningCoreRepository,
     private readonly scorer: ObjectiveActivityScorerService,
     private readonly learningProgress: LearningProgressService,
+    private readonly signals: LearnerSignalsService,
   ) {}
 
   async startOrResume(userId: string, pointId: string): Promise<TeachingSessionView> {
@@ -211,10 +213,11 @@ export class TeachingSessionService {
     const score = this.scorer.score(payload, answer); // throws ActivityInvalidResponseError on malformed answers
 
     // Append-only create with attemptNo retry (mirrors V1 lesson attempts).
+    let created: { id: string; activityId: string; attemptNo: number; isCorrect: boolean | null; deterministicScore: number | null } | null = null;
     for (let i = 0; i < 6; i++) {
       const attemptNo = (await this.repo.maxAttemptNo(userId, activityId)) + 1;
       try {
-        const attempt = await this.repo.createAttempt({
+        created = await this.repo.createAttempt({
           userId,
           activityId,
           lessonRevisionId: bound.lessonRevisionId,
@@ -225,17 +228,36 @@ export class TeachingSessionService {
           deterministicScore: score.deterministicScore,
           clientRequestId,
         });
-        return this.toAttemptView(attempt.id, attempt.activityId, attempt.attemptNo, attempt.isCorrect ?? false, attempt.deterministicScore ?? 0, bound.stageType);
+        break;
       } catch (e) {
         if (!isUniqueViolation(e)) throw e;
         const replay = await this.repo.findAttemptByClientRequest(userId, clientRequestId);
         if (replay && replay.activityId === activityId) {
+          // Concurrent duplicate → idempotent replay; the winning creation already fired signals, so don't re-fire.
           return this.toAttemptView(replay.id, replay.activityId, replay.attemptNo, replay.isCorrect ?? false, replay.deterministicScore ?? 0, bound.stageType);
         }
         // else attemptNo collision → retry with a fresh number
       }
     }
-    throw new ActivityAttemptRequestConflictError('could not record attempt (too many concurrent submissions)');
+    if (!created) throw new ActivityAttemptRequestConflictError('could not record attempt (too many concurrent submissions)');
+
+    // Evidence → mistake interpretation (the adaptive loop's first edge): a persisted objective teaching attempt
+    // may activate/resolve a REPEATED_MISTAKE signal for the activity's skills — conservatively (3 distinct wrong
+    // to activate, so one slip never does). Advisory + best-effort: a signal failure must never fail the learner's
+    // answer submission (mirrors the recompute→state-signal hook, which owns WEAK_SKILL/REVIEW_DUE separately).
+    await this.evaluateAttemptSignals(userId, activityId);
+
+    return this.toAttemptView(created.id, created.activityId, created.attemptNo, created.isCorrect ?? false, created.deterministicScore ?? 0, bound.stageType);
+  }
+
+  /** Fire the REPEATED_MISTAKE detector for an attempted activity's skills. Never throws (advisory). */
+  private async evaluateAttemptSignals(userId: string, activityId: string): Promise<void> {
+    try {
+      const skillIds = (await this.repo.activitySkillIds([activityId])).get(activityId) ?? [];
+      if (skillIds.length > 0) await this.signals.evaluateSkills(userId, skillIds);
+    } catch {
+      // best-effort — signal evaluation is advisory and must not block the answer path
+    }
   }
 
   private toAttemptView(attemptId: string, activityId: string, attemptNo: number, isCorrect: boolean, deterministicScore: number, stageType: string | undefined): TeachingAttemptView {

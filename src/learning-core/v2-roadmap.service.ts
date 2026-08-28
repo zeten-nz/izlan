@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { Clock } from '../common/clock';
+import { reviewActivation } from '../learner-signals/review-due-signal.policy';
 import { LearningCoreRepository, isUniqueViolation } from './learning-core.repository';
+import { derivePointAttention, POINT_ATTENTION_POLICY_VERSION, type AttentionReasonCode, type SkillAttentionInput } from './attention/point-attention.engine';
 
 export const V2_ROADMAP_ENGINE_VERSION = 'v2-roadmap-generation-v1';
+export { POINT_ATTENTION_POLICY_VERSION };
 
 export interface V2RoadmapPointView {
   roadmapPointId: string;
@@ -13,7 +17,9 @@ export interface V2RoadmapPointView {
   sortOrder: number;
   availability: string; // LOCKED | AVAILABLE | IN_PROGRESS | CONTENT_UNAVAILABLE
   acquisition: string | null; // null | LEARNED | VALIDATED
-  attention: string; // NONE | REVIEW_DUE | REPAIR_REQUIRED
+  attention: string; // NONE | REVIEW_DUE | REPAIR_REQUIRED — DERIVED over active signals + retention policy
+  attentionReason: AttentionReasonCode | null; // REPEATED_MISTAKE | PERSISTENT_WEAKNESS | RETENTION_DUE | null
+  attentionSkill: { id: string; name: string } | null; // the skill driving attention (learner-facing name)
   learned: boolean;
   validated: boolean;
   activeSessionId: string | null;
@@ -32,7 +38,10 @@ export interface V2RoadmapView {
  */
 @Injectable()
 export class V2RoadmapService {
-  constructor(private readonly repo: LearningCoreRepository) {}
+  constructor(
+    private readonly repo: LearningCoreRepository,
+    private readonly clock: Clock,
+  ) {}
 
   async getRoadmap(userId: string, subjectId: string): Promise<V2RoadmapView> {
     const track = await this.repo.findSubjectTrack(subjectId);
@@ -54,11 +63,23 @@ export class V2RoadmapService {
 
     const projections = await this.repo.getProjections(generation.id);
     const pointIds = projections.map((p) => p.roadmapPointId);
-    const [acquisitionMap, activeSessions] = await Promise.all([
-      this.repo.acquisitionByPoint(userId, pointIds),
-      this.repo.activeSessionIdForPoints(userId, pointIds),
-    ]);
+    const acquisitionMap = await this.repo.acquisitionByPoint(userId, pointIds);
     const acquired = new Set([...acquisitionMap.keys()]); // learned OR validated points
+
+    // Attention is derived ONLY for acquired points ("established, now needs review/repair"). Load the signal facts
+    // + current competence state for their required skills, then project attention over them (never stored).
+    const acquiredSkillIds = new Set<string>();
+    for (const p of projections) {
+      if (!acquired.has(p.roadmapPointId)) continue;
+      for (const se of p.pointRevision.skillExpectations) acquiredSkillIds.add(se.expectation.skillId);
+    }
+    const [activeSessions, signalsBySkill, skillStates, skillNames] = await Promise.all([
+      this.repo.activeSessionIdForPoints(userId, pointIds),
+      acquiredSkillIds.size > 0 ? this.repo.activeAttentionSignals(userId, subjectId) : Promise.resolve(new Map<string, string[]>()),
+      this.repo.skillStatesForAttention(userId, [...acquiredSkillIds]),
+      this.repo.skillNames([...acquiredSkillIds]),
+    ]);
+    const now = this.clock.now();
 
     const points: V2RoadmapPointView[] = projections.map((p) => {
       const acq = acquisitionMap.get(p.roadmapPointId) ?? null; // LEARNED | VALIDATED | null (authoritative overlay)
@@ -76,6 +97,27 @@ export class V2RoadmapService {
             : prereqsSatisfied
               ? 'AVAILABLE'
               : 'LOCKED';
+
+      // Derive attention (repair/review) over the acquired point's required skills. Not derived for
+      // not-yet-acquired points (a point still being learned is neither "repair" nor "review").
+      let attention = 'NONE';
+      let attentionReason: AttentionReasonCode | null = null;
+      let attentionSkill: { id: string; name: string } | null = null;
+      if (isAcquired) {
+        const skillInputs: SkillAttentionInput[] = p.pointRevision.skillExpectations.map((se) => {
+          const sid = se.expectation.skillId;
+          const st = skillStates.get(sid);
+          const reviewDue =
+            st != null &&
+            reviewActivation({ masteryScoreBp: st.masteryScoreBp, confidenceBp: st.confidenceBp ?? 0, evidenceCount: st.evidenceCount, lastMeasurementAt: st.lastMeasurementAt }, now) !== null;
+          return { skillId: sid, activeSignalTypes: signalsBySkill.get(sid) ?? [], reviewDue };
+        });
+        const derived = derivePointAttention(skillInputs);
+        attention = derived.attention;
+        attentionReason = derived.reasonCode === 'NONE' ? null : derived.reasonCode;
+        attentionSkill = derived.reasonSkillId ? { id: derived.reasonSkillId, name: skillNames.get(derived.reasonSkillId) ?? '' } : null;
+      }
+
       return {
         roadmapPointId: p.roadmapPointId,
         pointKey: p.point.pointKey,
@@ -85,7 +127,9 @@ export class V2RoadmapService {
         sortOrder: p.sortOrder,
         availability,
         acquisition: acq,
-        attention: p.attention,
+        attention,
+        attentionReason,
+        attentionSkill,
         learned: acq === 'LEARNED',
         validated: acq === 'VALIDATED',
         activeSessionId,
