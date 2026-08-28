@@ -167,9 +167,9 @@ export class PointAuthoringService {
       if (rev.status !== RevisionStatus.DRAFT) throw new ContentNotDraftError('mastery revision is not editable');
       if (!sameToken(dto.expectedUpdatedAt, rev.updatedAt)) throw new ContentEditConflictError('edit conflict');
       const gates = { thresholdBp: dto.gates.thresholdBp, minIndependence: dto.gates.minIndependence, requireAllRequiredSkills: dto.gates.requireAllRequiredSkills ?? true } as Prisma.InputJsonValue;
-      await this.repo.replaceMastery(tx, masteryRevisionId, levelId, userId, gates, dto.skillGates.map((g) => ({ skillId: g.skillId, role: g.role, requiredEvidenceKinds: g.requiredEvidenceKinds, minIndependence: g.minIndependence ?? null })));
-      const res = await this.repo.touchMasteryRevision(tx, masteryRevisionId, new Date(dto.expectedUpdatedAt));
+      const res = await this.repo.updateMasteryGates(tx, masteryRevisionId, new Date(dto.expectedUpdatedAt), gates); // guards + advances updatedAt in one write
       if (res.count === 0) throw new ContentEditConflictError('edit conflict');
+      await this.repo.replaceMasterySkillGates(tx, masteryRevisionId, levelId, userId, dto.skillGates.map((g) => ({ skillId: g.skillId, role: g.role, requiredEvidenceKinds: g.requiredEvidenceKinds, minIndependence: g.minIndependence ?? null })));
       await this.audit.write(tx, { actorUserId: userId, actionCode: POINT_AUDIT.MASTERY_SET, targetType: POINT_TARGET.MASTERY_REQUIREMENT_REVISION, targetId: masteryRevisionId, metadata: { pointId: ctx.pointId, gates: dto.skillGates.length } });
     });
     return (await this.repo.getDetail(ctx.pointId))!;

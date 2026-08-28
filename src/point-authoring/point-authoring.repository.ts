@@ -257,8 +257,14 @@ export class PointAuthoringRepository {
     }
   }
 
-  async replaceMastery(tx: Prisma.TransactionClient, masteryRevisionId: string, levelId: string, publishedBy: string, gates: Prisma.InputJsonValue, skillGates: { skillId: string; role: SkillContributionRole; requiredEvidenceKinds: string[]; minIndependence: number | null }[]) {
-    await tx.masteryRequirementRevision.update({ where: { id: masteryRevisionId }, data: { gates } });
+  /** OCC-guarded gates update that ALSO advances updatedAt (the caller must not separately touch the revision —
+   *  a second update on the revision row would auto-bump @updatedAt and defeat the token). */
+  updateMasteryGates(tx: Prisma.TransactionClient, masteryRevisionId: string, expected: Date, gates: Prisma.InputJsonValue) {
+    return tx.masteryRequirementRevision.updateMany({ where: { id: masteryRevisionId, updatedAt: expected, status: RevisionStatus.DRAFT }, data: { gates, updatedAt: nextOptimisticTimestamp(expected) } });
+  }
+
+  /** Replace the mastery skill-gate CHILD rows (do not touch the revision's updatedAt — done by updateMasteryGates). */
+  async replaceMasterySkillGates(tx: Prisma.TransactionClient, masteryRevisionId: string, levelId: string, publishedBy: string, skillGates: { skillId: string; role: SkillContributionRole; requiredEvidenceKinds: string[]; minIndependence: number | null }[]) {
     await tx.masteryRequirementSkillExpectation.deleteMany({ where: { requirementRevisionId: masteryRevisionId } });
     for (const g of skillGates) {
       const { expectationRevisionId } = await this.ensureExpectation(tx, g.skillId, levelId, publishedBy);
