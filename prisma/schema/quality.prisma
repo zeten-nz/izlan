@@ -1,0 +1,178 @@
+// ============================================================================
+// Content Quality System V2 (Wave E) — governance / provenance / evidence integrity.
+//
+// Generic + multi-subject. It governs how canonical content becomes trustworthy and
+// how a confirmed content defect changes the CURRENT admissibility of evidence —
+// WITHOUT ever mutating immutable learner history (§34/§35/§35a). Evidence
+// admissibility is a DERIVED interpretation over (immutable evidence + scoped
+// integrity decisions + policy), recomputed by the single-writer merge; there is no
+// mutable isValid flag on SkillMeasurement (audit M7).
+// ============================================================================
+
+/// Versioned Content Quality policy — "which policy did this content pass?" (§48). Immutable per code.
+model ContentQualityPolicyVersion {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  code      String              @unique // e.g. content-quality-policy-v1 (non-empty CHECK)
+  status    ContentPolicyStatus @default(DRAFT)
+  config    Json                @db.JsonB // versioned rule config (requireApprovedReview, requireSourceForPoint, ...)
+  createdBy String              @map("created_by") @db.Uuid
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  createdByUser User            @relation("QualityPolicyCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  reviews       ContentReview[]
+
+  @@map("content_quality_policy_version")
+}
+
+/// Research/source provenance (§7) — a citation LOCATOR + metadata, never fetched copyrighted content (§8).
+model SourceReference {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  title     String // non-empty CHECK
+  kind      String // registry: reference-grammar / dictionary / cefr-descriptor / textbook / official-standard / other
+  locator   String? // citation locator / DOI / ISBN / object key — NOT auto-fetched page content
+  metadata  Json?    @db.JsonB // publisher / author / edition / accessedAt / notes — descriptive
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  createdByUser User                      @relation("SourceReferenceCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  provenance    ContentSourceProvenance[]
+
+  @@index([kind])
+  @@map("source_reference")
+}
+
+/// Typed join source → content revision (which claims a source informed). Narrow first-wave typed XOR target (§20).
+model ContentSourceProvenance {
+  id                     String   @id @default(uuid(7)) @db.Uuid
+  sourceReferenceId      String   @map("source_reference_id") @db.Uuid
+  roadmapPointRevisionId String?  @map("roadmap_point_revision_id") @db.Uuid
+  blueprintRevisionId    String?  @map("blueprint_revision_id") @db.Uuid
+  lessonRevisionId       String?  @map("lesson_revision_id") @db.Uuid
+  claimRole              String   @map("claim_role") // registry: rule-basis / example-basis / cefr-alignment / general
+  createdBy              String   @map("created_by") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  source               SourceReference            @relation(fields: [sourceReferenceId], references: [id], onDelete: Restrict)
+  roadmapPointRevision RoadmapPointRevision?      @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  blueprintRevision    TeachingBlueprintRevision? @relation(fields: [blueprintRevisionId], references: [id], onDelete: Restrict)
+  lessonRevision       LessonRevision?            @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  createdByUser        User                       @relation("ProvenanceCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  // CHECK chk_content_provenance_target_xor — exactly one target FK non-null
+  @@index([sourceReferenceId])
+  @@index([roadmapPointRevisionId])
+  @@map("content_source_provenance")
+}
+
+/// Immutable multidimensional human-review record — the hard-blocker publish gate (§27/§33). Typed XOR target.
+model ContentReview {
+  id                            String               @id @default(uuid(7)) @db.Uuid
+  roadmapPointRevisionId        String?              @map("roadmap_point_revision_id") @db.Uuid
+  blueprintRevisionId           String?              @map("blueprint_revision_id") @db.Uuid
+  lessonRevisionId              String?              @map("lesson_revision_id") @db.Uuid
+  assessmentDefinitionVersionId String?              @map("assessment_definition_version_id") @db.Uuid
+  policyVersionId               String               @map("policy_version_id") @db.Uuid
+  outcome                       ContentReviewOutcome
+  blockers                      Json?                @db.JsonB // coded hard-blocker results captured at review time
+  notes                         String?
+  reviewedBy                    String               @map("reviewed_by") @db.Uuid
+  reviewedAt                    DateTime             @default(now()) @map("reviewed_at")
+
+  policyVersion               ContentQualityPolicyVersion  @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+  reviewedByUser              User                         @relation("ContentReviewedBy", fields: [reviewedBy], references: [id], onDelete: Restrict)
+  roadmapPointRevision        RoadmapPointRevision?        @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  blueprintRevision           TeachingBlueprintRevision?   @relation(fields: [blueprintRevisionId], references: [id], onDelete: Restrict)
+  lessonRevision              LessonRevision?              @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  assessmentDefinitionVersion AssessmentDefinitionVersion? @relation(fields: [assessmentDefinitionVersionId], references: [id], onDelete: Restrict)
+
+  // CHECK chk_content_review_target_xor — exactly one target FK non-null
+  @@index([roadmapPointRevisionId])
+  @@index([reviewedAt])
+  @@map("content_review")
+}
+
+/// A content quality issue with a lifecycle (§41). Typed XOR target. May trigger integrity decisions.
+model ContentQualityIssue {
+  id                     String                    @id @default(uuid(7)) @db.Uuid
+  status                 ContentQualityIssueStatus @default(OPEN)
+  severityCode           String                    @map("severity_code") // registry: BLOCKER / MAJOR / MINOR
+  summary                String
+  roadmapPointRevisionId String?                   @map("roadmap_point_revision_id") @db.Uuid
+  activityId             String?                   @map("activity_id") @db.Uuid
+  assessmentItemId       String?                   @map("assessment_item_id") @db.Uuid
+  lessonRevisionId       String?                   @map("lesson_revision_id") @db.Uuid
+  blueprintStageId       String?                   @map("teaching_blueprint_stage_id") @db.Uuid
+  createdBy              String                    @map("created_by") @db.Uuid
+  createdAt              DateTime                  @default(now()) @map("created_at")
+  resolvedAt            DateTime?                  @map("resolved_at")
+
+  createdByUser        User                        @relation("QualityIssueCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  roadmapPointRevision RoadmapPointRevision?       @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  activity             Activity?                   @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  assessmentItem       AssessmentItem?             @relation(fields: [assessmentItemId], references: [id], onDelete: Restrict)
+  lessonRevision       LessonRevision?             @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  blueprintStage       TeachingBlueprintStage?     @relation(fields: [blueprintStageId], references: [id], onDelete: Restrict)
+  integrityDecisions   EvidenceIntegrityDecision[]
+
+  // CHECK chk_content_quality_issue_target_xor — exactly one target FK non-null
+  @@index([status])
+  @@index([roadmapPointRevisionId])
+  @@map("content_quality_issue")
+}
+
+/// Immutable, versioned, SCOPED evidence-integrity decision (Layer C, §14/§35a). Append-only + supersession
+/// (new→old). Consumed by the admissibility recompute; NEVER writes learner state directly.
+model EvidenceIntegrityDecision {
+  id                    String                   @id @default(uuid(7)) @db.Uuid
+  contentQualityIssueId String?                  @map("content_quality_issue_id") @db.Uuid
+  outcome               EvidenceIntegrityOutcome
+  policyVersion         String                   @map("policy_version") // non-empty CHECK
+  reasonCode            String                   @map("reason_code") // registry: WRONG_ANSWER_KEY / AMBIGUOUS_ITEM / BROKEN_MEDIA / ...
+  supersedesDecisionId  String?                  @map("supersedes_decision_id") @db.Uuid
+  details               Json?                    @db.JsonB
+  decidedBy             String                   @map("decided_by") @db.Uuid
+  clientRequestId       String?                  @map("client_request_id")
+  decidedAt             DateTime                 @default(now()) @map("decided_at")
+
+  issue         ContentQualityIssue?        @relation(fields: [contentQualityIssueId], references: [id], onDelete: Restrict)
+  decidedByUser User                        @relation("IntegrityDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict)
+  supersedes    EvidenceIntegrityDecision?  @relation("IntegritySupersession", fields: [supersedesDecisionId], references: [id], onDelete: Restrict)
+  supersededBy  EvidenceIntegrityDecision[] @relation("IntegritySupersession")
+  scopes        EvidenceIntegrityScope[]
+
+  // CHECK chk_eid_policy_version_nonempty; partial unique uq_eid_client_request (client_request_id) WHERE NOT NULL
+  @@index([decidedAt])
+  @@map("evidence_integrity_decision")
+}
+
+/// The scope of an integrity decision — a REFERENCE to the defective canonical object (typed XOR), never an
+/// enumeration of affected measurement rows. The reverse "which evidence is affected by X?" lookup joins here.
+model EvidenceIntegrityScope {
+  id                            String   @id @default(uuid(7)) @db.Uuid
+  decisionId                    String   @map("decision_id") @db.Uuid
+  scopeKind                     String   @map("scope_kind") // registry label
+  assessmentItemId              String?  @map("assessment_item_id") @db.Uuid
+  assessmentVersionItemId       String?  @map("assessment_version_item_id") @db.Uuid
+  assessmentDefinitionVersionId String?  @map("assessment_definition_version_id") @db.Uuid
+  activityId                    String?  @map("activity_id") @db.Uuid
+  mediaAssetId                  String?  @map("media_asset_id") @db.Uuid
+  lessonRevisionId              String?  @map("lesson_revision_id") @db.Uuid
+  blueprintStageId              String?  @map("teaching_blueprint_stage_id") @db.Uuid
+  scopeQualifier                Json?    @map("scope_qualifier") @db.JsonB // answer-key/rubric version, locale — never hides an FK identity
+  createdAt                     DateTime @default(now()) @map("created_at")
+
+  decision                    EvidenceIntegrityDecision    @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  assessmentItem              AssessmentItem?              @relation(fields: [assessmentItemId], references: [id], onDelete: Restrict)
+  assessmentVersionItem       AssessmentVersionItem?       @relation(fields: [assessmentVersionItemId], references: [id], onDelete: Restrict)
+  assessmentDefinitionVersion AssessmentDefinitionVersion? @relation(fields: [assessmentDefinitionVersionId], references: [id], onDelete: Restrict)
+  activity                    Activity?                    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  media                       MediaAsset?                  @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  lessonRevision              LessonRevision?              @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  blueprintStage              TeachingBlueprintStage?      @relation(fields: [blueprintStageId], references: [id], onDelete: Restrict)
+
+  // CHECK chk_eis_target_xor — exactly one target FK; per-target partial uniques + indexes
+  @@index([decisionId])
+  @@index([activityId])
+  @@index([assessmentItemId])
+  @@map("evidence_integrity_scope")
+}

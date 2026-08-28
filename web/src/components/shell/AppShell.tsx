@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FiActivity, FiChevronsLeft, FiChevronsRight, FiClipboard, FiCommand, FiCreditCard, FiFolder,
-  FiGrid, FiLock, FiLogOut, FiMenu, FiShield, FiUsers, FiX,
+  FiGrid, FiLock, FiLogOut, FiMap, FiMenu, FiShield, FiUsers, FiX,
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useCms } from '@/lib/cms/cms-context';
@@ -31,6 +31,7 @@ const SECTIONS: NavSection[] = [
   { header: 'sectionMain', items: [{ key: 'dashboard', icon: FiGrid, soon: true }] },
   { header: 'content', items: [
     { key: 'subjects', icon: FiFolder, href: '/staff/content' },
+    { key: 'points', icon: FiMap, href: '/staff/content/points' },
     { key: 'assessment', icon: FiClipboard, href: '/staff/content/assessments' },
   ] },
   { header: 'sectionAdmin', items: [

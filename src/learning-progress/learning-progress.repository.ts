@@ -31,10 +31,29 @@ export class LearningProgressRepository {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${skillId}))`;
   }
 
-  /** All merge-supported measurements for a user+skill (append-only history read). */
+  /** All merge-supported AND currently-admissible measurements for a user+skill (append-only history read).
+   *  Admissibility is DERIVED: a measurement is excluded iff its raw evidence was produced against an artifact
+   *  scoped by an ACTIVE INVALIDATED EvidenceIntegrityDecision (Content Quality §35a). History is never mutated;
+   *  with no active integrity decision the exclusion is empty and the read is byte-identical to before. */
   async supportedMeasurements(userId: string, skillId: string, tx: Prisma.TransactionClient): Promise<NormalizedMeasurement[]> {
+    const inadmissible = await this.inadmissibleScope(tx);
+    const evidenceExclusion =
+      inadmissible === null
+        ? {}
+        : {
+            NOT: {
+              evidenceRefs: {
+                some: {
+                  OR: [
+                    ...(inadmissible.activityIds.length ? [{ activityAttempt: { activityId: { in: inadmissible.activityIds } } }] : []),
+                    ...(inadmissible.itemIds.length ? [{ assessmentResponse: { itemId: { in: inadmissible.itemIds } } }] : []),
+                  ],
+                },
+              },
+            },
+          };
     const rows = await tx.skillMeasurement.findMany({
-      where: { userId, skillId, source: { in: SUPPORTED_SOURCE_LIST } },
+      where: { userId, skillId, source: { in: SUPPORTED_SOURCE_LIST }, ...evidenceExclusion },
       select: { id: true, source: true, scoreBp: true, confidenceBp: true, evidenceCount: true, observedAt: true },
       orderBy: [{ observedAt: 'asc' }, { id: 'asc' }],
     });
@@ -46,6 +65,41 @@ export class LearningProgressRepository {
       evidenceCount: r.evidenceCount,
       observedAt: r.observedAt,
     }));
+  }
+
+  /** Activity/item ids scoped by ACTIVE (not superseded) INVALIDATED integrity decisions, or null when none. */
+  private async inadmissibleScope(tx: Prisma.TransactionClient): Promise<{ activityIds: string[]; itemIds: string[] } | null> {
+    const invalidatedCount = await tx.evidenceIntegrityDecision.count({ where: { outcome: 'INVALIDATED' } });
+    if (invalidatedCount === 0) return null; // V1 fast path — no integrity decisions, identical behavior
+    const superseded = await tx.evidenceIntegrityDecision.findMany({ where: { supersedesDecisionId: { not: null } }, select: { supersedesDecisionId: true } });
+    const supersededIds = superseded.map((r) => r.supersedesDecisionId).filter((x): x is string => x !== null);
+    const active = await tx.evidenceIntegrityDecision.findMany({ where: { outcome: 'INVALIDATED', id: { notIn: supersededIds.length ? supersededIds : ['00000000-0000-0000-0000-000000000000'] } }, select: { id: true } });
+    if (active.length === 0) return null;
+    const scopes = await tx.evidenceIntegrityScope.findMany({ where: { decisionId: { in: active.map((d) => d.id) } }, select: { activityId: true, assessmentItemId: true } });
+    const activityIds = scopes.map((s) => s.activityId).filter((x): x is string => x !== null);
+    const itemIds = scopes.map((s) => s.assessmentItemId).filter((x): x is string => x !== null);
+    if (activityIds.length === 0 && itemIds.length === 0) return null;
+    return { activityIds, itemIds };
+  }
+
+  /** The (userId, skillId) pairs whose measurements draw on the given defective artifacts — the recompute set. */
+  async affectedUserSkills(activityIds: string[], itemIds: string[]): Promise<{ userId: string; skillId: string }[]> {
+    if (activityIds.length === 0 && itemIds.length === 0) return [];
+    const rows = await this.prisma.skillMeasurement.findMany({
+      where: {
+        evidenceRefs: {
+          some: {
+            OR: [
+              ...(activityIds.length ? [{ activityAttempt: { activityId: { in: activityIds } } }] : []),
+              ...(itemIds.length ? [{ assessmentResponse: { itemId: { in: itemIds } } }] : []),
+            ],
+          },
+        },
+      },
+      select: { userId: true, skillId: true },
+      distinct: ['userId', 'skillId'],
+    });
+    return rows.map((r) => ({ userId: r.userId, skillId: r.skillId }));
   }
 
   /** Materialize the current state (single writer). Held under the advisory lock in the same tx. */

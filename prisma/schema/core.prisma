@@ -55,6 +55,14 @@ model User {
   reviewedRequirementRevisions  MasteryRequirementRevision[]    @relation("RequirementRevReviewedBy")
   publishedRequirementRevisions MasteryRequirementRevision[]    @relation("RequirementRevPublishedBy")
 
+  // Content Quality V2 (quality.prisma) — Wave E
+  createdQualityPolicies    ContentQualityPolicyVersion[] @relation("QualityPolicyCreatedBy")
+  createdSourceReferences   SourceReference[]             @relation("SourceReferenceCreatedBy")
+  createdSourceProvenance   ContentSourceProvenance[]     @relation("ProvenanceCreatedBy")
+  contentReviews            ContentReview[]               @relation("ContentReviewedBy")
+  createdQualityIssues      ContentQualityIssue[]         @relation("QualityIssueCreatedBy")
+  integrityDecisions        EvidenceIntegrityDecision[]   @relation("IntegrityDecidedBy")
+
   // Learning V2 learner facts (learning.prisma) — Wave C/D
   placementDecisions            PlacementDecision[]
   teachingSessions              TeachingSession[]
@@ -324,6 +332,7 @@ model MediaAsset {
   assessmentRespMedia  AssessmentResponse[]  @relation("ResponseMedia")
   blueprintBindings    TeachingBlueprintContentBinding[] // V2 Wave B
   teachingSessionPins  TeachingSessionContentPin[] // V2 Wave C
+  integrityScopes      EvidenceIntegrityScope[] // Content Quality V2
 
   @@index([uploadedBy])
   @@map("media_asset")
