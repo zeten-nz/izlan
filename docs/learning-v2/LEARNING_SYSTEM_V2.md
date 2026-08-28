@@ -5,13 +5,16 @@
 > remains the running system and is untouched.
 >
 > **Scope of this document:** the umbrella picture — the engines that make Izlan a real self-study teaching
-> system, and how they connect. Five engines are specified in depth so far: the **Placement Engine** (see
-> [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)), the **Roadmap Engine** (see
+> system, and how they connect. **All six V2 architecture layers are now specified in depth:** the **Placement
+> Engine** (see [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)), the **Roadmap Engine** (see
 > [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)), the **Teaching Engine** (see
 > [`TEACHING_ENGINE_V2.md`](./TEACHING_ENGINE_V2.md)), the **Skills Engine** (see
-> [`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md)), and the **Mastery & Review Engine** (see
-> [`MASTERY_REVIEW_ENGINE_V2.md`](./MASTERY_REVIEW_ENGINE_V2.md)). The remaining engine (Content Quality) is
-> described at contract altitude only; it earns its own deep spec later.
+> [`SKILLS_ENGINE_V2.md`](./SKILLS_ENGINE_V2.md)), the **Mastery & Review Engine** (see
+> [`MASTERY_REVIEW_ENGINE_V2.md`](./MASTERY_REVIEW_ENGINE_V2.md)), and the **Content Quality System** (see
+> [`CONTENT_QUALITY_SYSTEM_V2.md`](./CONTENT_QUALITY_SYSTEM_V2.md)).
+>
+> **Architecture/specification complete ≠ V2 implemented.** These documents define the target architecture; no
+> V2 runtime, schema, or endpoint has been built, and V1 / CONTROLLED_RC remains the running system.
 >
 > **Grounding.** This builds on the accepted product decisions (`docs/PRODUCT_DECISIONS.md` D-01…D-43) and
 > the existing implementation (`src/assessment/**`, `src/skill-profile/**`, `src/roadmap/**`,
@@ -147,11 +150,17 @@ knowledge is still fresh, and when/what to review — separating **demonstrated 
   evidence kinds into one `masteryScoreBp`, and lets review recall (confidence hard-coded 10000) move mastery
   like a lesson; historical evidence must never decay (spec §29 risk analysis).
 
-### 2.6 Content Quality System (cross-cutting)
+### 2.6 Content Quality System (cross-cutting) — *specified now*
+Governs how content becomes trustworthy — research → provenance → multidimensional review → publish → post-
+publication feedback → correction — with **pedagogical hard blockers that override any average score**, and
+strict boundaries (authoring research ≠ runtime authority; AI never self-publishes; automated validity ≠ human
+pedagogical approval). Full spec: [`CONTENT_QUALITY_SYSTEM_V2.md`](./CONTENT_QUALITY_SYSTEM_V2.md).
 - Encodes pedagogical principle #8: *if the material failed to explain a concept, don't automatically blame the
   learner.* When many learners miss the same item after the same explanation, flag the **content**, not the
-  cohort. Feeds Methodist review. **Fully deferred** — named here only so the other engines emit the signals
-  (per-item, per-explanation miss rates) it will later consume.
+  cohort — a quality **signal that triggers review, never an auto-edit** of canonical content.
+- Consumes signals from Teaching / Mastery-Review / Placement (per-item, per-explanation miss rates,
+  misconception distributions); today V1 validates only **structure** (`PublicationReadinessService`), so
+  factual/pedagogical/alignment/mastery/localization/provenance review is the V2 build.
 - **Mistake taxonomy is Methodist / verified-content owned** (owner decision): the canonical set of error
   categories is authored by Methodists (verified content = authority, D-05). **AI may classify** a learner's
   error into an *approved* category and personalize the explanation, but **must not silently invent new
