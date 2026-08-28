@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-THERE-IS-ARE", "name": "There is / There are", "sortOrder": 160 },
+    { "code": "ENG-A1-PREP-PLACE", "name": "O'rin predloglari (in/on/under)", "sortOrder": 170 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-015-THERE-IS-ARE",
+      "slug": "eng-a1-015-there-is-are",
+      "sortOrder": 150,
+      "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+      "prerequisiteContentKeys": ["ENG-A1-014-PLURALS"],
+      "revision": {
+        "title": "There is / There are",
+        "description": "there is + birlik; there are + ko'plik; inkor shakllari.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBiror joyda nima **bor**ligini aytish uchun **there is** va **there are** ishlatiladi. O'zbekcha \"...bor\" degani." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Son | Shakl | Misol |\n| --- | --- | --- |\n| bitta (birlik) | **There is** (There's) | There is **a book** on the table. |\n| ko'p (ko'plik) | **There are** | There are **five books** on the table. |\n\n**Inkor:** There **isn't** a pen. / There **aren't** any chairs.\n\nMuhim: shakl **keyingi ot**ga qarab tanlanadi — a book → is, five books → are." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- **There is** a cat under the chair.\n- **There is** an apple on the plate.\n- **There are** three windows in the room.\n- **There aren't** any books here.\n- **There is** a school near my house." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ four chairs in the kitchen.", "options": [ { "id": "a", "text": "There is" }, { "id": "b", "text": "There are" }, { "id": "c", "text": "There be" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Ko'plik ot bilan **there is** emas, **there are** ishlating.\n>\n> Noto'g'ri: *There is two books.* → To'g'ri: **There are two books.**\n> Noto'g'ri: *There are a cat.* → To'g'ri: **There is a cat.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ a big tree in the garden.", "options": [ { "id": "a", "text": "There is" }, { "id": "b", "text": "There are" }, { "id": "c", "text": "They are" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ any milk in the fridge. (inkor)", "options": [ { "id": "a", "text": "There isn't" }, { "id": "b", "text": "There aren't" }, { "id": "c", "text": "There not" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ many people at the bus stop.", "options": [ { "id": "a", "text": "There is" }, { "id": "b", "text": "There are" }, { "id": "c", "text": "It is" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ two shops and a cafe on my street.", "options": [ { "id": "a", "text": "There is" }, { "id": "b", "text": "There are" }, { "id": "c", "text": "There has" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-THERE-IS-ARE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ an old bridge in our town.", "options": [ { "id": "a", "text": "There is" }, { "id": "b", "text": "There are" }, { "id": "c", "text": "There am" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Birlik → **There is**; ko'plik → **There are**.\n- Inkor: **There isn't** / **There aren't**." }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-016-PREP-PLACE",
+      "slug": "eng-a1-016-prep-place",
+      "sortOrder": 160,
+      "skillCodes": ["ENG-A1-PREP-PLACE"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "O'rin predloglari: in, on, under, next to",
+        "description": "Narsalar qayerda ekanini aytish: in/on/under/next to/behind/in front of.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nNarsa **qayerda** ekanini aytish uchun o'rin predloglari kerak: **in** (ichida), **on** (ustida), **under** (ostida) va boshqalar." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Predlog | Ma'nosi | Misol |\n| --- | --- | --- |\n| **in** | ichida | The pen is **in** the bag. |\n| **on** | ustida (tegib) | The book is **on** the table. |\n| **under** | ostida | The cat is **under** the chair. |\n| **next to** | yonida | The shop is **next to** the bank. |\n| **behind** | orqasida | The car is **behind** the house. |\n| **in front of** | oldida | The tree is **in front of** the door. |" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- The keys are **on** the table.\n- My phone is **in** my pocket.\n- The ball is **under** the bed.\n- The school is **next to** the park.\n- There is a garden **behind** the house." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The milk is ___ the fridge. (ichida)", "options": [ { "id": "a", "text": "on" }, { "id": "b", "text": "in" }, { "id": "c", "text": "under" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> **in** (ichida) va **on** (ustida)ni aralashtirmang.\n>\n> Noto'g'ri: *The book is in the table.* → To'g'ri: **The book is on the table.**\n> Noto'g'ri: *The water is on the bottle.* → To'g'ri: **The water is in the bottle.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The cat is ___ the chair. (ostida)", "options": [ { "id": "a", "text": "on" }, { "id": "b", "text": "in" }, { "id": "c", "text": "under" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The bank is ___ the post office. (yonida)", "options": [ { "id": "a", "text": "next to" }, { "id": "b", "text": "under" }, { "id": "c", "text": "in" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "The photos are ___ the wall.", "options": [ { "id": "a", "text": "in" }, { "id": "b", "text": "on" }, { "id": "c", "text": "under" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "There is a car ___ the house. (oldida)", "options": [ { "id": "a", "text": "in front of" }, { "id": "b", "text": "in" }, { "id": "c", "text": "on" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PREP-PLACE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My shoes are ___ the bed. (ostida)", "options": [ { "id": "a", "text": "on" }, { "id": "b", "text": "under" }, { "id": "c", "text": "next to" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **in** ichida, **on** ustida, **under** ostida.\n- **next to** yonida, **behind** orqasida, **in front of** oldida." }
+          }
+        ]
+      }
+    }
+  ]
+}
