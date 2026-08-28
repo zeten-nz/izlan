@@ -39,6 +39,11 @@ model User {
   createdAssessmentDefs AssessmentDefinition[]        @relation("AssessmentDefCreatedBy")
   createdAssessmentVers AssessmentDefinitionVersion[] @relation("AssessmentVerCreatedBy")
 
+  // Learning V2 canonical curriculum (content.prisma) — Wave A
+  createdSubjectDomains         SubjectDomain[]                 @relation("SubjectDomainCreatedBy")
+  reviewedExpectationRevisions  SkillLevelExpectationRevision[] @relation("ExpectationRevReviewedBy")
+  publishedExpectationRevisions SkillLevelExpectationRevision[] @relation("ExpectationRevPublishedBy")
+
   // Learning (learning.prisma)
   assessmentAttempts AssessmentAttempt[]
   skillStates        LearnerSkillState[]

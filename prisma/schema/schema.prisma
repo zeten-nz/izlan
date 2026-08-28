@@ -53,6 +53,16 @@ enum SkillStatus {
   ARCHIVED
 }
 
+// ---- Learning V2 — canonical curriculum (Wave A; DATA_MODEL_V2_PRISMA_CHANGE_PLAN §3) ----
+// Role an expectation plays when CONSUMED by a RoadmapPoint / MasteryRequirement (Wave B consumers).
+// Expectation lifecycle facets (introduced/expected/reinforced/assessed/required-for-exit) are BOOLEAN
+// columns on SkillLevelExpectationRevision — NOT an enum (correction 1: no SkillExpectationRole).
+enum SkillContributionRole {
+  REQUIRED
+  SUPPORTING
+  OPTIONAL
+}
+
 // Activity block turlari — TD-21 (VIDEO: lesson content uchun future qiymat)
 enum ActivityType {
   TEXT
