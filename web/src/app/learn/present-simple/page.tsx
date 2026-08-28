@@ -44,9 +44,12 @@ export default function PresentSimpleRoadmapPage() {
     <ResourceView loading={res.loading} error={res.error} data={res.data} onRetry={res.reload}>
       {(d) => (
         <div className="space-y-6">
-          <header>
-            <h1 className="text-2xl font-bold tracking-tight">{t('learner.v2.title')}</h1>
-            <p className="mt-0.5 text-muted">{d.subjectTitle ?? t('learner.v2.subtitle')}</p>
+          <header className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{t('learner.v2.title')}</h1>
+              <p className="mt-0.5 text-muted">{d.subjectTitle ?? t('learner.v2.subtitle')}</p>
+            </div>
+            <ButtonLink href="/learn/today" variant="secondary" size="sm">{t('learner.daily.openToday')}</ButtonLink>
           </header>
 
           {d.focus && <FocusBanner focus={d.focus} />}

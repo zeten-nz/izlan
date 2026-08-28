@@ -22,6 +22,7 @@ import { FocusLearningShell } from '@/components/learning/FocusLearningShell';
 import { QuestionCard } from '@/components/learning/QuestionCard';
 import { FeedbackBanner } from '@/components/learning/FeedbackBanner';
 import { LessonActivityView } from '@/components/learning/LessonActivityView';
+import { AssistantPanel } from '@/components/learning/AssistantPanel';
 
 type Step =
   | { kind: 'stage'; stage: TeachingStage }
@@ -92,6 +93,10 @@ function Runner({ session }: { session: TeachingSessionView }) {
   const total = steps.length;
   const exit = () => router.push('/learn/present-simple');
   if (!step) return null;
+  // Advisory assistant is offered where a learner may be stuck (a question or the mastery gate). WHY_WRONG is gated on
+  // a real incorrect result — the just-submitted answer, or any earlier incorrect attempt in the session.
+  const hasRecentMistake = (feedback != null && !feedback.isCorrect) || session.stages.some((s) => s.activities.some((a) => a.lastResult != null && !a.lastResult.isCorrect));
+  const showAssistant = step.kind === 'objective' || step.kind === 'mastery';
   const contextLabel = step.kind === 'mastery' ? t('learner.teaching.masteryStage') : step.stage.title;
 
   function next() {
@@ -207,6 +212,12 @@ function Runner({ session }: { session: TeachingSessionView }) {
           )}
           <div className="flex justify-end"><Button onClick={onMasteryCheck} loading={busy} disabled={busy} size="lg">{t('learner.teaching.runMastery')}</Button></div>
         </Card>
+      )}
+
+      {showAssistant && (
+        <div className="mt-6">
+          <AssistantPanel sessionId={session.id} hasRecentMistake={hasRecentMistake} />
+        </div>
       )}
     </FocusLearningShell>
   );
