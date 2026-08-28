@@ -24,6 +24,8 @@ model Subject {
   signals               LearnerSignal[]
   learningIntents       LearnerLearningIntent[]
   subjectDomains        SubjectDomain[] // V2 Wave A
+  placementDecisions    PlacementDecision[] // V2 Wave C
+  roadmapGenerations    LearnerRoadmapGeneration[] // V2 Wave D
 
   @@map("subject")
 }
@@ -45,6 +47,8 @@ model Track {
   levels          Level[]
   roadmaps        LearnerRoadmap[]
   learningIntents LearnerLearningIntent[]
+  placementDecisions PlacementDecision[] // V2 Wave C
+  roadmapGenerations LearnerRoadmapGeneration[] // V2 Wave D
 
   @@unique([subjectId, slug])
   @@index([subjectId])
@@ -67,6 +71,8 @@ model Level {
   modules       Module[]
 
   skillLevelExpectations SkillLevelExpectation[] // V2 Wave A (SQ1 — Level reused as progression identity)
+  roadmapPoints          RoadmapPoint[] // V2 Wave B
+  placementRecommendations PlacementDecision[]   @relation("PlacementRecommendedLevel") // V2 Wave C
 
   @@unique([trackId, code])
   @@unique([trackId, sortOrder])
@@ -110,6 +116,7 @@ model Topic {
   createdByUser  User            @relation("TopicCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
   lessons        Lesson[]
   communityPosts CommunityPost[]
+  roadmapPointRevisions RoadmapPointRevision[] // V2 Wave B (optional content-reuse link)
 
   @@unique([moduleId, sortOrder])
   @@index([moduleId])
@@ -177,6 +184,9 @@ model LessonRevision {
   lessonProgress     LearnerLessonProgress[]
   lessonCompletions  LearnerLessonCompletion[]
   reviewSessions     LearnerReviewSession[]
+  blueprintBindings  TeachingBlueprintContentBinding[] // V2 Wave B
+  teachingSessionPins TeachingSessionContentPin[] // V2 Wave C
+  taskMeasurements   SkillMeasurement[]               @relation("MeasurementTaskContentRevision") // V2 Wave C
 
   @@unique([lessonId, version])
   @@index([lessonId, status])
@@ -201,6 +211,8 @@ model Activity {
   skills   ActivitySkill[]
   attempts ActivityAttempt[]
   reviewSessionActivities LearnerReviewSessionActivity[]
+  blueprintBindings   TeachingBlueprintContentBinding[] // V2 Wave B
+  teachingSessionPins TeachingSessionContentPin[] // V2 Wave C
 
   @@unique([lessonRevisionId, position])
   @@index([lessonRevisionId])
@@ -346,6 +358,7 @@ model SkillLevelExpectation {
   level           Level                           @relation(fields: [levelId], references: [id], onDelete: Restrict)
   currentRevision SkillLevelExpectationRevision?  @relation("ExpectationCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: Restrict)
   revisions       SkillLevelExpectationRevision[] @relation("ExpectationRevisions")
+  roadmapPointExpectations RoadmapPointSkillExpectation[] // V2 Wave B
 
   @@unique([skillId, levelId])
   @@index([skillId])
@@ -379,7 +392,256 @@ model SkillLevelExpectationRevision {
   currentForExpectation SkillLevelExpectation? @relation("ExpectationCurrentRevision")
   reviewedByUser        User?                  @relation("ExpectationRevReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
   publishedByUser       User?                  @relation("ExpectationRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+  masteryReqExpectations MasteryRequirementSkillExpectation[] // V2 Wave B
+  skillMeasurements     SkillMeasurement[] // V2 Wave C (measurements pin this revision)
 
   @@unique([expectationId, versionNo])
   @@map("skill_level_expectation_revision")
+}
+
+// ============================================================================
+// V2 CANONICAL CURRICULUM — WAVE B (roadmap-point graph, teaching blueprint, mastery requirement)
+// docs/learning-v2/DATA_MODEL_V2_PRISMA_CHANGE_PLAN.md §7–§9. Additive; RoadmapPoint != Lesson.
+// ============================================================================
+
+// RoadmapPoint — stable canonical concept identity (survives regeneration & graph revisions).
+// Sole ownership FK is levelId; Subject/Track derived via level->track->subject (correction 2).
+model RoadmapPoint {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  pointKey            String          @unique @map("point_key") // globally stable business key (like Lesson.contentKey)
+  levelId             String          @map("level_id") @db.Uuid
+  status              ContainerStatus @default(DRAFT)
+  publishedRevisionId String?         @unique @map("published_revision_id") @db.Uuid
+  createdBy           String          @map("created_by") @db.Uuid
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  level             Level                  @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  createdByUser     User                   @relation("RoadmapPointCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  publishedRevision RoadmapPointRevision?  @relation("RoadmapPointPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict)
+  revisions         RoadmapPointRevision[] @relation("RoadmapPointRevisions")
+  prereqOwnerRows   RoadmapPointPrerequisite[] @relation("RoadmapPointPrereqOwner")
+  prereqTargetRows  RoadmapPointPrerequisite[] @relation("RoadmapPointPrereqTarget")
+  teachingBlueprint TeachingBlueprint?
+  masteryRequirement MasteryRequirement?
+  teachingSessions  TeachingSession[]
+  masteryEvaluations MasteryEvaluation[]
+  acquisitionEvents PointAcquisitionEvent[]
+  projections       RoadmapPointProjection[]
+
+  @@index([levelId])
+  @@map("roadmap_point")
+}
+
+// RoadmapPointRevision — immutable published graph-version. Owns membership + prerequisite edges.
+model RoadmapPointRevision {
+  id                String         @id @default(uuid(7)) @db.Uuid
+  roadmapPointId    String         @map("roadmap_point_id") @db.Uuid
+  versionNo         Int            @map("version_no")
+  status            RevisionStatus @default(DRAFT)
+  title             String
+  learningOutcome   Json?          @map("learning_outcome") @db.JsonB
+  topicId           String?        @map("topic_id") @db.Uuid // optional content-reuse link (versioned)
+  sortOrderDefault  Int            @map("sort_order_default")
+  requiredFlag      Boolean        @default(true) @map("required_flag")
+  estimatedEffortMin Int?          @map("estimated_effort_min")
+  reviewedBy        String?        @map("reviewed_by") @db.Uuid
+  publishedBy       String?        @map("published_by") @db.Uuid
+  publishedAt       DateTime?      @map("published_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  point           RoadmapPoint  @relation("RoadmapPointRevisions", fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  currentForPoint RoadmapPoint? @relation("RoadmapPointPublishedRevision")
+  topic           Topic?        @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  reviewedByUser  User?         @relation("RoadmapPointRevReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  publishedByUser User?         @relation("RoadmapPointRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+  prerequisites   RoadmapPointPrerequisite[]    @relation("RevisionPrerequisites")
+  skillExpectations RoadmapPointSkillExpectation[]
+  teachingSessions  TeachingSession[]
+  masteryEvaluations MasteryEvaluation[]
+  acquisitionEvents PointAcquisitionEvent[]
+  projections       RoadmapPointProjection[]
+
+  @@unique([roadmapPointId, versionNo])
+  @@index([roadmapPointId, status])
+  @@map("roadmap_point_revision")
+}
+
+// RoadmapPointPrerequisite — prerequisite edge owned by a point revision (history-frozen).
+// roadmapPointId is denormalized so the no-self-loop CHECK is a row CHECK.
+model RoadmapPointPrerequisite {
+  id                     String   @id @default(uuid(7)) @db.Uuid
+  roadmapPointRevisionId String   @map("roadmap_point_revision_id") @db.Uuid
+  roadmapPointId         String   @map("roadmap_point_id") @db.Uuid
+  prerequisitePointId    String   @map("prerequisite_point_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  revision         RoadmapPointRevision @relation("RevisionPrerequisites", fields: [roadmapPointRevisionId], references: [id], onDelete: Cascade)
+  point            RoadmapPoint         @relation("RoadmapPointPrereqOwner", fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  prerequisitePoint RoadmapPoint        @relation("RoadmapPointPrereqTarget", fields: [prerequisitePointId], references: [id], onDelete: Restrict)
+
+  @@unique([roadmapPointRevisionId, prerequisitePointId])
+  @@index([prerequisitePointId])
+  @@map("roadmap_point_prerequisite")
+}
+
+// RoadmapPointSkillExpectation — point-revision membership referencing the STABLE expectation identity.
+model RoadmapPointSkillExpectation {
+  id                      String                @id @default(uuid(7)) @db.Uuid
+  roadmapPointRevisionId  String                @map("roadmap_point_revision_id") @db.Uuid
+  skillLevelExpectationId String                @map("skill_level_expectation_id") @db.Uuid
+  role                    SkillContributionRole
+  createdAt               DateTime              @default(now()) @map("created_at")
+
+  revision   RoadmapPointRevision  @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Cascade)
+  expectation SkillLevelExpectation @relation(fields: [skillLevelExpectationId], references: [id], onDelete: Restrict)
+
+  @@unique([roadmapPointRevisionId, skillLevelExpectationId])
+  @@index([skillLevelExpectationId])
+  @@map("roadmap_point_skill_expectation")
+}
+
+// TeachingBlueprint — 1:1 with RoadmapPoint; TeachingBlueprint != LessonRevision.
+model TeachingBlueprint {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  roadmapPointId      String          @unique @map("roadmap_point_id") @db.Uuid
+  status              ContainerStatus @default(DRAFT)
+  publishedRevisionId String?         @unique @map("published_revision_id") @db.Uuid
+  createdBy           String          @map("created_by") @db.Uuid
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  point             RoadmapPoint               @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  createdByUser     User                       @relation("BlueprintCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  publishedRevision TeachingBlueprintRevision? @relation("BlueprintPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict)
+  revisions         TeachingBlueprintRevision[] @relation("BlueprintRevisions")
+
+  @@map("teaching_blueprint")
+}
+
+// TeachingBlueprintRevision — immutable published revision; ordered stages are relational rows.
+model TeachingBlueprintRevision {
+  id                   String         @id @default(uuid(7)) @db.Uuid
+  blueprintId          String         @map("blueprint_id") @db.Uuid
+  versionNo            Int            @map("version_no")
+  status               RevisionStatus @default(DRAFT)
+  estimatedDurationMin Int?           @map("estimated_duration_min")
+  reviewedBy           String?        @map("reviewed_by") @db.Uuid
+  publishedBy          String?        @map("published_by") @db.Uuid
+  publishedAt          DateTime?      @map("published_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  blueprint       TeachingBlueprint  @relation("BlueprintRevisions", fields: [blueprintId], references: [id], onDelete: Restrict)
+  currentForBlueprint TeachingBlueprint? @relation("BlueprintPublishedRevision")
+  reviewedByUser  User?              @relation("BlueprintRevReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  publishedByUser User?              @relation("BlueprintRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+  stages          TeachingBlueprintStage[]
+  teachingSessions TeachingSession[]
+
+  @@unique([blueprintId, versionNo])
+  @@map("teaching_blueprint_revision")
+}
+
+// TeachingBlueprintStage — CORE relational stage identity/order/type/branch within a pinned revision.
+model TeachingBlueprintStage {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  blueprintRevisionId String  @map("blueprint_revision_id") @db.Uuid
+  stageKey           String?  @map("stage_key")
+  position           Int
+  stageType          String   @map("stage_type") // string registry (concept/visual/rule/example/recognition/production/...)
+  branchFromStageId  String?  @map("branch_from_stage_id") @db.Uuid
+  config             Json     @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  revision       TeachingBlueprintRevision @relation(fields: [blueprintRevisionId], references: [id], onDelete: Cascade)
+  branchFromStage TeachingBlueprintStage?  @relation("StageBranch", fields: [branchFromStageId], references: [id], onDelete: Restrict)
+  branchTargets  TeachingBlueprintStage[]  @relation("StageBranch")
+  bindings       TeachingBlueprintContentBinding[]
+
+  @@unique([blueprintRevisionId, position])
+  @@index([blueprintRevisionId, position])
+  @@map("teaching_blueprint_stage")
+}
+
+// TeachingBlueprintContentBinding — stage -> immutable content revision (typed FK, XOR).
+model TeachingBlueprintContentBinding {
+  id               String               @id @default(uuid(7)) @db.Uuid
+  blueprintStageId String               @map("blueprint_stage_id") @db.Uuid
+  lessonRevisionId String?              @map("lesson_revision_id") @db.Uuid
+  activityId       String?              @map("activity_id") @db.Uuid
+  mediaAssetId     String?              @map("media_asset_id") @db.Uuid
+  role             BlueprintBindingRole
+  position         Int
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  stage          TeachingBlueprintStage @relation(fields: [blueprintStageId], references: [id], onDelete: Cascade)
+  lessonRevision LessonRevision?        @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  activity       Activity?              @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  media          MediaAsset?            @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([blueprintStageId, position])
+  @@map("teaching_blueprint_content_binding")
+}
+
+// MasteryRequirement — 1:1 with RoadmapPoint (requirement owns the point FK). Point-owned canonical policy.
+model MasteryRequirement {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  roadmapPointId    String          @unique @map("roadmap_point_id") @db.Uuid
+  status            ContainerStatus @default(DRAFT)
+  currentRevisionId String?         @unique @map("current_revision_id") @db.Uuid
+  createdBy         String          @map("created_by") @db.Uuid
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  point           RoadmapPoint                @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  createdByUser    User                       @relation("RequirementCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  currentRevision MasteryRequirementRevision? @relation("RequirementCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: Restrict)
+  revisions       MasteryRequirementRevision[] @relation("RequirementRevisions")
+
+  @@map("mastery_requirement")
+}
+
+// MasteryRequirementRevision — immutable published mastery contract.
+model MasteryRequirementRevision {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  requirementId String         @map("requirement_id") @db.Uuid
+  versionNo     Int            @map("version_no")
+  status        RevisionStatus @default(DRAFT)
+  gates         Json           @db.JsonB // critical/cumulative gate config
+  policyVersion String         @map("policy_version") // non-empty (CHECK)
+  reviewedBy    String?        @map("reviewed_by") @db.Uuid
+  publishedBy   String?        @map("published_by") @db.Uuid
+  publishedAt   DateTime?      @map("published_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  requirement           MasteryRequirement  @relation("RequirementRevisions", fields: [requirementId], references: [id], onDelete: Restrict)
+  currentForRequirement MasteryRequirement? @relation("RequirementCurrentRevision")
+  reviewedByUser        User?               @relation("RequirementRevReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  publishedByUser       User?               @relation("RequirementRevPublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+  skillExpectations     MasteryRequirementSkillExpectation[]
+  evaluations           MasteryEvaluation[]
+
+  @@unique([requirementId, versionNo])
+  @@map("mastery_requirement_revision")
+}
+
+// MasteryRequirementSkillExpectation — gate referencing the EXACT expectation revision.
+model MasteryRequirementSkillExpectation {
+  id                              String                @id @default(uuid(7)) @db.Uuid
+  requirementRevisionId           String                @map("requirement_revision_id") @db.Uuid
+  skillLevelExpectationRevisionId String                @map("skill_level_expectation_revision_id") @db.Uuid
+  role                            SkillContributionRole
+  requiredEvidenceKinds           Json                  @map("required_evidence_kinds") @db.JsonB
+  minIndependence                 Int?                  @map("min_independence") @db.SmallInt
+  createdAt                       DateTime              @default(now()) @map("created_at")
+
+  requirementRevision MasteryRequirementRevision    @relation(fields: [requirementRevisionId], references: [id], onDelete: Cascade)
+  expectationRevision SkillLevelExpectationRevision @relation(fields: [skillLevelExpectationRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([requirementRevisionId, skillLevelExpectationRevisionId])
+  @@index([skillLevelExpectationRevisionId])
+  @@map("mastery_requirement_skill_expectation")
 }

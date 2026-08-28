@@ -153,6 +153,7 @@ model AssessmentAttempt {
   version    AssessmentDefinitionVersion @relation(fields: [definitionVersionId], references: [id], onDelete: Restrict)
   checkpoint Checkpoint?                 @relation(fields: [checkpointId], references: [id], onDelete: Restrict)
   responses  AssessmentResponse[]
+  placementDecisions PlacementDecision[] // V2 Wave C (source attempt)
 
   @@index([userId, startedAt])
   @@index([definitionVersionId])
@@ -178,6 +179,7 @@ model AssessmentResponse {
   item          AssessmentItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
   responseMedia MediaAsset?       @relation("ResponseMedia", fields: [responseMediaAssetId], references: [id], onDelete: Restrict)
   aiEvaluations AiEvaluation[]
+  skillMeasurementEvidenceRefs SkillMeasurementEvidenceRef[] // V2 Wave C — raw-evidence provenance target
 
   @@unique([attemptId, sequenceNo])
   @@index([itemId])
@@ -200,6 +202,7 @@ model AiEvaluation {
 
   assessmentResponse AssessmentResponse? @relation(fields: [assessmentResponseId], references: [id], onDelete: Restrict)
   activityAttempt    ActivityAttempt?    @relation(fields: [activityAttemptId], references: [id], onDelete: Restrict)
+  v2Measurements     SkillMeasurement[]  @relation("V2MeasurementAiEvaluation") // V2 Wave C
 
   @@index([assessmentResponseId])
   @@index([activityAttemptId])
@@ -236,21 +239,38 @@ model SkillMeasurement {
   attemptId    String?                @map("assessment_attempt_id") @db.Uuid
   lessonId     String?                @map("lesson_id") @db.Uuid
   reviewSessionId String?             @map("review_session_id") @db.Uuid // Phase 1.9C (TD-130) — REVIEW_MASTERY provenance; other sources NULL
+  teachingSessionId String?           @map("teaching_session_id") @db.Uuid // V2 Wave C — TEACHING_MASTERY provenance; other sources NULL (idempotency FK)
   scoreBp      Int                    @map("score_bp") // 0..10000
   displayLevel String?                @map("display_level")
   confidenceBp Int?                   @map("confidence_bp")
   evidenceCount Int                   @map("evidence_count") // >0 (CHECK chk_sm_evidence_count_positive, LP-01) — evidence units this milestone represents (TD-113); merge does not reinterpret raw evidence
   observedAt   DateTime               @map("observed_at") // logical evidence-observation time (TD-113) — DIAGNOSTIC=attempt.completedAt, LESSON_MASTERY=completion.completedAt, REVIEW_MASTERY=reviewSession.completedAt; NOT materialization/backfill time
   derivationVersion String            @map("derivation_version") // derivation formula/process id (TD-98) — NOT NULL, non-empty (CHECK); caller must supply, no default
+  // V2 Wave C additive metadata (all nullable; never redefines confidenceBp=coverage)
+  evidenceKind      String?           @map("evidence_kind") // registry string (recognition/controlled-production/free-production/...)
+  independenceLevel Int?              @map("independence_level") @db.SmallInt // ordinal >=0 (CHECK); comparable to requirement minIndependence
+  expectationRevisionId String?       @map("skill_level_expectation_revision_id") @db.Uuid // pins the exact expectation revision in force
+  aiEvaluationId    String?           @map("ai_evaluation_id") @db.Uuid
+  taskContentRevisionId String?       @map("task_content_revision_id") @db.Uuid // OPTIONAL single-source optimization only
+  detailMeta        Json?             @map("detail_meta") @db.JsonB
   createdAt    DateTime               @default(now()) @map("created_at")
 
   user          User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
   skill         Skill                 @relation(fields: [skillId], references: [id], onDelete: Restrict)
   reviewSession LearnerReviewSession? @relation(fields: [reviewSessionId], references: [id], onDelete: Restrict) // history-safe provenance (TD-130 §55)
+  teachingSession TeachingSession?    @relation(fields: [teachingSessionId], references: [id], onDelete: Restrict) // V2 provenance
+  expectationRevision SkillLevelExpectationRevision? @relation(fields: [expectationRevisionId], references: [id], onDelete: Restrict)
+  aiEvaluation  AiEvaluation?         @relation("V2MeasurementAiEvaluation", fields: [aiEvaluationId], references: [id], onDelete: Restrict)
+  taskContentRevision LessonRevision? @relation("MeasurementTaskContentRevision", fields: [taskContentRevisionId], references: [id], onDelete: Restrict)
+  evidenceRefs      SkillMeasurementEvidenceRef[] // V2 Wave C — relational raw-evidence provenance
+  evaluationEvidence MasteryEvaluationEvidence[]   // V2 Wave C — pinned by mastery evaluations
 
   @@index([userId, skillId, createdAt])
   @@index([userId, skillId, observedAt]) // learning-progress-merge-v1 current-window ordering (TD-114)
   @@index([reviewSessionId]) // review-backed lookup (RM-DB-01)
+  @@index([teachingSessionId]) // V2 teaching-backed lookup
+  // Partial UNIQUE (custom SQL, V2 Wave C): teaching-backed idempotency
+  //   uq_skill_measurement_teaching_idempotency (teaching_session_id, skill_id, source, derivation_version) WHERE teaching_session_id IS NOT NULL
   // Partial UNIQUE (custom SQL, migration 20260819170000): assessment-backed idempotency
   // uq_skill_measurement_assessment_idempotency (assessment_attempt_id, skill_id, source, derivation_version) WHERE assessment_attempt_id IS NOT NULL (SP-04)
   // Partial UNIQUE (custom SQL, migration 20260820120000): lesson-backed idempotency (SP-10)
@@ -340,6 +360,7 @@ model ActivityAttempt {
   lessonRevisionId     String                @map("lesson_revision_id") @db.Uuid
   learningSessionId    String?               @map("learning_session_id") @db.Uuid
   reviewSessionId      String?               @map("review_session_id") @db.Uuid // Phase 1.9B-2 review provenance (TD-127); normal execution = NULL (isolation discriminator)
+  teachingSessionId    String?               @map("teaching_session_id") @db.Uuid // V2 Wave C additive; normal/review execution = NULL
   roadmapItemId        String?               @map("roadmap_item_id") @db.Uuid
   attemptNo            Int                   @map("attempt_no")
   status               ActivityAttemptStatus @default(IN_PROGRESS)
@@ -358,16 +379,19 @@ model ActivityAttempt {
   revision        LessonRevision                   @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
   session         LearningSession?                 @relation(fields: [learningSessionId], references: [id], onDelete: SetNull)
   reviewSession   LearnerReviewSession?            @relation(fields: [reviewSessionId], references: [id], onDelete: Restrict) // review provenance load-bearing
+  teachingSession TeachingSession?                 @relation(fields: [teachingSessionId], references: [id], onDelete: SetNull) // V2 additive
   roadmapItem     RoadmapItem?                     @relation(fields: [roadmapItemId], references: [id], onDelete: SetNull)
   responseMedia   MediaAsset?                      @relation("AttemptResponseMedia", fields: [responseMediaAssetId], references: [id], onDelete: Restrict)
   aiEvaluations   AiEvaluation[]
   rewardGrants    RewardGrant[]                    @relation("RewardGrantAttempt")
   missionEvidence DailyMissionCompletionEvidence[]
+  skillMeasurementEvidenceRefs SkillMeasurementEvidenceRef[] // V2 Wave C — raw-evidence provenance target
 
   @@unique([userId, activityId, attemptNo])
   @@index([userId, submittedAt])
   @@index([activityId])
   @@index([reviewSessionId]) // review attempt lookup (RS-06)
+  @@index([teachingSessionId]) // V2 teaching attempt lookup
   @@map("activity_attempt")
 }
 
@@ -670,4 +694,237 @@ model WeeklyProgress {
 
   @@unique([userId, weekStartDate])
   @@map("weekly_progress")
+}
+
+// ============================================================================
+// V2 LEARNER FACTS — WAVE C (docs/learning-v2/DATA_MODEL_V2_PRISMA_CHANGE_PLAN.md §10–§15)
+// Append-only immutable facts + evidence lineage. Historical facts never rewritten.
+// ============================================================================
+
+// PlacementDecision — immutable placement fact. Present here as the structural provenance target
+// for PointAcquisitionEvent(VALIDATED); the VALIDATED flow itself (placement engine) is a later phase.
+model PlacementDecision {
+  id                      String   @id @default(uuid(7)) @db.Uuid
+  userId                  String   @map("user_id") @db.Uuid
+  subjectId               String   @map("subject_id") @db.Uuid
+  trackId                 String?  @map("track_id") @db.Uuid
+  sourceAttemptId         String?  @map("source_assessment_attempt_id") @db.Uuid
+  policyVersion           String   @map("policy_version") // non-empty (CHECK)
+  recommendedStudyLevelId String?  @map("recommended_study_level_id") @db.Uuid
+  supersedesDecisionId    String?  @map("supersedes_decision_id") @db.Uuid // new->old; old row never mutated
+  clientRequestId         String?  @map("client_request_id")
+  snapshot                Json     @db.JsonB // descriptive decision-time snapshot; NOT the FK graph
+  decidedAt               DateTime @default(now()) @map("decided_at")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject               Subject             @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  track                 Track?              @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  sourceAttempt         AssessmentAttempt?  @relation(fields: [sourceAttemptId], references: [id], onDelete: Restrict)
+  recommendedStudyLevel Level?              @relation("PlacementRecommendedLevel", fields: [recommendedStudyLevelId], references: [id], onDelete: Restrict)
+  supersedesDecision    PlacementDecision?  @relation("PlacementSupersession", fields: [supersedesDecisionId], references: [id], onDelete: Restrict)
+  supersededBy          PlacementDecision[] @relation("PlacementSupersession")
+  acquisitionEvents     PointAcquisitionEvent[]
+  roadmapGenerations    LearnerRoadmapGeneration[]
+
+  @@index([userId, subjectId, decidedAt])
+  // Partial UNIQUE (custom SQL): uq_placement_decision_attempt_policy (source_assessment_attempt_id, policy_version) WHERE source_assessment_attempt_id IS NOT NULL
+  // Partial UNIQUE (custom SQL): uq_placement_decision_client_request (user_id, client_request_id) WHERE client_request_id IS NOT NULL
+  @@map("placement_decision")
+}
+
+// TeachingSession — per-point V2 execution state; pins point-context + teaching-content revisions.
+// Session completion != LEARNED (that is a mastery-evaluated PointAcquisitionEvent).
+model TeachingSession {
+  id                     String                @id @default(uuid(7)) @db.Uuid
+  userId                 String                @map("user_id") @db.Uuid
+  roadmapPointId         String                @map("roadmap_point_id") @db.Uuid
+  roadmapPointRevisionId String                @map("roadmap_point_revision_id") @db.Uuid // point-context history
+  blueprintRevisionId    String                @map("blueprint_revision_id") @db.Uuid // teaching-content history
+  roadmapGenerationId    String?               @map("roadmap_generation_id") @db.Uuid
+  status                 TeachingSessionStatus @default(NOT_STARTED)
+  currentStep            Json?                 @map("current_step") @db.JsonB // resume: stage/branch/hints
+  startedAt              DateTime?             @map("started_at")
+  completedAt            DateTime?             @map("completed_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+
+  user              User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  point             RoadmapPoint              @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  pointRevision     RoadmapPointRevision      @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  blueprintRevision TeachingBlueprintRevision @relation(fields: [blueprintRevisionId], references: [id], onDelete: Restrict)
+  generation        LearnerRoadmapGeneration? @relation(fields: [roadmapGenerationId], references: [id], onDelete: SetNull)
+  contentPins       TeachingSessionContentPin[]
+  activityAttempts  ActivityAttempt[]
+  measurements      SkillMeasurement[]
+
+  @@index([userId, status])
+  @@index([userId, roadmapPointId, status])
+  // Partial UNIQUE (custom SQL): uq_teaching_session_nonterminal (user_id, roadmap_point_id) WHERE status NOT IN ('COMPLETED','ABANDONED')
+  @@map("teaching_session")
+}
+
+// TeachingSessionContentPin — resolved/encountered content-revision set for a session (fact).
+model TeachingSessionContentPin {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  teachingSessionId String   @map("teaching_session_id") @db.Uuid
+  lessonRevisionId  String?  @map("lesson_revision_id") @db.Uuid
+  activityId        String?  @map("activity_id") @db.Uuid
+  mediaAssetId      String?  @map("media_asset_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  session        TeachingSession @relation(fields: [teachingSessionId], references: [id], onDelete: Cascade)
+  lessonRevision LessonRevision? @relation(fields: [lessonRevisionId], references: [id], onDelete: Restrict)
+  activity       Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  media          MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@index([teachingSessionId])
+  // CHECK (custom SQL): chk_teaching_session_pin_xor — exactly one content FK non-null
+  @@map("teaching_session_content_pin")
+}
+
+// SkillMeasurementEvidenceRef — relational raw-evidence provenance (XOR source). Multi-skill safe.
+model SkillMeasurementEvidenceRef {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  skillMeasurementId   String   @map("skill_measurement_id") @db.Uuid
+  assessmentResponseId String?  @map("assessment_response_id") @db.Uuid
+  activityAttemptId    String?  @map("activity_attempt_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  measurement        SkillMeasurement    @relation(fields: [skillMeasurementId], references: [id], onDelete: Cascade)
+  assessmentResponse AssessmentResponse? @relation(fields: [assessmentResponseId], references: [id], onDelete: Restrict)
+  activityAttempt    ActivityAttempt?    @relation(fields: [activityAttemptId], references: [id], onDelete: Restrict)
+
+  @@index([assessmentResponseId])
+  @@index([activityAttemptId])
+  @@index([skillMeasurementId])
+  // CHECK (custom SQL): chk_smer_source_xor — exactly one source FK non-null
+  // Partial UNIQUE per source (custom SQL): (measurement, source) — NOT global (one attempt feeds many skills)
+  @@map("skill_measurement_evidence_ref")
+}
+
+// MasteryEvaluation — immutable historical evaluation vs the exact requirement revision. != acquisition.
+model MasteryEvaluation {
+  id                     String                   @id @default(uuid(7)) @db.Uuid
+  userId                 String                   @map("user_id") @db.Uuid
+  roadmapPointId         String                   @map("roadmap_point_id") @db.Uuid
+  roadmapPointRevisionId String                   @map("roadmap_point_revision_id") @db.Uuid // point-context
+  requirementRevisionId  String                   @map("mastery_requirement_revision_id") @db.Uuid // the exact gate
+  outcome                MasteryEvaluationOutcome
+  policyVersion          String                   @map("policy_version") // non-empty (CHECK)
+  evidenceCutoffAt       DateTime                 @map("evidence_cutoff_at") // indexable watermark
+  evidenceBoundaryKey    String?                  @map("evidence_boundary_key")
+  gateSummary            Json                     @map("gate_summary") @db.JsonB
+  evaluatedAt            DateTime                 @default(now()) @map("evaluated_at")
+  createdAt              DateTime                 @default(now()) @map("created_at")
+
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  point               RoadmapPoint               @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  pointRevision       RoadmapPointRevision       @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  requirementRevision MasteryRequirementRevision @relation(fields: [requirementRevisionId], references: [id], onDelete: Restrict)
+  evidence            MasteryEvaluationEvidence[]
+  acquisitionEvents   PointAcquisitionEvent[]
+
+  @@unique([userId, roadmapPointId, requirementRevisionId, evidenceCutoffAt], map: "uq_mastery_evaluation_idem") // idempotency (all cols NOT NULL → plain unique; Prisma-managed)
+  @@index([userId, roadmapPointId, evaluatedAt])
+  @@map("mastery_evaluation")
+}
+
+// MasteryEvaluationEvidence — pins the exact SkillMeasurement set the evaluation used (no value copy).
+model MasteryEvaluationEvidence {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  masteryEvaluationId String   @map("mastery_evaluation_id") @db.Uuid
+  skillMeasurementId  String   @map("skill_measurement_id") @db.Uuid
+  evidenceRole        Int?     @map("evidence_role") @db.SmallInt
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  evaluation  MasteryEvaluation @relation(fields: [masteryEvaluationId], references: [id], onDelete: Cascade)
+  measurement SkillMeasurement  @relation(fields: [skillMeasurementId], references: [id], onDelete: Restrict)
+
+  @@unique([masteryEvaluationId, skillMeasurementId])
+  @@index([skillMeasurementId])
+  @@index([masteryEvaluationId])
+  @@map("mastery_evaluation_evidence")
+}
+
+// PointAcquisitionEvent — append-only LEARNED/VALIDATED fact on a STABLE point (survives regeneration).
+model PointAcquisitionEvent {
+  id                     String               @id @default(uuid(7)) @db.Uuid
+  userId                 String               @map("user_id") @db.Uuid
+  roadmapPointId         String               @map("roadmap_point_id") @db.Uuid // durable identity
+  roadmapPointRevisionId String               @map("roadmap_point_revision_id") @db.Uuid // historical context
+  acquisitionType        PointAcquisitionType @map("acquisition_type")
+  masteryEvaluationId    String?              @map("mastery_evaluation_id") @db.Uuid // LEARNED provenance
+  placementDecisionId    String?              @map("placement_decision_id") @db.Uuid // VALIDATED provenance
+  validationApplicationPolicyVersion String?  @map("validation_application_policy_version")
+  policyVersion          String?              @map("policy_version")
+  acquiredAt             DateTime             @default(now()) @map("acquired_at")
+  createdAt              DateTime             @default(now()) @map("created_at")
+
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  point             RoadmapPoint         @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  pointRevision     RoadmapPointRevision @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+  masteryEvaluation MasteryEvaluation?   @relation(fields: [masteryEvaluationId], references: [id], onDelete: Restrict)
+  placementDecision PlacementDecision?   @relation(fields: [placementDecisionId], references: [id], onDelete: Restrict)
+
+  @@index([userId, roadmapPointId, acquiredAt])
+  // CHECK (custom SQL): chk_pae_provenance — LEARNED⇒eval set & placement null; VALIDATED⇒placement set & eval null
+  // Partial UNIQUE (custom SQL): uq_pae_learned / uq_pae_validated — cause-based idempotency (not global)
+  @@map("point_acquisition_event")
+}
+
+// ============================================================================
+// V2 DERIVED PROJECTIONS — WAVE D (§16). Rebuildable; non-authoritative caches.
+// ============================================================================
+
+// LearnerRoadmapGeneration — versioned derived generation (V1 LearnerRoadmap untouched).
+model LearnerRoadmapGeneration {
+  id                        String                  @id @default(uuid(7)) @db.Uuid
+  userId                    String                  @map("user_id") @db.Uuid
+  subjectId                 String                  @map("subject_id") @db.Uuid
+  trackId                   String                  @map("track_id") @db.Uuid
+  generationNo              Int                     @map("generation_no")
+  engineVersion             String                  @map("engine_version") // non-empty (CHECK)
+  sourcePlacementDecisionId String?                 @map("source_placement_decision_id") @db.Uuid
+  status                    RoadmapGenerationStatus @default(CURRENT)
+  supersedesGenerationId    String?                 @map("supersedes_generation_id") @db.Uuid
+  generatedAt               DateTime                @default(now()) @map("generated_at")
+  createdAt                 DateTime                @default(now()) @map("created_at")
+
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subject                 Subject                   @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  track                   Track                     @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  sourcePlacementDecision PlacementDecision?        @relation(fields: [sourcePlacementDecisionId], references: [id], onDelete: Restrict)
+  supersedesGeneration    LearnerRoadmapGeneration? @relation("GenerationSupersession", fields: [supersedesGenerationId], references: [id], onDelete: SetNull)
+  supersededBy            LearnerRoadmapGeneration[] @relation("GenerationSupersession")
+  projections             RoadmapPointProjection[]
+  teachingSessions        TeachingSession[]
+
+  @@unique([userId, subjectId, generationNo])
+  @@index([userId, subjectId, status])
+  // Partial UNIQUE (custom SQL): uq_roadmap_generation_current (user_id, subject_id) WHERE status = 'CURRENT'
+  @@map("learner_roadmap_generation")
+}
+
+// RoadmapPointProjection — per generation x point materialized view. All 3 states non-authoritative.
+model RoadmapPointProjection {
+  id                     String                   @id @default(uuid(7)) @db.Uuid
+  roadmapGenerationId    String                   @map("roadmap_generation_id") @db.Uuid
+  roadmapPointId         String                   @map("roadmap_point_id") @db.Uuid
+  roadmapPointRevisionId String                   @map("roadmap_point_revision_id") @db.Uuid // graph-version pin
+  sortOrder              Int                      @map("sort_order")
+  acquisition            PointAcquisitionType? // derived cache (NULL = none)
+  availability           RoadmapAvailabilityState @default(LOCKED)
+  attention              RoadmapAttentionState    @default(NONE)
+  derivedMeta            Json?                    @map("derived_meta") @db.JsonB
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+
+  generation    LearnerRoadmapGeneration @relation(fields: [roadmapGenerationId], references: [id], onDelete: Cascade)
+  point         RoadmapPoint             @relation(fields: [roadmapPointId], references: [id], onDelete: Restrict)
+  pointRevision RoadmapPointRevision     @relation(fields: [roadmapPointRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([roadmapGenerationId, roadmapPointId])
+  @@index([roadmapGenerationId, sortOrder])
+  @@map("roadmap_point_projection")
 }
