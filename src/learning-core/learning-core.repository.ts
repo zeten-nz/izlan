@@ -230,6 +230,36 @@ export class LearningCoreRepository {
     return new Map(rows.map((r) => [r.skillId, { masteryScoreBp: r.masteryScoreBp, confidenceBp: r.confidenceBp, evidenceCount: r.evidenceCount, lastMeasurementAt: r.lastMeasurementAt }]));
   }
 
+  /**
+   * Resolve a point-scoped review target for the V2 review flow: the encountered lesson + revision for `skillId`
+   * within the point's published blueprint. Gate: the learner must have ACQUIRED the point (review is for
+   * established knowledge) and `skillId` must be one the point's blueprint actually teaches. Own-user; returns
+   * null (→ caller 404s) when not acquired / not mapped — never leaks another user's or an unrelated point.
+   */
+  async resolvePointReviewTarget(
+    userId: string,
+    pointId: string,
+    skillId: string,
+  ): Promise<{ subjectId: string; lessonId: string; lessonRevisionId: string } | null> {
+    const acquired = await this.prisma.pointAcquisitionEvent.findFirst({ where: { userId, roadmapPointId: pointId }, select: { id: true } });
+    if (!acquired) return null; // review is for established (acquired) knowledge
+
+    const skill = await this.prisma.skill.findUnique({ where: { id: skillId }, select: { subjectId: true } });
+    if (!skill) return null;
+
+    const blueprint = await this.prisma.teachingBlueprint.findUnique({ where: { roadmapPointId: pointId }, select: { publishedRevisionId: true } });
+    if (!blueprint?.publishedRevisionId) return null;
+
+    // A bound activity in the point's published blueprint that carries this skill → its (encountered) lesson revision.
+    const binding = await this.prisma.teachingBlueprintContentBinding.findFirst({
+      where: { stage: { blueprintRevisionId: blueprint.publishedRevisionId }, activity: { skills: { some: { skillId } } } },
+      orderBy: { position: 'asc' },
+      select: { activity: { select: { lessonRevisionId: true, revision: { select: { lessonId: true } } } } },
+    });
+    if (!binding?.activity) return null;
+    return { subjectId: skill.subjectId, lessonId: binding.activity.revision.lessonId, lessonRevisionId: binding.activity.lessonRevisionId };
+  }
+
   /** Skill display names for the given ids (for the learner-facing attention reason — never engine jargon). */
   async skillNames(skillIds: string[]): Promise<Map<string, string>> {
     if (skillIds.length === 0) return new Map();

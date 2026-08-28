@@ -44,8 +44,9 @@ describe('Point-Attention engine (point-attention-v1)', () => {
     expect(r.reasonSkillId).toBe('a');
   });
 
-  it('REVIEW_DUE also from a persisted REVIEW_DUE signal', () => {
+  it('review is read-time only: a persisted REVIEW_DUE signal without current retention-due does NOT drive attention', () => {
+    // (prevents a stale REVIEW_DUE signal, e.g. from a future-clock recompute, from lingering after fresh evidence)
     const r = derivePointAttention([s('a', ['REVIEW_DUE'], false)]);
-    expect(r.attention).toBe('REVIEW_DUE');
+    expect(r.attention).toBe('NONE');
   });
 });

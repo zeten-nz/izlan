@@ -26,8 +26,8 @@ export const REVIEW_DUE_TYPE = 'REVIEW_DUE';
 /** One required skill of a point, with its currently-active repair signals and read-time retention state. */
 export interface SkillAttentionInput {
   skillId: string;
-  activeSignalTypes: string[]; // persisted ACTIVE signals on this skill (REPEATED_MISTAKE / WEAK_SKILL / REVIEW_DUE)
-  reviewDue: boolean; // read-time retention: reviewActivation(state, now) fired for this skill
+  activeSignalTypes: string[]; // persisted ACTIVE repair signals on this skill (REPEATED_MISTAKE / WEAK_SKILL)
+  reviewDue: boolean; // read-time retention: reviewActivation(current state, now) fired for this skill
 }
 
 export interface PointAttentionResult {
@@ -68,7 +68,10 @@ export function derivePointAttention(skills: SkillAttentionInput[]): PointAttent
     return { attention: 'REPAIR_REQUIRED', reasonCode: repairReason, reasonSkillId: repairSkill, signalTypes: [...repairTypes] };
   }
 
-  const reviewSkill = skills.find((s) => s.reviewDue || s.activeSignalTypes.includes(REVIEW_DUE_TYPE));
+  // Review = retention/freshness: a purely read-time projection over current state + clock (reviewActivation),
+  // so it becomes true as time passes and clears the moment fresh evidence advances the measurement — no reliance
+  // on a persisted REVIEW_DUE signal (which a future-clock recompute could otherwise leave stale).
+  const reviewSkill = skills.find((s) => s.reviewDue);
   if (reviewSkill) {
     return { attention: 'REVIEW_DUE', reasonCode: 'RETENTION_DUE', reasonSkillId: reviewSkill.skillId, signalTypes: [REVIEW_DUE_TYPE] };
   }
