@@ -833,7 +833,7 @@ const en: Messages = {
     footerRights: '© Izlan',
   },
   learner: {
-    nav: { home: 'Home', roadmap: 'Roadmap', learn: 'Learn', review: 'Review', results: 'Results', subjects: 'Subjects', profile: 'Profile', logout: 'Log out', account: 'Account', soon: 'Coming soon', primary: 'Primary menu', brand: 'Izlan' },
+    nav: { today: 'Today', progress: 'Results', home: 'Home', roadmap: 'Roadmap', learn: 'Learn', review: 'Review', results: 'Results', subjects: 'Subjects', profile: 'Profile', logout: 'Log out', account: 'Account', soon: 'Coming soon', primary: 'Primary menu', brand: 'Izlan' },
     login: {
       title: 'Welcome',
       subtitle: 'Sign in to your account to continue.',
@@ -1010,6 +1010,7 @@ const en: Messages = {
       learnedTitle: 'Congratulations — you learned it!',
       learnedBody: 'You have successfully mastered “{title}”.',
       backToRoadmap: 'Back to roadmap',
+      backToToday: 'Back to today',
       stage: { concept: 'Concept', recognition: 'Recognition', production: 'Practice', mastery: 'Mastery check' },
     },
     daily: {
@@ -1107,6 +1108,7 @@ const en: Messages = {
       completedTitle: 'Review complete',
       completedBody: 'Great work! You’ve finished this review.',
       backToReview: 'Back to Review',
+      backToToday: 'Back to today',
       notFoundTitle: 'Review session not found',
     },
     progress: {
@@ -1260,6 +1262,7 @@ const en: Messages = {
       summaryValidated: '{n} topics validated',
       summaryWeak: '{n} topics need focus',
       viewRoadmap: 'View my roadmap',
+      continueToday: 'Continue to today',
       continue: 'Continue',
       claimedLevel: 'Selected level: {level}',
       notAssessedNote: 'Not-assessed areas aren’t 0% — they simply weren’t measured.',

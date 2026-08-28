@@ -3,29 +3,28 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiBarChart2, FiBookOpen, FiChevronDown, FiHome, FiLock, FiLogOut, FiMap, FiRepeat, FiUser } from 'react-icons/fi';
+import { FiBarChart2, FiBookOpen, FiChevronDown, FiHome, FiLock, FiLogOut, FiMap, FiUser } from 'react-icons/fi';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useT } from '@/lib/i18n/i18n-context';
 import { BrandMark, ThemeSwitcher } from '@/components/ui';
 import { AuthLangPill } from '@/components/auth/AuthLangPill';
 
 /**
- * The final Phase 03 learner shell — the frozen learner chrome that hosts Home, Roadmap, and (later) Learning,
- * Review and Results. It uses the frozen foundation only: the two-square BrandMark, the canonical 3-way ThemeSwitcher
- * (never the interim 2-way ThemeToggle) and the shared language pill. Primary nav on a desktop top bar and a mobile
- * bottom bar; secondary destinations (Fanlar / Profil / Chiqish) live in an accessible account disclosure.
+ * The learner shell — the learner chrome that hosts the V2 information architecture: TODAY (the daily home and hub),
+ * ROADMAP (the personalized progression) and PROGRESS (competence). It uses the frozen foundation only: the two-square
+ * BrandMark, the canonical 3-way ThemeSwitcher (never the interim 2-way ThemeToggle) and the shared language pill.
+ * Primary nav on a desktop top bar and a mobile bottom bar; secondary destinations (Fanlar / Profil / Chiqish) live in
+ * an accessible account disclosure. Learning execution (teaching/review/lessons) is reached FROM Today, not the nav.
  */
 
-type NavItem = { key: 'home' | 'roadmap' | 'learn' | 'review' | 'results'; href?: string; icon: typeof FiHome; exact?: boolean; enabled: boolean };
+type NavItem = { key: 'today' | 'roadmap' | 'progress'; href?: string; icon: typeof FiHome; exact?: boolean; enabled: boolean };
 
-// The five frozen primary items — all live from Phase 05. The disabled rendering paths below are retained for any
-// future item, but no primary item is currently disabled (never fake links / placeholder routes).
+// The coherent 3-item learner IA. Today is the canonical home + hub; execution surfaces are reached from Today, never
+// as separate nav destinations. The disabled rendering paths below are retained for any future item.
 const PRIMARY: NavItem[] = [
-  { key: 'home', href: '/learn', icon: FiHome, exact: true, enabled: true },
+  { key: 'today', href: '/learn/today', icon: FiHome, enabled: true },
   { key: 'roadmap', href: '/learn/roadmap', icon: FiMap, enabled: true },
-  { key: 'learn', href: '/learn/learning', icon: FiBookOpen, enabled: true },
-  { key: 'review', href: '/learn/review', icon: FiRepeat, enabled: true },
-  { key: 'results', href: '/learn/progress', icon: FiBarChart2, enabled: true },
+  { key: 'progress', href: '/learn/progress', icon: FiBarChart2, enabled: true },
 ];
 
 function isActive(pathname: string, href: string, exact?: boolean): boolean {
@@ -126,12 +125,12 @@ function DesktopNav({ pathname }: { pathname: string }) {
   );
 }
 
-/** Mobile primary nav (fixed bottom bar). Five items; disabled items are non-navigable with a lock overlay + sr-only text. */
+/** Mobile primary nav (fixed bottom bar). Disabled items are non-navigable with a lock overlay + sr-only text. */
 function MobileNav({ pathname }: { pathname: string }) {
   const t = useT();
   return (
     <nav aria-label={t('learner.nav.primary')} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur md:hidden">
-      <div className="mx-auto grid max-w-3xl grid-cols-5">
+      <div className="mx-auto grid max-w-3xl grid-cols-3">
         {PRIMARY.map((n) => {
           const label = t(`learner.nav.${n.key}`);
           const Icon = n.icon;

@@ -98,7 +98,10 @@ function Result({ result }: { result: PlacementResultView }) {
       </section>
 
       <div className="flex flex-col gap-3 pt-1">
-        <ButtonLink href="/learn/present-simple" variant="primary" size="xl" className="w-full justify-center">
+        <ButtonLink href="/learn/today" variant="primary" size="xl" className="w-full justify-center">
+          {t('placementV2.result.continueToday')}
+        </ButtonLink>
+        <ButtonLink href="/learn/roadmap" variant="secondary" size="lg" className="w-full justify-center">
           {t('placementV2.result.viewRoadmap')}
         </ButtonLink>
       </div>

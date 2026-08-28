@@ -853,6 +853,8 @@ const uz = {
   },
   learner: {
     nav: {
+      today: 'Bugun',
+      progress: 'Natijalar',
       home: 'Bosh sahifa',
       roadmap: 'Yo‘l xaritasi',
       learn: 'O‘rganish',
@@ -1045,6 +1047,7 @@ const uz = {
       learnedTitle: 'Tabriklaymiz — o‘zlashtirdingiz!',
       learnedBody: '“{title}” nuqtasini muvaffaqiyatli o‘zlashtirdingiz.',
       backToRoadmap: 'Yo‘l xaritasiga qaytish',
+      backToToday: 'Bugungi rejaga qaytish',
       stage: { concept: 'Tushuncha', recognition: 'Tanib olish', production: 'Mashq', mastery: 'Yakuniy tekshiruv' },
     },
     daily: {
@@ -1142,6 +1145,7 @@ const uz = {
       completedTitle: 'Takrorlash tugallandi',
       completedBody: 'Ajoyib! Takrorlashni yakunladingiz.',
       backToReview: 'Takrorlashga qaytish',
+      backToToday: 'Bugungi rejaga qaytish',
       notFoundTitle: 'Takrorlash sessiyasi topilmadi',
     },
     progress: {
@@ -1296,6 +1300,7 @@ const uz = {
       summaryValidated: '{n} ta mavzu tasdiqlandi',
       summaryWeak: '{n} ta mavzu e’tibor talab qiladi',
       viewRoadmap: 'Yo‘l xaritamni ko‘rish',
+      continueToday: 'Bugungi rejaga o‘tish',
       continue: 'Davom etish',
       claimedLevel: 'Tanlangan daraja: {level}',
       notAssessedNote: 'Baholanmagan sohalar 0% degani emas — ular hali o‘lchanmadi.',

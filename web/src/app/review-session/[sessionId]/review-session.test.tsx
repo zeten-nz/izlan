@@ -74,10 +74,10 @@ describe('Review session runner (WEB-REVSESS)', () => {
     expect(await screen.findByText('Takrorlash tugallandi')).toBeInTheDocument();
   });
 
-  it('WEB-REVSESS-06 a not-found session is a product state with a route back to Review', async () => {
+  it('WEB-REVSESS-06 a not-found session is a product state with a route back to Today (the hub)', async () => {
     h.get.mockRejectedValue(new ApiError(404, 'REVIEW_SESSION_NOT_FOUND', 'x'));
     renderPage();
     expect(await screen.findByText('Takrorlash sessiyasi topilmadi')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Takrorlashga qaytish' })).toHaveAttribute('href', '/learn/review');
+    expect(screen.getByRole('link', { name: 'Bugungi rejaga qaytish' })).toHaveAttribute('href', '/learn/today');
   });
 });

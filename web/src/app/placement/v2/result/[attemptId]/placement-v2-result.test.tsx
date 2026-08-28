@@ -72,9 +72,10 @@ describe('Placement V2 — result (WEB-PV2R)', () => {
     expect(screen.getByText(/0% degani emas/)).toBeInTheDocument();
   });
 
-  it('WEB-PV2R-04 offers a route into the personalized roadmap', async () => {
+  it('WEB-PV2R-04 continues to Today (the hub) with a secondary route into the generic roadmap', async () => {
     h.finalize.mockResolvedValue(RESULT);
     renderPage();
-    expect(await screen.findByRole('link', { name: 'Yo‘l xaritamni ko‘rish' })).toHaveAttribute('href', '/learn/present-simple');
+    expect(await screen.findByRole('link', { name: 'Bugungi rejaga o‘tish' })).toHaveAttribute('href', '/learn/today');
+    expect(screen.getByRole('link', { name: 'Yo‘l xaritamni ko‘rish' })).toHaveAttribute('href', '/learn/roadmap');
   });
 });
