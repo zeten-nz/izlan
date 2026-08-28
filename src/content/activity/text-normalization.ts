@@ -48,12 +48,17 @@ export function normalizeText(raw: string, resolved: ResolvedTextNormalization):
   return s.trim();
 }
 
-/** Validate an authored normalization object (unknown extra keys rejected upstream). Returns the resolved form. */
+/**
+ * Validate an authored normalization object into the resolved form. IDEMPOTENT: it also accepts an already-resolved
+ * value (carrying `version`) so the authoring round-trip parse → store normalized → re-validate at publish succeeds.
+ * Any other unknown key, or a wrong version, is rejected.
+ */
 export function parseNormalization(raw: unknown): ResolvedTextNormalization | null {
   if (raw === undefined || raw === null) return resolveNormalization();
   if (typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
-  for (const k of Object.keys(o)) if (k !== 'caseFold' && k !== 'collapseWhitespace' && k !== 'stripPunctuation') return null;
+  for (const k of Object.keys(o)) if (k !== 'caseFold' && k !== 'collapseWhitespace' && k !== 'stripPunctuation' && k !== 'version') return null;
+  if (o.version !== undefined && o.version !== TEXT_NORMALIZATION_VERSION) return null;
   for (const k of ['caseFold', 'collapseWhitespace', 'stripPunctuation'] as const) if (o[k] !== undefined && typeof o[k] !== 'boolean') return null;
   return resolveNormalization(o as TextNormalization);
 }
