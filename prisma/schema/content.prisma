@@ -26,6 +26,7 @@ model Subject {
   subjectDomains        SubjectDomain[] // V2 Wave A
   placementDecisions    PlacementDecision[] // V2 Wave C
   roadmapGenerations    LearnerRoadmapGeneration[] // V2 Wave D
+  dailyLearningPlans    DailyLearningPlan[] // V2 Wave F
 
   @@map("subject")
 }
@@ -436,6 +437,7 @@ model RoadmapPoint {
   acquisitionEvents PointAcquisitionEvent[]
   projections       RoadmapPointProjection[]
   placementValidations PlacementDecisionValidation[] // Placement V2
+  dailyLearningPlans DailyLearningPlan[] // V2 Wave F (daily main-point snapshot)
 
   @@index([levelId])
   @@map("roadmap_point")

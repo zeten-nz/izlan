@@ -188,3 +188,7 @@ CREATE UNIQUE INDEX "uq_izl_ledger_redeem_per_redemption" ON "izl_ledger_entry" 
 -- chk_content_quality_issue_target_xor — ContentQualityIssue exactly one issue target
 -- uq_eid_client_request — EvidenceIntegrityDecision command idempotency (client_request_id WHERE NOT NULL)
 -- chk_eis_target_xor — EvidenceIntegrityScope exactly one defective-object target; uq_eis_{activity,assessment_item,version_item,def_version,media,lesson_revision,blueprint_stage} per-target dedup
+
+-- ── V2 Daily Learning Plan (Wave F) — migration 20260828170000_daily_learning_plan ──
+-- ux_current_daily_learning_plan — one CURRENT plan per (user, subject, local_date)
+-- chk_dlp_policy_version_nonempty / chk_dlp_engine_version_nonempty — non-empty versions

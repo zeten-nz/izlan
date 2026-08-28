@@ -57,6 +57,8 @@ import {
   DailyPlanConfigurationInvalidError,
   DailyPlanItemNotFoundError,
   DailyPlanNoExecutableContentError,
+  DailyLearningNotFoundError,
+  DailyLearningUnavailableError,
   DailyPlanNotFoundError,
   LearningProgressConfigurationInvalidError,
   LearningProgressNoEffectiveEvidenceError,
@@ -237,6 +239,8 @@ export class AuthExceptionFilter implements ExceptionFilter {
     if (e instanceof DailyPlanNotFoundError) return { statusCode: 404, code: 'DAILY_PLAN_NOT_FOUND', message: 'no daily plan for today' };
     if (e instanceof DailyPlanNoExecutableContentError) return { statusCode: 409, code: 'DAILY_PLAN_NO_EXECUTABLE_CONTENT', message: 'no executable roadmap content for today' };
     if (e instanceof DailyPlanConfigurationInvalidError) return { statusCode: 409, code: 'DAILY_PLAN_CONFIGURATION_INVALID', message: 'daily plan configuration invalid' };
+    if (e instanceof DailyLearningNotFoundError) return { statusCode: 404, code: 'DAILY_LEARNING_NOT_FOUND', message: 'no daily plan for today' };
+    if (e instanceof DailyLearningUnavailableError) return { statusCode: 409, code: 'DAILY_LEARNING_UNAVAILABLE', message: 'no learning content available to plan today' };
 
     // Lesson execution foundation (Phase 1.7B)
     if (e instanceof DailyPlanItemNotFoundError) return { statusCode: 404, code: 'DAILY_PLAN_ITEM_NOT_FOUND', message: 'not found in today\'s plan' };

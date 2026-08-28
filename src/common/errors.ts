@@ -91,6 +91,8 @@ export class RoadmapConfigurationInvalidError extends DomainError {}
 export class DailyPlanNotFoundError extends DomainError {}
 export class DailyPlanNoExecutableContentError extends DomainError {}
 export class DailyPlanConfigurationInvalidError extends DomainError {}
+export class DailyLearningNotFoundError extends DomainError {} // V2 daily plan not generated for today
+export class DailyLearningUnavailableError extends DomainError {} // no subject/roadmap/timezone to plan from
 
 // Lesson execution foundation (Phase 1.7B)
 export class DailyPlanItemNotFoundError extends DomainError {}

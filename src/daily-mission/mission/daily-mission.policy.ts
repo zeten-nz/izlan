@@ -20,14 +20,19 @@ export interface MissionEvidence {
   reviewSessionId: string | null; // normal (null) and review (non-null) both count (§9/13)
 }
 
-/** LEARN_TODAY (learn-today-mission-v1, TD-137): a SUBMITTED objective attempt. Correctness IRRELEVANT (§6). */
+/** A scored objective attempt counts regardless of terminal status: V1 lesson/review write SUBMITTED, the V2
+ *  TeachingSession writes EVALUATED. Additive/non-altering for every pre-V2 history (teaching is the sole
+ *  EVALUATED objective writer), so the v1 mission rule is unchanged — only its reach now includes V2 teaching. */
+const isScoredObjective = (s: ActivityAttemptStatus): boolean => s === ActivityAttemptStatus.SUBMITTED || s === ActivityAttemptStatus.EVALUATED;
+
+/** LEARN_TODAY (learn-today-mission-v1, TD-137): a scored objective attempt. Correctness IRRELEVANT (§6). */
 export function qualifiesLearnToday(e: MissionEvidence): boolean {
-  return e.status === ActivityAttemptStatus.SUBMITTED && isObjectiveActivityType(e.activityType);
+  return isScoredObjective(e.status) && isObjectiveActivityType(e.activityType);
 }
 
-/** MASTERY_TEST_90 (mastery-test-90-mission-v1, TD-138): SUBMITTED MASTERY_TEST with deterministicScore >= 9000. */
+/** MASTERY_TEST_90 (mastery-test-90-mission-v1, TD-138): scored MASTERY_TEST with deterministicScore >= 9000. */
 export function qualifiesMasteryTest90(e: MissionEvidence): boolean {
-  return e.status === ActivityAttemptStatus.SUBMITTED && e.activityType === ActivityType.MASTERY_TEST && (e.deterministicScoreBp ?? -1) >= MASTERY_TEST_90_THRESHOLD_BP;
+  return isScoredObjective(e.status) && e.activityType === ActivityType.MASTERY_TEST && (e.deterministicScoreBp ?? -1) >= MASTERY_TEST_90_THRESHOLD_BP;
 }
 
 export interface MissionSpec {

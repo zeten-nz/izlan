@@ -83,6 +83,7 @@ model User {
   signals            LearnerSignal[]
   reviewSessions     LearnerReviewSession[]
   dailyPlans         DailyPlan[]
+  dailyLearningPlans DailyLearningPlan[]
   missionCompletions DailyMissionCompletion[]
   schedulePreference LearningSchedulePreference?
   weeklyProgress     WeeklyProgress[]

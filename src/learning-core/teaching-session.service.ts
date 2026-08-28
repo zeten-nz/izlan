@@ -14,6 +14,7 @@ import { ObjectiveActivityScorerService } from '../lesson-execution/activity/obj
 import { projectActivityForLearnerRuntime, LearnerProjectedActivity } from '../content/activity/learner-activity-projection';
 import { LearningProgressService } from '../learning-progress/learning-progress.service';
 import { LearnerSignalsService } from '../learner-signals/learner-signals.service';
+import { DailyMissionService } from '../daily-mission/daily-mission.service';
 import { LearningCoreRepository, TeachablePoint, isUniqueViolation } from './learning-core.repository';
 import {
   MasteryGates,
@@ -105,6 +106,7 @@ export class TeachingSessionService {
     private readonly scorer: ObjectiveActivityScorerService,
     private readonly learningProgress: LearningProgressService,
     private readonly signals: LearnerSignalsService,
+    private readonly missions: DailyMissionService,
   ) {}
 
   async startOrResume(userId: string, pointId: string): Promise<TeachingSessionView> {
@@ -246,6 +248,10 @@ export class TeachingSessionService {
     // to activate, so one slip never does). Advisory + best-effort: a signal failure must never fail the learner's
     // answer submission (mirrors the recompute→state-signal hook, which owns WEAK_SKILL/REVIEW_DUE separately).
     await this.evaluateAttemptSignals(userId, activityId);
+    // Objective teaching work is real "learning today" — evaluate daily missions (LEARN_TODAY, MASTERY_TEST_90).
+    // Advisory: the mission/reward path is idempotent and never rolls back the answer; XP/IZL are only granted for
+    // this REAL persisted attempt, never fabricated for a displayed daily task.
+    await this.evaluateAttemptMissions(userId, created.id);
 
     return this.toAttemptView(created.id, created.activityId, created.attemptNo, created.isCorrect ?? false, created.deterministicScore ?? 0, bound.stageType);
   }
@@ -257,6 +263,15 @@ export class TeachingSessionService {
       if (skillIds.length > 0) await this.signals.evaluateSkills(userId, skillIds);
     } catch {
       // best-effort — signal evaluation is advisory and must not block the answer path
+    }
+  }
+
+  /** Evaluate daily missions from a persisted teaching attempt (advisory, idempotent). Never throws. */
+  private async evaluateAttemptMissions(userId: string, attemptId: string): Promise<void> {
+    try {
+      await this.missions.evaluateActivityAttempt(userId, attemptId);
+    } catch {
+      // best-effort — mission/reward evaluation is advisory and must not block the answer path
     }
   }
 
