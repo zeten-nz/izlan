@@ -58,15 +58,24 @@ function PointCard({ point }: { point: V2RoadmapPoint }) {
   const t = useT();
   const canDo = point.learningOutcome?.canDo ?? [];
   const locked = point.availability === 'LOCKED' || point.availability === 'CONTENT_UNAVAILABLE';
+  // VALIDATED (placement evidence) is acknowledged & skippable — distinct from LEARNED (mastery-evaluated teaching).
   const state = point.learned
     ? { icon: FiCheckCircle, cls: 'text-success', label: t('learner.v2.stateLearned') }
-    : point.availability === 'IN_PROGRESS'
-      ? { icon: FiPlayCircle, cls: 'text-primary', label: t('learner.v2.stateInProgress') }
-      : locked
-        ? { icon: FiLock, cls: 'text-muted', label: t('learner.v2.stateLocked') }
-        : { icon: FiCircle, cls: 'text-text', label: t('learner.v2.stateAvailable') };
+    : point.validated
+      ? { icon: FiCheckCircle, cls: 'text-success', label: t('learner.v2.stateValidated') }
+      : point.availability === 'IN_PROGRESS'
+        ? { icon: FiPlayCircle, cls: 'text-primary', label: t('learner.v2.stateInProgress') }
+        : locked
+          ? { icon: FiLock, cls: 'text-muted', label: t('learner.v2.stateLocked') }
+          : { icon: FiCircle, cls: 'text-text', label: t('learner.v2.stateAvailable') };
   const Icon = state.icon;
-  const cta = point.learned ? t('learner.v2.review') : point.availability === 'IN_PROGRESS' ? t('learner.v2.continue') : t('learner.v2.start');
+  const cta = point.learned
+    ? t('learner.v2.review')
+    : point.validated
+      ? t('learner.v2.practiceAnyway')
+      : point.availability === 'IN_PROGRESS'
+        ? t('learner.v2.continue')
+        : t('learner.v2.start');
 
   return (
     <Card className="p-6">
@@ -90,9 +99,10 @@ function PointCard({ point }: { point: V2RoadmapPoint }) {
               ))}
             </ul>
           )}
+          {point.validated && !point.learned && <p className="mt-2 text-xs text-muted">{t('learner.v2.validatedNote')}</p>}
         </div>
         {!locked && (
-          <ButtonLink href={`/teaching/${point.roadmapPointId}`} variant={point.learned ? 'secondary' : 'primary'} className="shrink-0">
+          <ButtonLink href={`/teaching/${point.roadmapPointId}`} variant={point.learned || point.validated ? 'secondary' : 'primary'} className="shrink-0">
             {cta}
           </ButtonLink>
         )}

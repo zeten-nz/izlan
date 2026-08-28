@@ -32,6 +32,7 @@ function PlacementFlow() {
   const params = useSearchParams();
   const learningIntentId = params.get('learningIntentId');
   const attemptParam = params.get('attempt');
+  const v2 = params.get('v2') === '1'; // Placement V2 gate: on completion, route to the V2 decision/result flow
 
   // Subject/track context (best-effort, for display only — never an authority). Loaded once when we know the intent.
   const intentsRes = useResource<LearningIntent[]>(
@@ -65,6 +66,7 @@ function PlacementFlow() {
     const q = new URLSearchParams();
     if (learningIntentId) q.set('learningIntentId', learningIntentId);
     q.set('attempt', view.attemptId);
+    if (v2) q.set('v2', '1');
     router.replace(`/placement?${q.toString()}`);
   }
 
@@ -78,7 +80,11 @@ function PlacementFlow() {
       );
     }
     if (!attempt || attemptLoading) return <FocusLoading label={t('placement.result.loading')} />;
-    if (attempt.status === 'COMPLETED') return <ResultView attempt={attempt} subjectTitle={subjectTitle} />;
+    if (attempt.status === 'COMPLETED') {
+      // Placement V2: hand the completed diagnostic to the V2 decision/result flow (immutable PlacementDecision).
+      if (v2) return <V2ResultRedirect attemptId={attempt.attemptId} />;
+      return <ResultView attempt={attempt} subjectTitle={subjectTitle} />;
+    }
     return <RunnerView attempt={attempt} setAttempt={setAttempt} subjectTitle={subjectTitle} onExit={() => router.replace('/learn')} />;
   }
 
@@ -414,6 +420,16 @@ function StartLearningCta({ attemptId }: { attemptId: string }) {
 }
 
 // ───────────────────────── shared bits ─────────────────────────
+
+/** Placement V2: a COMPLETED diagnostic routes to the V2 result page, which finalizes the immutable decision. */
+function V2ResultRedirect({ attemptId }: { attemptId: string }) {
+  const t = useT();
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(`/placement/v2/result/${attemptId}`);
+  }, [attemptId, router]);
+  return <FocusLoading label={t('placement.result.loading')} />;
+}
 
 function FocusLoading({ label }: { label: string }) {
   return (
