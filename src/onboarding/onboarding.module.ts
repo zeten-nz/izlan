@@ -9,6 +9,6 @@ import { OnboardingController } from './onboarding.controller';
   imports: [ProfileModule], // ProfileRepository (onboarding holati/complete)
   controllers: [OnboardingController],
   providers: [OnboardingContentRepository, LearningIntentRepository, OnboardingService],
-  exports: [LearningIntentRepository], // Phase 1.5B: placement entry intent lookup (AssessmentModule)
+  exports: [LearningIntentRepository, OnboardingService], // intent lookup (AssessmentModule) + status read (LearnerModule first-run)
 })
 export class OnboardingModule {}
