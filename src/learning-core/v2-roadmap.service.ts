@@ -61,7 +61,21 @@ export class V2RoadmapService {
       }
     }
 
-    const projections = await this.repo.getProjections(generation.id);
+    let projections = await this.repo.getProjections(generation.id);
+
+    // Publication integration: a point published AFTER this generation was frozen is not in its projection set.
+    // Regenerate lazily (supersede → new CURRENT generation) so the learner picks up the new canonical point
+    // WITHOUT rewriting history — old generation stays SUPERSEDED and acquisitions survive (keyed to the point).
+    const projectedIds = new Set(projections.map((p) => p.roadmapPointId));
+    if (publishedPoints.some((p) => !projectedIds.has(p.pointId))) {
+      try {
+        generation = await this.repo.regenerate(userId, subjectId, track.trackId, V2_ROADMAP_ENGINE_VERSION, publishedPoints, generation.id);
+      } catch (e) {
+        if (isUniqueViolation(e)) generation = (await this.repo.findCurrentGeneration(userId, subjectId))!; // concurrent regenerate won
+        else throw e;
+      }
+      projections = await this.repo.getProjections(generation.id);
+    }
     const pointIds = projections.map((p) => p.roadmapPointId);
     const acquisitionMap = await this.repo.acquisitionByPoint(userId, pointIds);
     const acquired = new Set([...acquisitionMap.keys()]); // learned OR validated points

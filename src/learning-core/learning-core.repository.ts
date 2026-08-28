@@ -174,6 +174,34 @@ export class LearningCoreRepository {
     });
   }
 
+  /**
+   * Regenerate: supersede the learner's CURRENT generation and create a NEW CURRENT one over the current published
+   * point set (mirrors the placement re-decision path). Old generation stays historical (SUPERSEDED, kept for
+   * audit); acquisitions survive because PointAcquisitionEvent is keyed to the STABLE point, not any generation.
+   * Never rewrites history — this is the "publish → new learner generation" integration (ROADMAP_ENGINE_V2 §29).
+   */
+  async regenerate(userId: string, subjectId: string, trackId: string, engineVersion: string, points: PublishedPointRow[], supersedesGenerationId: string) {
+    const nextNo = (await this.maxGenerationNo(userId, subjectId)) + 1;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.learnerRoadmapGeneration.updateMany({ where: { userId, subjectId, status: 'CURRENT' }, data: { status: 'SUPERSEDED' } });
+      const generation = await tx.learnerRoadmapGeneration.create({
+        data: { userId, subjectId, trackId, generationNo: nextNo, engineVersion, status: 'CURRENT', supersedesGenerationId },
+      });
+      for (const p of points) {
+        await tx.roadmapPointProjection.create({
+          data: {
+            roadmapGenerationId: generation.id,
+            roadmapPointId: p.pointId,
+            roadmapPointRevisionId: p.pointRevisionId,
+            sortOrder: p.sortOrder,
+            availability: p.teachable ? RoadmapAvailabilityState.AVAILABLE : RoadmapAvailabilityState.CONTENT_UNAVAILABLE,
+          },
+        });
+      }
+      return generation;
+    });
+  }
+
   async getProjections(generationId: string) {
     return this.prisma.roadmapPointProjection.findMany({
       where: { roadmapGenerationId: generationId },

@@ -82,4 +82,18 @@ export class LearningProgressService {
       })),
     };
   }
+
+  /**
+   * Recompute every (learner, skill) whose evidence draws on the given defective canonical artifacts — used by the
+   * Content Quality evidence-integrity workflow after an INVALIDATED decision. Rebuilds current projections from
+   * scratch; the now-inadmissible evidence is excluded by the derived admissibility filter in supportedMeasurements
+   * (§35a). Immutable SkillMeasurement/ActivityAttempt/AssessmentResponse history is never touched.
+   */
+  async recomputeAffectedByArtifacts(activityIds: string[], itemIds: string[]): Promise<{ affected: number }> {
+    const pairs = await this.repo.affectedUserSkills(activityIds, itemIds);
+    const byUser = new Map<string, string[]>();
+    for (const p of pairs) byUser.set(p.userId, [...(byUser.get(p.userId) ?? []), p.skillId]);
+    for (const [userId, skillIds] of byUser) await this.recomputeSkills(userId, skillIds);
+    return { affected: pairs.length };
+  }
 }
