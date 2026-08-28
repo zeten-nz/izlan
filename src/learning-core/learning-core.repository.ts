@@ -9,10 +9,15 @@ import {
   RevisionStatus,
   RoadmapAvailabilityState,
   SkillContributionRole,
+  SignalStatus,
   SkillMeasurementSource,
   TeachingSessionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { REPEATED_MISTAKE_TYPE, REVIEW_DUE_TYPE, WEAK_SKILL_TYPE } from './attention/point-attention.engine';
+
+/** Signal types that drive roadmap Attention (repair + retention). Facts live in LearnerSignal; attention derives. */
+const ATTENTION_SIGNAL_TYPES = [REPEATED_MISTAKE_TYPE, WEAK_SKILL_TYPE, REVIEW_DUE_TYPE] as const;
 
 export const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
@@ -181,10 +186,85 @@ export class LearningCoreRepository {
         acquisition: true,
         availability: true,
         attention: true,
-        pointRevision: { select: { title: true, learningOutcome: true, estimatedEffortMin: true, prerequisites: { select: { prerequisitePointId: true } } } },
+        pointRevision: {
+          select: {
+            title: true,
+            learningOutcome: true,
+            estimatedEffortMin: true,
+            prerequisites: { select: { prerequisitePointId: true } },
+            skillExpectations: { where: { role: SkillContributionRole.REQUIRED }, select: { expectation: { select: { skillId: true } } } },
+          },
+        },
         point: { select: { pointKey: true } },
       },
     });
+  }
+
+  /**
+   * Active repair/retention signals for the learner in a subject, as (skillId → active types). Used to derive
+   * point Attention at read time — the LearnerSignal rows are the facts; the roadmap only projects over them.
+   */
+  async activeAttentionSignals(userId: string, subjectId: string): Promise<Map<string, string[]>> {
+    const rows = await this.prisma.learnerSignal.findMany({
+      where: { userId, subjectId, status: SignalStatus.ACTIVE, skillId: { not: null }, type: { in: [...ATTENTION_SIGNAL_TYPES] } },
+      select: { skillId: true, type: true },
+    });
+    const map = new Map<string, string[]>();
+    for (const r of rows) {
+      if (!r.skillId) continue;
+      map.set(r.skillId, [...(map.get(r.skillId) ?? []), r.type]);
+    }
+    return map;
+  }
+
+  /** Current competence state for the given skills (for the read-time retention/review-due policy). */
+  async skillStatesForAttention(
+    userId: string,
+    skillIds: string[],
+  ): Promise<Map<string, { masteryScoreBp: number; confidenceBp: number | null; evidenceCount: number; lastMeasurementAt: Date | null }>> {
+    if (skillIds.length === 0) return new Map();
+    const rows = await this.prisma.learnerSkillState.findMany({
+      where: { userId, skillId: { in: skillIds } },
+      select: { skillId: true, masteryScoreBp: true, confidenceBp: true, evidenceCount: true, lastMeasurementAt: true },
+    });
+    return new Map(rows.map((r) => [r.skillId, { masteryScoreBp: r.masteryScoreBp, confidenceBp: r.confidenceBp, evidenceCount: r.evidenceCount, lastMeasurementAt: r.lastMeasurementAt }]));
+  }
+
+  /**
+   * Resolve a point-scoped review target for the V2 review flow: the encountered lesson + revision for `skillId`
+   * within the point's published blueprint. Gate: the learner must have ACQUIRED the point (review is for
+   * established knowledge) and `skillId` must be one the point's blueprint actually teaches. Own-user; returns
+   * null (→ caller 404s) when not acquired / not mapped — never leaks another user's or an unrelated point.
+   */
+  async resolvePointReviewTarget(
+    userId: string,
+    pointId: string,
+    skillId: string,
+  ): Promise<{ subjectId: string; lessonId: string; lessonRevisionId: string } | null> {
+    const acquired = await this.prisma.pointAcquisitionEvent.findFirst({ where: { userId, roadmapPointId: pointId }, select: { id: true } });
+    if (!acquired) return null; // review is for established (acquired) knowledge
+
+    const skill = await this.prisma.skill.findUnique({ where: { id: skillId }, select: { subjectId: true } });
+    if (!skill) return null;
+
+    const blueprint = await this.prisma.teachingBlueprint.findUnique({ where: { roadmapPointId: pointId }, select: { publishedRevisionId: true } });
+    if (!blueprint?.publishedRevisionId) return null;
+
+    // A bound activity in the point's published blueprint that carries this skill → its (encountered) lesson revision.
+    const binding = await this.prisma.teachingBlueprintContentBinding.findFirst({
+      where: { stage: { blueprintRevisionId: blueprint.publishedRevisionId }, activity: { skills: { some: { skillId } } } },
+      orderBy: { position: 'asc' },
+      select: { activity: { select: { lessonRevisionId: true, revision: { select: { lessonId: true } } } } },
+    });
+    if (!binding?.activity) return null;
+    return { subjectId: skill.subjectId, lessonId: binding.activity.revision.lessonId, lessonRevisionId: binding.activity.lessonRevisionId };
+  }
+
+  /** Skill display names for the given ids (for the learner-facing attention reason — never engine jargon). */
+  async skillNames(skillIds: string[]): Promise<Map<string, string>> {
+    if (skillIds.length === 0) return new Map();
+    const rows = await this.prisma.skill.findMany({ where: { id: { in: skillIds } }, select: { id: true, name: true } });
+    return new Map(rows.map((r) => [r.id, r.name]));
   }
 
   /** Authoritative acquisition overlay: which of these points the user has a LEARNED event for. */

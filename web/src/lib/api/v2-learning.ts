@@ -20,7 +20,9 @@ export interface V2RoadmapPoint {
   sortOrder: number;
   availability: 'LOCKED' | 'AVAILABLE' | 'IN_PROGRESS' | 'CONTENT_UNAVAILABLE';
   acquisition: string | null; // null | LEARNED | VALIDATED
-  attention: string;
+  attention: 'NONE' | 'REVIEW_DUE' | 'REPAIR_REQUIRED';
+  attentionReason: 'REPEATED_MISTAKE' | 'PERSISTENT_WEAKNESS' | 'RETENTION_DUE' | null; // why (learner-language in UI)
+  attentionSkill: { id: string; name: string } | null; // the skill driving the attention
   learned: boolean;
   validated: boolean; // acquired via placement evidence (acknowledged, skippable) — distinct from LEARNED
   activeSessionId: string | null;
@@ -88,6 +90,24 @@ export interface MasteryCheckView {
 
 export function fetchV2Roadmap(subjectId: string): Promise<V2Roadmap> {
   return apiRequest(`/api/v2/roadmap/subjects/${subjectId}`);
+}
+
+/** The single most useful next learning action, decided from current evidence (repair > review > continue). */
+export interface V2Focus {
+  action: 'REPAIR' | 'REVIEW' | 'CONTINUE' | 'DONE';
+  policyVersion: string;
+  point: { roadmapPointId: string; pointKey: string; title: string; activeSessionId: string | null } | null;
+  skill: { id: string; name: string } | null;
+  reason: 'REPEATED_MISTAKE' | 'PERSISTENT_WEAKNESS' | 'RETENTION_DUE' | null;
+}
+
+export function fetchV2Focus(subjectId: string): Promise<V2Focus> {
+  return apiRequest(`/api/v2/roadmap/subjects/${subjectId}/focus`);
+}
+
+/** Start (or resume) a review session for one skill of an acquired point. Returns the reused review session. */
+export function startPointReview(pointId: string, skillId: string): Promise<{ id: string }> {
+  return apiRequest(`/api/v2/roadmap-points/${pointId}/review/skills/${skillId}/start`, { method: 'POST' });
 }
 
 export function startTeachingSession(pointId: string): Promise<TeachingSessionView> {

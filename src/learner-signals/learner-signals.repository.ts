@@ -23,14 +23,20 @@ export class LearnerSignalsRepository {
   }
 
   /**
-   * Eligible objective SUBMITTED attempts attributed to `skillId`, subject-scoped to the skill's Subject,
+   * Eligible objective scored attempts attributed to `skillId`, subject-scoped to the skill's Subject,
    * most-recent-first (§6/7/8/10). Attribution: ActivitySkill(skill) OR (no ActivitySkill at all → LessonSkill).
+   *
+   * Scored objective attempts count regardless of the attempt's terminal status: V1 lesson/review flows write
+   * SUBMITTED, the V2 TeachingSession writes EVALUATED — both are legitimate scored evidence. Including EVALUATED
+   * is additive and non-altering for every pre-V2 history (teaching is the sole EVALUATED writer), so the
+   * repeated-mistake-signal-v1 rule (3 distinct wrong / 2 distinct right) is unchanged, only its evidence reach
+   * now spans V2 teaching. The `isCorrect: not null` guard keeps only actually-scored attempts.
    */
   async eligibleAttemptsForSkill(tx: Prisma.TransactionClient, userId: string, skillId: string, subjectId: string): Promise<(ActivityOutcome & { activityId: string })[]> {
     const rows = await tx.activityAttempt.findMany({
       where: {
         userId,
-        status: ActivityAttemptStatus.SUBMITTED,
+        status: { in: [ActivityAttemptStatus.SUBMITTED, ActivityAttemptStatus.EVALUATED] },
         isCorrect: { not: null },
         activity: {
           type: { in: OBJECTIVE_TYPE_LIST },

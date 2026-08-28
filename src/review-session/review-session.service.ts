@@ -81,6 +81,45 @@ export class ReviewSessionService {
     return this.getSession(userId, sessionId);
   }
 
+  /**
+   * V2 entry: start (or resume) a review for a target the caller has already resolved AND authorized (e.g. the V2
+   * roadmap, which gates on point acquisition + skill membership). Reuses the ENTIRE review aggregate + finalize
+   * (snapshot pinning, submit, complete, REVIEW_MASTERY, recompute, signal resolution) — the only difference from
+   * start() is the gate: no V1 encountered-candidate revalidation, and the encountered revision is supplied.
+   */
+  async startForResolvedTarget(
+    userId: string,
+    target: { subjectId: string; skillId: string; lessonId: string; lessonRevisionId: string; signalTypes: string[] },
+  ) {
+    const { skillId, lessonId, lessonRevisionId, signalTypes } = target;
+    if (!(await this.repo.isLessonAccessible(lessonId))) throw new ReviewCandidateNotAvailableError('review candidate not available');
+    const sessionId = await this.prisma.$transaction(async (tx) => {
+      await this.repo.advisoryLock(tx, userId, skillId, lessonId);
+      const existing = await this.repo.findActiveSession(tx, userId, skillId, lessonId);
+      if (existing) return existing.id; // resume the same pinned session (§31/38)
+
+      const [activities, hasLessonSkill, triggerIds] = await Promise.all([
+        this.repo.selectionActivities(lessonRevisionId, skillId),
+        this.repo.lessonHasSkill(lessonId, skillId),
+        this.repo.triggerActivityIds(userId, skillId),
+      ]);
+      const orderedActivityIds = selectReviewActivities(activities, hasLessonSkill, triggerIds);
+      if (orderedActivityIds.length === 0) throw new ReviewSessionNoReviewableActivityError('no reviewable activity');
+
+      const provenance = { schemaVersion: REVIEW_SESSION_EVIDENCE_SCHEMA, signalTypes };
+      try {
+        return await this.repo.createSession(tx, { userId, skillId, lessonId, lessonRevisionId, provenance, orderedActivityIds });
+      } catch (e) {
+        if (this.repo.isUniqueViolation(e)) {
+          const winner = await this.repo.findActiveSession(tx, userId, skillId, lessonId);
+          if (winner) return winner.id;
+        }
+        throw e;
+      }
+    });
+    return this.getSession(userId, sessionId);
+  }
+
   /** Learner-safe review session projection (§34/35). No candidate re-evaluation for an already-started session. */
   async getSession(userId: string, sessionId: string) {
     const session = await this.repo.ownSession(userId, sessionId);

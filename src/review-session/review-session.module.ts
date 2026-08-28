@@ -19,5 +19,6 @@ import { ReviewMasteryService } from './review-mastery.service';
   imports: [ReviewModule, LearningProgressModule, LearnerSignalsModule, DailyMissionModule],
   controllers: [ReviewSessionController],
   providers: [ReviewSessionService, ReviewSessionRepository, ObjectiveActivityScorerService, ReviewMasteryService],
+  exports: [ReviewSessionService], // consumed by the V2 Learning Core to start point-scoped reviews (reuse, not fork)
 })
 export class ReviewSessionModule {}
