@@ -5,9 +5,10 @@
 > remains the running system and is untouched.
 >
 > **Scope of this document:** the umbrella picture — the engines that make Izlan a real self-study teaching
-> system, and how they connect. Only the **Placement Engine** is specified in depth (see
-> [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)). Every other engine here is described at contract
-> altitude only; each earns its own deep spec later.
+> system, and how they connect. Two engines are specified in depth so far: the **Placement Engine** (see
+> [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md)) and the **Roadmap Engine** (see
+> [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md)). The remaining engines are described at contract altitude
+> only; each earns its own deep spec later.
 >
 > **Grounding.** This builds on the accepted product decisions (`docs/PRODUCT_DECISIONS.md` D-01…D-43) and
 > the existing implementation (`src/assessment/**`, `src/skill-profile/**`, `src/roadmap/**`,
@@ -84,14 +85,18 @@ is specified for implementation here except Placement.
 Decides **where the learner starts**. Turns entry context + diagnostic evidence into a structured
 `PlacementDecision`. Full spec: [`PLACEMENT_ENGINE_V2.md`](./PLACEMENT_ENGINE_V2.md).
 
-### 2.2 Roadmap Engine
+### 2.2 Roadmap Engine — *specified now*
+Turns a `PlacementDecision` into a personalized, versioned journey over a macro A1→C2 spine of pedagogical
+**points**, honoring validation-skip, targeted repair, prerequisites, and regeneration-without-history-loss.
+Full spec: [`ROADMAP_ENGINE_V2.md`](./ROADMAP_ENGINE_V2.md).
 - **In:** `PlacementDecision` (demonstrated level, validated areas, weak areas, prerequisite gaps,
-  recommended start/repairs).
-- **Out:** an ordered plan that honors validated-area **skips**, injects **repair** work for weak areas, and
-  respects prerequisites — expressed as `RoadmapItem`s and (later) a `DailyPlan`.
-- **Biggest open question:** how validated areas translate into *skipping whole levels/modules* given today's
-  strict `LessonPrerequisite` DAG, which has no cross-level edges and no placement-out mechanism (roadmap
-  currently only omits lessons the learner already *completed*, never lessons placement deems *known*).
+  recommended start/repairs) — consumed, never recomputed.
+- **Out:** a versioned **learner roadmap projection** over a Methodist-authored **canonical curriculum graph** —
+  points with multi-axis state (acquisition/availability/attention), validated-area skips, inserted repair, and
+  Daily-Plan candidates (never scheduling).
+- **Central redesign:** V1's flat single-`ACTIVE` `RoadmapItem` list cannot express levels/points, validation-
+  skip (it only omits already-*completed* lessons, never lessons placement deems *known*), multi-axis state, or
+  regeneration history — see the spec's §29 gap analysis.
 
 ### 2.3 Teaching Engine
 - **In:** one roadmap point (a topic / learning path).
