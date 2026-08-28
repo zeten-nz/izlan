@@ -18,6 +18,24 @@ import {
 export class PointAuthoringController {
   constructor(private readonly svc: PointAuthoringService) {}
 
+  @Get('subjects/:subjectId/levels')
+  @RequirePermissions(CONTENT_AUTHOR)
+  levels(@CurrentPrincipal() p: AuthPrincipal, @Param('subjectId', ParseUUIDPipe) subjectId: string) {
+    return this.svc.listLevels(p.userId, subjectId);
+  }
+
+  @Get('subjects/:subjectId/skills')
+  @RequirePermissions(CONTENT_AUTHOR)
+  subjectSkills(@CurrentPrincipal() p: AuthPrincipal, @Param('subjectId', ParseUUIDPipe) subjectId: string) {
+    return this.svc.listSubjectSkills(p.userId, subjectId);
+  }
+
+  @Get('subjects/:subjectId/bindable-activities')
+  @RequirePermissions(CONTENT_AUTHOR)
+  bindable(@CurrentPrincipal() p: AuthPrincipal, @Param('subjectId', ParseUUIDPipe) subjectId: string) {
+    return this.svc.listBindableActivities(p.userId, subjectId);
+  }
+
   @Get('levels/:levelId/points')
   @RequirePermissions(CONTENT_AUTHOR)
   list(@CurrentPrincipal() p: AuthPrincipal, @Param('levelId', ParseUUIDPipe) levelId: string) {

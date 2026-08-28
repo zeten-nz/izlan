@@ -58,6 +58,23 @@ export class PointAuthoringService {
     return points.map((p) => ({ id: p.id, pointKey: p.pointKey, status: p.status, title: p.revisions[0]?.title ?? p.publishedRevision?.title ?? p.pointKey, editableStatus: p.revisions[0]?.status ?? null }));
   }
 
+  async listBindableActivities(userId: string, subjectId: string) {
+    await this.scope.requireScope(userId, subjectId);
+    return this.repo.bindableActivities(subjectId);
+  }
+
+  /** Subject skills for the mapping picker (scoped). */
+  async listSubjectSkills(userId: string, subjectId: string) {
+    await this.scope.requireScope(userId, subjectId);
+    return this.prisma.skill.findMany({ where: { subjectId, status: 'ACTIVE' }, orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, code: true } });
+  }
+
+  /** Levels of a subject for the point-studio landing (scoped). */
+  async listLevels(userId: string, subjectId: string) {
+    await this.scope.requireScope(userId, subjectId);
+    return this.prisma.level.findMany({ where: { track: { subjectId } }, orderBy: { sortOrder: 'asc' }, select: { id: true, code: true, title: true, status: true, track: { select: { title: true } } } });
+  }
+
   async getReadiness(userId: string, pointId: string): Promise<PointReadinessReport> {
     const subjectId = await this.repo.subjectForPoint(pointId);
     await this.scope.requireScope(userId, subjectId);

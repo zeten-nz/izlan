@@ -351,6 +351,17 @@ export class PointAuthoringRepository {
     return new Map(rows.map((r) => [r.id, { type: r.type }]));
   }
 
+  /** Published objective/teach activities in a subject, for the blueprint binding picker (learner-safe metadata). */
+  async bindableActivities(subjectId: string) {
+    const rows = await this.prisma.activity.findMany({
+      where: { revision: { status: RevisionStatus.PUBLISHED, lesson: { topic: { module: { level: { track: { subjectId } } } } } } },
+      orderBy: [{ revision: { lesson: { contentKey: 'asc' } } }, { position: 'asc' }],
+      select: { id: true, type: true, position: true, revision: { select: { lesson: { select: { contentKey: true } } } }, skills: { select: { skill: { select: { code: true, name: true } } } } },
+      take: 500,
+    });
+    return rows.map((a) => ({ id: a.id, type: a.type, position: a.position, lessonContentKey: a.revision.lesson.contentKey, skills: a.skills.map((s) => ({ code: s.skill.code, name: s.skill.name })) }));
+  }
+
   // ── Sources / provenance ──
   createSource(tx: Prisma.TransactionClient, data: { title: string; kind: string; locator: string | null; metadata: Prisma.InputJsonValue | null; createdBy: string }) {
     return tx.sourceReference.create({ data: { title: data.title, kind: data.kind, locator: data.locator, metadata: data.metadata ?? Prisma.DbNull, createdBy: data.createdBy } });

@@ -68,7 +68,7 @@ describe('V2 roadmap — review/repair adaptation (WEB-RA)', () => {
 
     expect(await screen.findByText('Takrorlash vaqti')).toBeInTheDocument(); // review badge
     const buttons = screen.getAllByRole('button', { name: 'Takrorlash' });
-    fireEvent.click(buttons[buttons.length - 1]); // the point-card review button
+    fireEvent.click(buttons[buttons.length - 1]!); // the point-card review button
     await waitFor(() => expect(h.startReview).toHaveBeenCalledWith('p1', 'sk-affirmative'));
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/review-session/rs1'));
   });
