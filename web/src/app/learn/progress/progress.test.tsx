@@ -18,7 +18,7 @@ const h = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({ useSearchParams: () => ({ get: () => h.subject }) }));
 vi.mock('@/lib/api/onboarding', () => ({ fetchLearningIntents: h.intents }));
 vi.mock('@/lib/api/skill-profile', () => ({ getCurrentSkillProfile: h.skillProfile }));
-vi.mock('@/lib/api/roadmap', () => ({ fetchActiveRoadmap: h.roadmap }));
+vi.mock('@/lib/api/v2-learning', () => ({ fetchV2Roadmap: h.roadmap }));
 vi.mock('@/lib/api/xp', () => ({ getXpProgression: h.xp }));
 vi.mock('@/lib/api/izl', () => ({ getIzlBalance: h.izl }));
 vi.mock('@/lib/api/rewards', () => ({ fetchTodayMissions: h.missions }));
@@ -33,10 +33,20 @@ const skillProfile = {
     { skillId: 'sk2', name: 'Vocabulary', masteryScoreBp: 4000, confidenceBp: null, evidenceCount: 1, displayLevel: null, lastMeasurementAt: 'x' },
   ],
 };
+// V2 roadmap: a data-driven point set. 2 acquired (learned + validated) of 4 → 50% overall progress.
+const pt = (over: Record<string, unknown> = {}) => ({
+  roadmapPointId: 'p', pointKey: 'K', title: 'Point', learningOutcome: null, estimatedEffortMin: 15, sortOrder: 1,
+  availability: 'AVAILABLE', acquisition: null, attention: 'NONE', attentionReason: null, attentionSkill: null,
+  learned: false, validated: false, activeSessionId: null, ...over,
+});
 const roadmap = {
-  id: 'r1', subjectId: 's1', trackId: 't1', status: 'ACTIVE', sourceAssessmentAttemptId: null,
-  progress: { total: 4, completed: 2, inProgress: 1, available: 1, blocked: 0, unavailable: 0, progressBp: 5000 },
-  nextItemId: null, items: [],
+  generation: { id: 'g1', subjectId: 's1', trackId: 't1', generationNo: 1, generatedAt: 'x' },
+  points: [
+    pt({ roadmapPointId: 'p1', title: 'Point 1', learned: true, acquisition: 'LEARNED' }),
+    pt({ roadmapPointId: 'p2', title: 'Point 2', validated: true, acquisition: 'VALIDATED' }),
+    pt({ roadmapPointId: 'p3', title: 'Point 3' }),
+    pt({ roadmapPointId: 'p4', title: 'Point 4' }),
+  ],
 };
 const xp = { totalXp: 120, progressionXp: 120, currentLevel: 2, currentLevelStartXp: 100, nextLevelXp: 300, xpIntoLevel: 20, xpToNextLevel: 180, progressBp: 1000, progressionVersion: 'xp-progression-v1' };
 const izl = { balanceIzl: 20, reservedIzl: 0, availableIzl: 20 };
@@ -209,5 +219,30 @@ describe('Progress / Results (WEB-PROG)', () => {
     // the read wrappers take no body/args (pure GETs)
     expect(h.xp).toHaveBeenCalledWith();
     expect(h.izl).toHaveBeenCalledWith();
+  });
+
+  it('WEB-PROG-20 overall progress reflects real V2 acquisition (2 of 4 acquired), not-yet-acquired points are not counted', async () => {
+    renderPage();
+    // 2 acquired (learned + validated) of 4 → the honest count, never inflated by unacquired points
+    expect(await screen.findByText('Bajarildi: 2/4')).toBeInTheDocument();
+    expect(screen.queryByText('Hozircha progress yo‘q')).toBeNull();
+  });
+
+  it('WEB-PROG-21 areas needing attention surface acquired points with a real repair/review signal', async () => {
+    h.roadmap.mockResolvedValue({
+      generation: { id: 'g1', subjectId: 's1', trackId: 't1', generationNo: 1, generatedAt: 'x' },
+      points: [
+        pt({ roadmapPointId: 'p1', title: 'Weak point', learned: true, acquisition: 'LEARNED', attention: 'REPAIR_REQUIRED', attentionReason: 'REPEATED_MISTAKE', attentionSkill: { id: 'skX', name: 'Word order' } }),
+        pt({ roadmapPointId: 'p2', title: 'Fresh point', learned: true, acquisition: 'LEARNED' }),
+      ],
+    });
+    renderPage();
+    expect(await screen.findByText('E’tibor talab qiladi')).toBeInTheDocument();
+    expect(screen.getByText('Weak point')).toBeInTheDocument();
+    expect(screen.getByText('Mustahkamlash kerak')).toBeInTheDocument(); // repair badge
+    // routes into the roadmap, and never leaks engine codes / raw ids
+    expect(screen.getAllByRole('link', { name: 'Mustahkamlash' })[0]).toHaveAttribute('href', '/learn/roadmap');
+    expect(document.body.textContent).not.toContain('REPEATED_MISTAKE');
+    expect(document.body.textContent).not.toContain('skX');
   });
 });

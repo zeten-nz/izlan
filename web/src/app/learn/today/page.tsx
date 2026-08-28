@@ -93,7 +93,8 @@ function MainAction({ view }: { view: DailyView }) {
 
   const isRepair = action.type === 'REPAIR';
   const isReview = action.type === 'REVIEW';
-  const eyebrow = isRepair ? t('learner.daily.repairEyebrow') : isReview ? t('learner.daily.reviewEyebrow') : t('learner.daily.mainGoalEyebrow');
+  const inProgress = !isRepair && !isReview && view.mainGoal?.activeSessionId != null; // an open teaching session → resume
+  const eyebrow = isRepair ? t('learner.daily.repairEyebrow') : isReview ? t('learner.daily.reviewEyebrow') : inProgress ? t('learner.daily.resumeEyebrow') : t('learner.daily.mainGoalEyebrow');
   const accent = isRepair ? 'border-l-warning' : isReview ? 'border-l-primary' : 'border-l-primary';
 
   return (
@@ -127,7 +128,7 @@ function MainAction({ view }: { view: DailyView }) {
           <ReviewButton pointId={point.roadmapPointId} skillId={action.skill.id} label={t('learner.daily.reviewCta')} />
         ) : (
           <ButtonLink href={`/teaching/${point.roadmapPointId}`} leftIcon={<FiArrowRight aria-hidden />}>
-            {isRepair ? t('learner.daily.repairCta') : t('learner.daily.learnCta')}
+            {isRepair ? t('learner.daily.repairCta') : inProgress ? t('learner.daily.continueCta') : t('learner.daily.learnCta')}
           </ButtonLink>
         )}
       </div>
