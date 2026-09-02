@@ -79,7 +79,10 @@ export const A1_POINT_PLAN: PointSpec[] = [
   { key: 'ENG-A1-PRESENT-SIMPLE', title: 'Present Simple', sortOrder: 100, skillCodes: ['ENG-A1-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-PRESENT-SIMPLE-QUESTIONS'], lessonKeys: ['ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE', 'ENG-A1-011-PRESENT-SIMPLE-NEGATIVE', 'ENG-A1-012-PRESENT-SIMPLE-QUESTIONS'], canDo: ['Present simple’dan odat, kundalik ish va umumiy faktlar uchun foydalanish', 'He/She/It bilan -s qo‘shimchasini to‘g‘ri qo‘llash', 'Inkor (don’t/doesn’t) va savol (do/does) shakllarini tuzish'] },
 ];
 
-const REQUIRED_EVIDENCE_KINDS = ['controlled-production', 'free-production'];
+// HONEST evidence kinds: the runtime can produce recognition (choice) and controlled-production (structured), never
+// free-production (no free/independent-writing evaluator exists). The pilot rollup lessons are recognition-driven,
+// so this set is satisfiable; claiming 'free-production' here was an overclaim and is removed (integrity wave 3).
+const REQUIRED_EVIDENCE_KINDS = ['recognition', 'controlled-production'];
 
 export interface A1Env {
   nodeEnv: string | undefined;

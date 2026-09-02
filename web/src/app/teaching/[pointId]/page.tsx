@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { FiArrowRight, FiAward, FiCheckCircle, FiInfo } from 'react-icons/fi';
 import { useT } from '@/lib/i18n/i18n-context';
 import { useResource } from '@/lib/hooks/use-resource';
-import { isObjectiveActivity, isStructuredActivity, isListeningActivity, isMarkdownActivity, type ActivityAnswer, type StructuredAnswer } from '@/lib/api/types';
+import { isObjectiveActivity, isStructuredActivity, isListeningActivity, isReadingActivity, isMarkdownActivity, type ActivityAnswer, type StructuredAnswer } from '@/lib/api/types';
 import {
   startTeachingSession,
   submitTeachingActivity,
@@ -22,6 +22,7 @@ import { FocusLearningShell } from '@/components/learning/FocusLearningShell';
 import { QuestionCard } from '@/components/learning/QuestionCard';
 import { StructuredActivityCard } from '@/components/learning/StructuredActivityCard';
 import { ListeningActivityCard } from '@/components/learning/ListeningActivityCard';
+import { ReadingActivityCard } from '@/components/learning/ReadingActivityCard';
 import { FeedbackBanner } from '@/components/learning/FeedbackBanner';
 import { LessonActivityView } from '@/components/learning/LessonActivityView';
 import { AssistantPanel } from '@/components/learning/AssistantPanel';
@@ -32,6 +33,7 @@ type Step =
   | { kind: 'objective'; stage: TeachingStage; activity: TeachingActivity }
   | { kind: 'structured'; stage: TeachingStage; activity: TeachingActivity }
   | { kind: 'listening'; stage: TeachingStage; activity: TeachingActivity }
+  | { kind: 'reading'; stage: TeachingStage; activity: TeachingActivity }
   | { kind: 'mastery' };
 
 function buildSteps(session: TeachingSessionView): Step[] {
@@ -42,6 +44,7 @@ function buildSteps(session: TeachingSessionView): Step[] {
       if (isObjectiveActivity(activity)) steps.push({ kind: 'objective', stage, activity });
       else if (isStructuredActivity(activity)) steps.push({ kind: 'structured', stage, activity });
       else if (isListeningActivity(activity)) steps.push({ kind: 'listening', stage, activity });
+      else if (isReadingActivity(activity)) steps.push({ kind: 'reading', stage, activity });
       else steps.push({ kind: 'view', stage, activity });
     }
   }
@@ -102,7 +105,7 @@ function Runner({ session }: { session: TeachingSessionView }) {
   // Advisory assistant is offered where a learner may be stuck (a question or the mastery gate). WHY_WRONG is gated on
   // a real incorrect result — the just-submitted answer, or any earlier incorrect attempt in the session.
   const hasRecentMistake = (feedback != null && !feedback.isCorrect) || session.stages.some((s) => s.activities.some((a) => a.lastResult != null && !a.lastResult.isCorrect));
-  const showAssistant = step.kind === 'objective' || step.kind === 'structured' || step.kind === 'listening' || step.kind === 'mastery';
+  const showAssistant = step.kind === 'objective' || step.kind === 'structured' || step.kind === 'listening' || step.kind === 'reading' || step.kind === 'mastery';
   const contextLabel = step.kind === 'mastery' ? t('learner.teaching.masteryStage') : step.stage.title;
 
   function next() {
@@ -237,6 +240,31 @@ function Runner({ session }: { session: TeachingSessionView }) {
       {step.kind === 'listening' && isListeningActivity(step.activity) && (
         <div className="flex flex-col gap-6">
           <ListeningActivityCard
+            key={step.activity.id}
+            activity={step.activity}
+            onSubmit={(a) => onObjectiveSubmit(step.activity, a)}
+            submitting={busy}
+            submitLabel={t('learner.teaching.check')}
+            questionLabel={step.stage.title}
+          />
+          {feedback && feedback.activityId === step.activity.id && (
+            <div className="flex flex-col gap-4">
+              <FeedbackBanner isCorrect={feedback.isCorrect} />
+              {!feedback.isCorrect && feedback.remediation && (
+                <div className="rounded-panel border border-border bg-surface-2 p-4 text-sm text-text">
+                  <span className="mb-1 block font-semibold text-muted">{t('learner.teaching.hint')}</span>
+                  {feedback.remediation}
+                </div>
+              )}
+              <div className="flex justify-end"><Button onClick={next} size="lg">{t('common.continue')} <FiArrowRight aria-hidden /></Button></div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step.kind === 'reading' && isReadingActivity(step.activity) && (
+        <div className="flex flex-col gap-6">
+          <ReadingActivityCard
             key={step.activity.id}
             activity={step.activity}
             onSubmit={(a) => onObjectiveSubmit(step.activity, a)}

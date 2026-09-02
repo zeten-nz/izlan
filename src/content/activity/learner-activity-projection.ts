@@ -4,6 +4,7 @@ import { parseObjectiveActivityPayload, projectActivityForLearner } from '../../
 import { parseMarkdownActivityPayload } from './markdown-activity-payload';
 import { isStructuredSchema, parseStructuredActivityPayload, projectStructuredForLearner, type LearnerStructuredActivity } from './structured-activity-payload';
 import { isListeningSchema, parseListeningActivityPayload, projectListeningForLearner, type LearnerListeningActivity } from './listening-activity-payload';
+import { isReadingSchema, parseReadingActivityPayload, projectReadingForLearner, type LearnerReadingActivity } from './reading-activity-payload';
 import { mediaKindForMime } from '../../media/media.constants';
 
 /**
@@ -36,7 +37,8 @@ type LearnerProjectedBase =
   | { id: string; type: string; position: number; format: string; prompt: string; options: { id: string; text: string }[] }
   | { id: string; type: string; position: number; schemaVersion: string; markdown: string }
   | LearnerStructuredActivity
-  | LearnerListeningActivity;
+  | LearnerListeningActivity
+  | LearnerReadingActivity;
 export type LearnerProjectedActivity = LearnerProjectedBase & { media?: LearnerActivityMedia[] };
 
 function projectMedia(media: LearnerActivityInput['media']): LearnerActivityMedia[] | undefined {
@@ -58,6 +60,9 @@ export function projectActivityForLearnerRuntime(a: LearnerActivityInput): Learn
       }
       if (isListeningSchema(a.payload)) {
         return withMedia(projectListeningForLearner(a.id, a.type, a.position, parseListeningActivityPayload(a.payload))); // audio comes via `media`
+      }
+      if (isReadingSchema(a.payload)) {
+        return withMedia(projectReadingForLearner(a.id, a.type, a.position, parseReadingActivityPayload(a.payload))); // passage IS projected; answerKey stripped
       }
       return withMedia(projectActivityForLearner(a.id, a.type, a.position, parseObjectiveActivityPayload(a.payload))); // no answerKey
     } catch {

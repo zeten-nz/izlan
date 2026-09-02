@@ -6,6 +6,7 @@ import { parseMarkdownActivityPayload } from './markdown-activity-payload';
 import { parseMediaActivityPayload } from './media-activity-payload';
 import { isStructuredSchema, parseStructuredActivityPayload } from './structured-activity-payload';
 import { isListeningSchema, parseListeningActivityPayload } from './listening-activity-payload';
+import { isReadingSchema, parseReadingActivityPayload } from './reading-activity-payload';
 
 /**
  * ONE canonical authoring-time Activity payload dispatcher (Phase 2.2A-2, §18/TD-248). It consumes the canonical
@@ -29,6 +30,7 @@ export function validateActivityPayloadForAuthoring(type: ActivityType, raw: unk
       try {
         if (isStructuredSchema(raw)) return parseStructuredActivityPayload(raw) as unknown as Record<string, unknown>;
         if (isListeningSchema(raw)) return parseListeningActivityPayload(raw) as unknown as Record<string, unknown>;
+        if (isReadingSchema(raw)) return parseReadingActivityPayload(raw) as unknown as Record<string, unknown>;
         return parseObjectiveActivityPayload(raw) as unknown as Record<string, unknown>;
       } catch {
         throw new ContentActivityPayloadInvalidError('activity payload invalid');

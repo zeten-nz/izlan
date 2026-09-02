@@ -1089,6 +1089,9 @@ const uz = {
       listenFirst: 'Avval tinglang',
       noAudio: 'Audio hozircha mavjud emas.',
     },
+    reading: {
+      readFirst: 'Avval o‘qing',
+    },
     daily: {
       title: 'Bugun',
       subtitle: 'Bugun nima qilishingiz kerakligini Izlan tanladi.',

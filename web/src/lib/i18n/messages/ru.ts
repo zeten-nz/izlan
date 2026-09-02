@@ -1052,6 +1052,9 @@ const ru: Messages = {
       listenFirst: 'Сначала послушайте',
       noAudio: 'Аудио пока недоступно.',
     },
+    reading: {
+      readFirst: 'Сначала прочитайте',
+    },
     daily: {
       title: 'Сегодня',
       subtitle: 'Izlan выбрал, что вам стоит сделать сегодня.',

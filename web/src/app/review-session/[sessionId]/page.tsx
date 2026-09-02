@@ -8,13 +8,14 @@ import { useResource } from '@/lib/hooks/use-resource';
 import { completeReviewSession, getReviewSession, submitReviewActivity } from '@/lib/api/review';
 import { isAbortError, isApiError } from '@/lib/api/errors';
 import { describeError } from '@/lib/ui/error-text';
-import { isObjectiveActivity, isStructuredActivity, isListeningActivity, type ActivityAnswer, type StructuredAnswer, type ReviewSessionView } from '@/lib/api/types';
+import { isObjectiveActivity, isStructuredActivity, isListeningActivity, isReadingActivity, type ActivityAnswer, type StructuredAnswer, type ReviewSessionView } from '@/lib/api/types';
 import { Button, ButtonLink, Spinner } from '@/components/ui';
 import { ErrorState } from '@/components/ui/states';
 import { FocusLearningShell } from '@/components/learning/FocusLearningShell';
 import { QuestionCard } from '@/components/learning/QuestionCard';
 import { StructuredActivityCard } from '@/components/learning/StructuredActivityCard';
 import { ListeningActivityCard } from '@/components/learning/ListeningActivityCard';
+import { ReadingActivityCard } from '@/components/learning/ReadingActivityCard';
 import { FeedbackBanner } from '@/components/learning/FeedbackBanner';
 
 export default function ReviewSessionPage() {
@@ -124,6 +125,14 @@ function Runner({ initial, onExit }: { initial: ReviewSessionView; onExit: () =>
         />
       ) : isListeningActivity(current) ? (
         <ListeningActivityCard
+          key={current.id}
+          activity={current}
+          onSubmit={(answer) => onSubmit(current.id, answer)}
+          submitting={busy}
+          submitLabel={t('learner.review.check')}
+        />
+      ) : isReadingActivity(current) ? (
+        <ReadingActivityCard
           key={current.id}
           activity={current}
           onSubmit={(answer) => onSubmit(current.id, answer)}

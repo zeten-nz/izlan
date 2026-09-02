@@ -42,10 +42,10 @@ export const DEFAULT_CONTENT_QUALITY_POLICY_CONFIG = {
   requireApprovedReview: true, // an APPROVED ContentReview is required before publish
   requireFourEyes: false, // author may also be the reviewer for the pilot (policy-tunable)
   requireSourceForPoint: false, // A1 grammar points legitimately need zero external references (capability still exists)
-  masteryEvidenceKinds: ['controlled-production', 'free-production'], // kinds a MASTERY_TEST (objective) activity can satisfy
+  masteryEvidenceKinds: ['recognition', 'controlled-production'], // HONEST kinds objective activities can satisfy (never free-production — integrity wave 3)
 } as const;
 
-/** Evidence kinds a blueprint's EVIDENCE-role bindings can produce, by activity execution kind. Mirrors the
- *  V2 teaching-mastery engine (objective MASTERY_TEST → controlled/free production at independence 2). */
-export const OBJECTIVE_EVIDENCE_KINDS = ['recognition', 'controlled-production', 'free-production'] as const;
+/** Evidence kinds a blueprint's EVIDENCE-role bindings can honestly produce (integrity wave 3): recognition (choice),
+ *  controlled-production (structured), plus the receptive comprehension kinds. NEVER free-production. */
+export const OBJECTIVE_EVIDENCE_KINDS = ['recognition', 'controlled-production', 'listening-comprehension', 'reading-comprehension'] as const;
 export const OBJECTIVE_EVIDENCE_INDEPENDENCE = 2;

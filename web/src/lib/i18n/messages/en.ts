@@ -1052,6 +1052,9 @@ const en: Messages = {
       listenFirst: 'Listen first',
       noAudio: 'Audio is not available yet.',
     },
+    reading: {
+      readFirst: 'Read first',
+    },
     daily: {
       title: 'Today',
       subtitle: 'Izlan picked what you should do today.',

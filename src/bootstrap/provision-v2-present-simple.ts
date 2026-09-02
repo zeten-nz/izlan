@@ -48,7 +48,9 @@ export const V2_PRESENT_SIMPLE_LESSON_KEYS = [
   'ENG-A1-012-PRESENT-SIMPLE-QUESTIONS',
 ] as const;
 
-const REQUIRED_EVIDENCE_KINDS = ['controlled-production', 'free-production'];
+// HONEST evidence kinds (integrity wave 3): recognition + controlled-production only — never free-production,
+// which no evaluator can produce. Present-Simple mastery is recognition-driven, so the set stays satisfiable.
+const REQUIRED_EVIDENCE_KINDS = ['recognition', 'controlled-production'];
 
 export interface V2ProvisionEnv {
   nodeEnv: string | undefined;

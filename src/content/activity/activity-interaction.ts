@@ -4,6 +4,7 @@ import { scoreChoice, canonicalizeChoice } from './choice-scoring';
 import { parseStructuredActivityPayload, projectStructuredForLearner, LESSON_ACTIVITY_STRUCTURED_SCHEMA_VERSION, type StructuredActivityPayload } from './structured-activity-payload';
 import { scoreStructured, canonicalizeStructured, type StructuredFeedback } from './structured-activity-scorer';
 import { parseListeningActivityPayload, projectListeningForLearner, LESSON_ACTIVITY_LISTENING_SCHEMA_VERSION, type ListeningActivityPayload } from './listening-activity-payload';
+import { parseReadingActivityPayload, projectReadingForLearner, LESSON_ACTIVITY_READING_SCHEMA_VERSION, type ReadingActivityPayload } from './reading-activity-payload';
 import { evidenceForActivity, type ActivityEvidence, type ActivityInteractionKind } from './activity-evidence';
 
 /**
@@ -17,10 +18,13 @@ import { evidenceForActivity, type ActivityEvidence, type ActivityInteractionKin
 export type InteractiveActivity =
   | { kind: 'CHOICE'; payload: ObjectiveActivityPayload }
   | { kind: 'STRUCTURED'; payload: StructuredActivityPayload }
-  | { kind: 'LISTENING'; payload: ListeningActivityPayload };
+  | { kind: 'LISTENING'; payload: ListeningActivityPayload }
+  | { kind: 'READING'; payload: ReadingActivityPayload };
 
 /** A listening comprehension body is scored/canonicalized exactly like a single_choice question. */
 const listeningAsChoice = (p: ListeningActivityPayload): ObjectiveActivityPayload => ({ schemaVersion: 'lesson-activity-objective/v1', format: 'single_choice', prompt: p.prompt, options: p.options, answerKey: p.answerKey });
+/** A reading comprehension body is scored/canonicalized exactly like a single_choice question. */
+const readingAsChoice = (p: ReadingActivityPayload): ObjectiveActivityPayload => ({ schemaVersion: 'lesson-activity-objective/v1', format: 'single_choice', prompt: p.prompt, options: p.options, answerKey: p.answerKey });
 
 export interface InteractiveScore {
   isCorrect: boolean;
@@ -28,10 +32,15 @@ export interface InteractiveScore {
   feedback?: StructuredFeedback; // structured formats carry learner-safe feedback; choice has none
 }
 
-/** True if a raw stored payload is a scorable interactive activity (choice, structured, or listening). */
+/** True if a raw stored payload is a scorable interactive activity (choice, structured, listening, or reading). */
 export function isInteractiveSchema(raw: unknown): boolean {
   const v = (raw as { schemaVersion?: unknown } | null)?.schemaVersion;
-  return v === LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION || v === LESSON_ACTIVITY_STRUCTURED_SCHEMA_VERSION || v === LESSON_ACTIVITY_LISTENING_SCHEMA_VERSION;
+  return (
+    v === LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION ||
+    v === LESSON_ACTIVITY_STRUCTURED_SCHEMA_VERSION ||
+    v === LESSON_ACTIVITY_LISTENING_SCHEMA_VERSION ||
+    v === LESSON_ACTIVITY_READING_SCHEMA_VERSION
+  );
 }
 
 /** Validate + normalize a raw payload into a typed interactive activity. Throws ActivityPayloadInvalidError if unknown. */
@@ -40,30 +49,34 @@ export function parseInteractiveActivity(raw: unknown): InteractiveActivity {
   if (v === LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION) return { kind: 'CHOICE', payload: parseObjectiveActivityPayload(raw) };
   if (v === LESSON_ACTIVITY_STRUCTURED_SCHEMA_VERSION) return { kind: 'STRUCTURED', payload: parseStructuredActivityPayload(raw) };
   if (v === LESSON_ACTIVITY_LISTENING_SCHEMA_VERSION) return { kind: 'LISTENING', payload: parseListeningActivityPayload(raw) };
+  if (v === LESSON_ACTIVITY_READING_SCHEMA_VERSION) return { kind: 'READING', payload: parseReadingActivityPayload(raw) };
   throw new ActivityPayloadInvalidError('activity payload invalid');
 }
 
 export function scoreInteractive(activity: InteractiveActivity, answer: unknown): InteractiveScore {
   if (activity.kind === 'CHOICE') return scoreChoice(activity.payload, answer);
   if (activity.kind === 'LISTENING') return scoreChoice(listeningAsChoice(activity.payload), answer);
+  if (activity.kind === 'READING') return scoreChoice(readingAsChoice(activity.payload), answer);
   return scoreStructured(activity.payload, answer);
 }
 
 export function canonicalizeInteractive(activity: InteractiveActivity, answer: unknown): string {
   if (activity.kind === 'CHOICE') return canonicalizeChoice(activity.payload, answer);
   if (activity.kind === 'LISTENING') return canonicalizeChoice(listeningAsChoice(activity.payload), answer);
+  if (activity.kind === 'READING') return canonicalizeChoice(readingAsChoice(activity.payload), answer);
   return canonicalizeStructured(activity.payload, answer);
 }
 
-/** The honest evidence (recognition@1 choice · controlled-production@2 structured · listening-comprehension@1 listening). */
+/** The honest evidence (recognition@1 choice · controlled-production@2 structured · listening/reading-comprehension@1). */
 export function interactiveEvidence(activity: InteractiveActivity): ActivityEvidence {
   return evidenceForActivity(activity.kind as ActivityInteractionKind);
 }
 
-/** Learner-safe projection (answerKey/accepted sets/transcript stripped) for a parsed interactive activity. */
+/** Learner-safe projection (answerKey/accepted sets/transcript stripped; reading passage kept — it is the stimulus). */
 export function projectInteractiveForLearner(id: string, type: string, position: number, activity: InteractiveActivity) {
   if (activity.kind === 'CHOICE') return projectActivityForLearner(id, type, position, activity.payload);
   if (activity.kind === 'LISTENING') return projectListeningForLearner(id, type, position, activity.payload);
+  if (activity.kind === 'READING') return projectReadingForLearner(id, type, position, activity.payload);
   return projectStructuredForLearner(id, type, position, activity.payload);
 }
 
@@ -73,5 +86,6 @@ export function interactionKindOf(raw: unknown): ActivityInteractionKind | null 
   if (v === LESSON_ACTIVITY_OBJECTIVE_SCHEMA_VERSION) return 'CHOICE';
   if (v === LESSON_ACTIVITY_STRUCTURED_SCHEMA_VERSION) return 'STRUCTURED';
   if (v === LESSON_ACTIVITY_LISTENING_SCHEMA_VERSION) return 'LISTENING';
+  if (v === LESSON_ACTIVITY_READING_SCHEMA_VERSION) return 'READING';
   return null;
 }

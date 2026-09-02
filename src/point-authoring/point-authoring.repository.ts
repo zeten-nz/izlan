@@ -14,7 +14,10 @@ import { CONTENT_QUALITY_POLICY_CODE, DEFAULT_CONTENT_QUALITY_POLICY_CONFIG } fr
 export const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
-const REQUIRED_EVIDENCE_KINDS = ['controlled-production', 'free-production'];
+// The default SkillLevelExpectation standard. HONEST kinds only (integrity wave 3): recognition + controlled-production
+// — never free-production, for which no trustworthy evaluator exists. (The per-point MASTERY gate kinds come from the
+// author/spec, not this default; this only sets the level-expectation standard used when an expectation is created.)
+const REQUIRED_EVIDENCE_KINDS = ['recognition', 'controlled-production'];
 
 /**
  * Persistence for V2 Roadmap Point authoring. Mirrors the canonical provisioner write-sequence (point +
