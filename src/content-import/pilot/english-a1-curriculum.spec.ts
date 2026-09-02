@@ -24,11 +24,11 @@ describe('English A1 curriculum expansion (structural)', () => {
     expect(validation.ok).toBe(true);
   });
 
-  it('CUR-02 has the expected shape: 3 topics, 6 lessons, 6 skills, 6 points', () => {
-    expect(validation.summary).toMatchObject({ topics: 3, lessons: 6, skills: 6, points: 6 });
-    expect(CURRICULUM_CONTENT_KEYS).toHaveLength(6);
-    expect(CURRICULUM_SKILL_CODES).toHaveLength(6);
-    expect(validation.summary.objectiveActivities).toBeGreaterThanOrEqual(24); // ≥4 objective/lesson
+  it('CUR-02 has the expected shape: 5 topics, 10 lessons, 10 skills, 10 points', () => {
+    expect(validation.summary).toMatchObject({ topics: 5, lessons: 10, skills: 10, points: 10 });
+    expect(CURRICULUM_CONTENT_KEYS).toHaveLength(10);
+    expect(CURRICULUM_SKILL_CODES).toHaveLength(10);
+    expect(validation.summary.objectiveActivities).toBeGreaterThanOrEqual(40); // ≥4 objective/lesson
   });
 
   it('CUR-03 the point prerequisite graph is a valid DAG that BRANCHES (≥2 points share a prerequisite)', () => {
@@ -73,6 +73,24 @@ describe('English A1 curriculum expansion (structural)', () => {
     expect(masteryPayloads.length).toBeGreaterThanOrEqual(1);
     expect(masteryPayloads.every((p) => p.schemaVersion === STRUCTURED_V)).toBe(true);
     expect(masteryPayloads.map((p) => p.format).sort()).toEqual(['fill_blank', 'sentence_order']);
+  });
+
+  it('CUR-07 every structured-production point requires controlled-production@2 and has ONLY structured MASTERY_TEST evidence', () => {
+    const packages = parseCurriculumPackages();
+    const lessonByKey = new Map(packages.flatMap((p) => p.plan.lessons).map((l) => [l.contentKey, l] as const));
+    const structuredPoints = CURRICULUM_POINT_PLAN.filter((p) => p.masteryMinIndependence === 2);
+    // Wave 1 (PREP-PLACE) + wave 2 (DEMONSTRATIVES, PRESENT-CONTINUOUS, QUESTION-WORDS, FOOD-DRINKS).
+    expect(structuredPoints.map((p) => p.pointKey).sort()).toEqual([
+      'ENG-A1-DEMONSTRATIVES', 'ENG-A1-FOOD-DRINKS', 'ENG-A1-PREP-PLACE', 'ENG-A1-PRESENT-CONTINUOUS', 'ENG-A1-QUESTION-WORDS',
+    ]);
+    for (const spec of structuredPoints) {
+      expect([...(spec.masteryEvidenceKinds ?? [])]).toEqual(['controlled-production']); // recognition cannot satisfy it
+      const lesson = lessonByKey.get(spec.lessonContentKey)!;
+      const masteryPayloads = lesson.revision.activities.filter((a) => a.type === ActivityType.MASTERY_TEST).map((a) => a.payload as { schemaVersion?: string });
+      expect(masteryPayloads.length).toBeGreaterThanOrEqual(1);
+      // The controlled-production@2 gate is satisfiable ONLY if every mastery-evidence item is genuinely structured.
+      expect(masteryPayloads.every((p) => p.schemaVersion === STRUCTURED_V)).toBe(true);
+    }
   });
 
   it('CUR-05 every lesson teaches (rule + example + mistake) before it tests — not a quiz bank', () => {

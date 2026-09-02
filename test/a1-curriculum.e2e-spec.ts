@@ -152,9 +152,9 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
 
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('CUR-E2E-01 authored 6 new points, each PUBLISHED via the real workflow (published blueprint + mastery + APPROVED review)', async () => {
-    expect(provisionResult.pointsPublished).toBe(6);
-    expect(provisionResult.lessonsPublished).toBe(6);
+  it('CUR-E2E-01 authored 10 new points, each PUBLISHED via the real workflow (published blueprint + mastery + APPROVED review)', async () => {
+    expect(provisionResult.pointsPublished).toBe(10);
+    expect(provisionResult.lessonsPublished).toBe(10);
 
     for (const spec of CURRICULUM_POINT_PLAN) {
       const point = await prisma.roadmapPoint.findUniqueOrThrow({
@@ -196,15 +196,15 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
     expect(branchOffVerbBe).toBeGreaterThanOrEqual(2); // multiple points unlock at once
   });
 
-  it('CUR-E2E-03 honest mastery: every gate is recognition/controlled-production only (never free-production); the structured point requires controlled-production@2', async () => {
+  it('CUR-E2E-03 honest mastery: every gate is recognition/controlled-production only (never free-production); structured points require controlled-production@2', async () => {
     for (const spec of CURRICULUM_POINT_PLAN) {
       const point = await prisma.roadmapPoint.findUniqueOrThrow({ where: { pointKey: spec.pointKey }, include: { masteryRequirement: true } });
       const gate = await prisma.masteryRequirementSkillExpectation.findFirstOrThrow({ where: { requirementRevisionId: point.masteryRequirement!.currentRevisionId! } });
       const kinds = gate.requiredEvidenceKinds as string[];
       expect(kinds).not.toContain('free-production'); // objective items never claim free/independent production
       expect(kinds.every((k) => k === 'recognition' || k === 'controlled-production')).toBe(true);
-      if (spec.pointKey === 'ENG-A1-PREP-PLACE') {
-        // The structured-production dogfood: recognition can no longer satisfy it — controlled-production @ independence 2.
+      if (spec.masteryMinIndependence === 2) {
+        // A structured-production point: recognition can no longer satisfy it — controlled-production @ independence 2.
         expect(kinds).toEqual(['controlled-production']);
         expect(gate.minIndependence).toBe(2);
       } else {
@@ -332,6 +332,24 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
     const p = (rm.points as { pointKey: string; learned: boolean; acquisition: string }[]).find((x) => x.pointKey === 'ENG-A1-ARTICLES')!;
     expect(p.learned).toBe(true);
     expect(p.acquisition).toBe('LEARNED');
+  });
+
+  it('CUR-E2E-08 a wave-2 STRUCTURED point (Demonstratives) is learned via structured production → honest controlled-production@2 evidence', async () => {
+    const { token, userId } = await makeLearner();
+    await learnPoint(token, 'ENG-A1-GREETINGS-INTRO');
+    await learnPoint(token, 'ENG-A1-VERB-BE');
+    await learnPoint(token, 'ENG-A1-DEMONSTRATIVES'); // controlled-production@2; learnPoint answers structured items
+
+    const demo = await pointId('ENG-A1-DEMONSTRATIVES');
+    const learned = await prisma.pointAcquisitionEvent.findMany({ where: { userId, roadmapPointId: demo, acquisitionType: 'LEARNED' } });
+    expect(learned.length).toBe(1); // recognition-only could NOT have satisfied this gate
+
+    // The evidence recorded is honest structured production — controlled-production at independence 2.
+    const sid = await subjectId();
+    const skill = await prisma.skill.findUniqueOrThrow({ where: { subjectId_code: { subjectId: sid, code: 'ENG-A1-DEMONSTRATIVES' } } });
+    const measurement = await prisma.skillMeasurement.findFirstOrThrow({ where: { userId, skillId: skill.id, source: 'TEACHING_MASTERY' }, orderBy: { createdAt: 'desc' } });
+    expect(measurement.evidenceKind).toBe('controlled-production');
+    expect(measurement.independenceLevel).toBe(2);
   });
 
   it('CUR-E2E-07 review/repair adaptation is generic: a REPEATED_MISTAKE signal on Articles drives REPAIR (repair > new learning)', async () => {

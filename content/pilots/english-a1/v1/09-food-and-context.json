@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-FOOD-VOCAB", "name": "Ovqat va ichimliklar (so'z boyligi va muloqot)", "sortOrder": 190 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-022-FOOD-DRINKS",
+      "slug": "eng-a1-022-food-drinks",
+      "sortOrder": 220,
+      "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+      "prerequisiteContentKeys": ["ENG-A1-015-THERE-IS-ARE"],
+      "revision": {
+        "title": "Ovqat va ichimliklar",
+        "description": "Ovqat so'zlari + 'There is/are' va 'I would like ...' bilan muloqot; qisqa menyu o'qish.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nKafe yoki do'konda kerak bo'ladigan ovqat va ichimlik so'zlarini o'rganamiz va ularni gapda ishlatamiz: stolda nima **bor**ligini aytish va biror narsani **muloyim so'rash** (*I would like ...*)." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## So'z boyligi\n\n| Inglizcha | O'zbekcha |\n| --- | --- |\n| bread | non |\n| rice | guruch / palov guruchi |\n| apple | olma |\n| egg | tuxum |\n| water | suv |\n| tea | choy |\n| coffee | qahva |\n| juice | sharbat |\n\n**Muloqot namunasi:** *I would like a coffee, please.* (Menga bir qahva bering.) Muloyim so'rash uchun **I would like ...** (qisqasi *I'd like ...*)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- There is **an apple** on the table.\n- There are **two eggs** in the box.\n- I would like **a tea**, please.\n- Would you like **some water**?\n- We have **bread** and **rice** at home." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Qaysi biri ICHIMLIK (drink)?", "options": [ { "id": "a", "text": "bread" }, { "id": "b", "text": "juice" }, { "id": "c", "text": "egg" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qisqa o'qish: kafe menyusi\n\n**Sam's Cafe — Menu**\n\n- Coffee\n- Tea\n- Water\n- Apple juice\n- Bread and egg\n- Rice\n\n*Quyidagi savollar shu menyu haqida.*" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Menyuga ko'ra, qaysi ichimlik BOR? (Sam's Cafe)", "options": [ { "id": "a", "text": "milk" }, { "id": "b", "text": "apple juice" }, { "id": "c", "text": "cola" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (ichimlik nomi, 'qahva'): muloyim so'rov.", "segments": [ { "text": "I would like a " }, { "blankId": "b1" }, { "text": ", please." } ], "blanks": { "b1": { "accepted": ["coffee"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Qahva = coffee." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: stolda bitta olma bor.", "tokens": [ { "id": "t1", "text": "There" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "an" }, { "id": "t4", "text": "apple" }, { "id": "t5", "text": "on" }, { "id": "t6", "text": "the" }, { "id": "t7", "text": "table" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5", "t6", "t7"] }, "remediation": "There is + an apple + on the table." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (ichimlik nomi, 'choy'): muloyim so'rov.", "segments": [ { "text": "I would like a " }, { "blankId": "b1" }, { "text": ", please." } ], "blanks": { "b1": { "accepted": ["tea"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Choy = tea." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-FOOD-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: qutida ikkita tuxum bor.", "tokens": [ { "id": "t1", "text": "There" }, { "id": "t2", "text": "are" }, { "id": "t3", "text": "two" }, { "id": "t4", "text": "eggs" }, { "id": "t5", "text": "in" }, { "id": "t6", "text": "the" }, { "id": "t7", "text": "box" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5", "t6", "t7"] }, "remediation": "There are + two eggs (ko'plik) + in the box." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Ovqat/ichimlik so'zlari: bread, rice, apple, egg, water, tea, coffee, juice.\n- Stolda nima borligini: **There is / There are ...**\n- Muloyim so'rov: **I would like a ..., please.**" }
+          }
+        ]
+      }
+    }
+  ]
+}
