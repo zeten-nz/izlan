@@ -25,6 +25,11 @@ const doneView: DailyView = {
   progress: { mainGoalDone: true, roadmapAcquired: 1, roadmapTotal: 3 }, done: true,
 };
 
+const resumeView: DailyView = {
+  ...learnView,
+  mainGoal: { ...learnView.mainGoal!, availability: 'IN_PROGRESS', activeSessionId: 'ts1' },
+};
+
 const repairView: DailyView = {
   ...learnView,
   action: { type: 'REPAIR', point: { roadmapPointId: 'pt1', pointKey: 'K', title: 'Present Simple' }, skill: { id: 's1', name: 'Word order' }, reason: 'REPEATED_MISTAKE' },
@@ -58,6 +63,14 @@ describe('V2 Daily Learning home (WEB-DL)', () => {
     expect(screen.getByText('use it for habits')).toBeInTheDocument();
     const cta = screen.getByRole('link', { name: 'Boshlash' });
     expect(cta).toHaveAttribute('href', '/teaching/pt1'); // routes into the REAL teaching flow
+  });
+
+  it('WEB-DL-02b an in-progress point surfaces a resume action (Continue) into the same teaching session', async () => {
+    h.fetch.mockResolvedValue(resumeView);
+    renderPage();
+    expect(await screen.findByText('Kechagi mashg‘ulotni davom ettiring')).toBeInTheDocument(); // resume eyebrow
+    const cta = screen.getByRole('link', { name: 'Davom ettirish' });
+    expect(cta).toHaveAttribute('href', '/teaching/pt1'); // start-or-resume resumes the open session
   });
 
   it('WEB-DL-03 a completed day shows the calm DONE state (no next-point unlock)', async () => {

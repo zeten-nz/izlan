@@ -833,7 +833,7 @@ const ru: Messages = {
     footerRights: '© Izlan',
   },
   learner: {
-    nav: { home: 'Главная', roadmap: 'Маршрут', learn: 'Обучение', review: 'Повторение', results: 'Результаты', subjects: 'Предметы', profile: 'Профиль', logout: 'Выйти', account: 'Аккаунт', soon: 'Скоро', primary: 'Основное меню', brand: 'Izlan' },
+    nav: { today: 'Сегодня', progress: 'Результаты', home: 'Главная', roadmap: 'Маршрут', learn: 'Обучение', review: 'Повторение', results: 'Результаты', subjects: 'Предметы', profile: 'Профиль', logout: 'Выйти', account: 'Аккаунт', soon: 'Скоро', primary: 'Основное меню', brand: 'Izlan' },
     login: {
       title: 'Добро пожаловать',
       subtitle: 'Войдите в аккаунт, чтобы продолжить.',
@@ -1010,6 +1010,7 @@ const ru: Messages = {
       learnedTitle: 'Поздравляем — вы освоили!',
       learnedBody: 'Вы успешно освоили «{title}».',
       backToRoadmap: 'Назад к маршруту',
+      backToToday: 'Вернуться к сегодняшнему плану',
       stage: { concept: 'Понятие', recognition: 'Распознавание', production: 'Практика', mastery: 'Итоговая проверка' },
     },
     daily: {
@@ -1030,6 +1031,8 @@ const ru: Messages = {
       },
       effort: '~{min} мин',
       learnCta: 'Начать',
+      continueCta: 'Продолжить',
+      resumeEyebrow: 'Продолжите начатое занятие',
       repairCta: 'Закрепить',
       reviewCta: 'Повторить',
       reviewStarting: 'Запуск…',
@@ -1107,6 +1110,7 @@ const ru: Messages = {
       completedTitle: 'Повторение завершено',
       completedBody: 'Отлично! Вы завершили повторение.',
       backToReview: 'Вернуться к повторению',
+      backToToday: 'Вернуться к сегодняшнему плану',
       notFoundTitle: 'Сессия повторения не найдена',
     },
     progress: {
@@ -1117,6 +1121,7 @@ const ru: Messages = {
       overallProgress: 'Выполнено: {completed}/{total}',
       noProgressTitle: 'Пока нет прогресса',
       noProgressBody: 'Прогресс появится здесь, когда вы определите уровень и начнёте уроки.',
+      attentionTitle: 'Требует внимания',
       noSubjectTitle: 'Предмет не выбран',
       noSubjectBody: 'Чтобы увидеть результаты, сначала выберите предмет и направление.',
       skillsTitle: 'Навыки',
@@ -1260,6 +1265,7 @@ const ru: Messages = {
       summaryValidated: 'Подтверждено тем: {n}',
       summaryWeak: 'Тем требует внимания: {n}',
       viewRoadmap: 'Показать мой маршрут',
+      continueToday: 'Перейти к сегодняшнему плану',
       continue: 'Продолжить',
       claimedLevel: 'Выбранный уровень: {level}',
       notAssessedNote: 'Не оценённые области — это не 0%; они просто ещё не измерялись.',

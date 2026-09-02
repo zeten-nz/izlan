@@ -34,7 +34,7 @@ describe('Placement V2 — choose path (WEB-PV2C)', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Noldan boshlash' }));
     await waitFor(() => expect(h.fromZero).toHaveBeenCalledWith('s1', expect.any(String)));
-    expect(h.replace).toHaveBeenCalledWith('/learn/present-simple');
+    expect(h.replace).toHaveBeenCalledWith('/learn/today');
   });
 
   it('WEB-PV2C-03 "I already know" routes into the gated (v2) diagnostic — no premature decision', async () => {

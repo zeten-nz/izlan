@@ -108,7 +108,7 @@ describe('Learner onboarding (WEB-ONB)', () => {
     await waitFor(() => expect(screen.getByText('Nimani o‘rganmoqchisiz?')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Davom etish' }));
     await waitFor(() => expect(h.complete).toHaveBeenCalled());
-    expect(h.replace).toHaveBeenCalledWith('/placement?learningIntentId=i1'); // NOT /learn — Placement is next
+    expect(h.replace).toHaveBeenCalledWith('/learn'); // hands off to the first-run router, which enters V2 placement next
   });
 
   it('WEB-ONB-11 already-completed onboarding redirects to /learn (resumes from backend, not local state)', async () => {

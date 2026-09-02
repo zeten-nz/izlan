@@ -31,6 +31,7 @@ import { PlacementV2Module } from './placement-v2/placement-v2.module';
 import { PointAuthoringModule } from './point-authoring/point-authoring.module';
 import { DailyLearningModule } from './daily-learning/daily-learning.module';
 import { AssistantModule } from './assistant/assistant.module';
+import { LearnerModule } from './learner/learner.module';
 
 /**
  * AppModule — foundational (Config/Database/Health) + auth core + learner flow (…/LearningProgress/
@@ -71,6 +72,7 @@ import { AssistantModule } from './assistant/assistant.module';
     PointAuthoringModule,
     DailyLearningModule,
     AssistantModule,
+    LearnerModule,
   ],
 })
 export class AppModule {}
