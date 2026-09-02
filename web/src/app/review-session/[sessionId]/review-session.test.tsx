@@ -74,6 +74,18 @@ describe('Review session runner (WEB-REVSESS)', () => {
     expect(await screen.findByText('Takrorlash tugallandi')).toBeInTheDocument();
   });
 
+  it('WEB-REVSESS-07 renders a STRUCTURED review activity as a production task (not a broken choice card) and submits its shape', async () => {
+    const structured = { id: 'rs1', type: 'PRACTICE', position: 1, schemaVersion: 'lesson-activity-structured/v1', format: 'sentence_order', prompt: 'Order the words.', tokens: [{ id: 't1', text: 'She' }, { id: 't2', text: 'works' }], attempted: false, attemptCount: 0, bestDeterministicScore: 0 };
+    h.get.mockResolvedValue(session({ activities: [structured] }));
+    h.submit.mockResolvedValue({ attemptId: 't1', activityId: 'rs1', attemptNo: 1, isCorrect: true, deterministicScore: 10000, status: 'SUBMITTED', submittedAt: 'x' });
+    renderPage();
+    await screen.findByText('Order the words.');
+    fireEvent.click(screen.getByRole('button', { name: 'She' }));
+    fireEvent.click(screen.getByRole('button', { name: 'works' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Javobni tekshirish' }));
+    await waitFor(() => expect(h.submit).toHaveBeenCalledWith('sess1', 'rs1', { orderedTokenIds: ['t1', 't2'] }));
+  });
+
   it('WEB-REVSESS-06 a not-found session is a product state with a route back to Today (the hub)', async () => {
     h.get.mockRejectedValue(new ApiError(404, 'REVIEW_SESSION_NOT_FOUND', 'x'));
     renderPage();

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BlueprintBindingRole, Prisma, RevisionStatus, SkillContributionRole } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { OBJECTIVE_EVIDENCE_INDEPENDENCE, OBJECTIVE_EVIDENCE_KINDS } from './point-authoring.constants';
+import { interactionKindOf } from '../content/activity/activity-interaction';
+import { evidenceForActivity } from '../content/activity/activity-evidence';
 
 export interface PointReadinessItem {
   code: string;
@@ -52,7 +53,7 @@ export class PointReadinessService {
       db.teachingBlueprintStage.findMany({
         where: { blueprintRevisionId: bpRev.id },
         orderBy: { position: 'asc' },
-        select: { id: true, stageType: true, bindings: { select: { role: true, activityId: true, activity: { select: { id: true, type: true, revision: { select: { status: true } }, skills: { select: { skillId: true } } } } } } },
+        select: { id: true, stageType: true, bindings: { select: { role: true, activityId: true, activity: { select: { id: true, type: true, payload: true, revision: { select: { status: true } }, skills: { select: { skillId: true } } } } } } },
       }),
       db.masteryRequirementSkillExpectation.findMany({ where: { requirementRevisionId: mrRev.id }, select: { requiredEvidenceKinds: true, minIndependence: true, expectationRevision: { select: { expectation: { select: { skillId: true } } } } } }),
     ]);
@@ -89,17 +90,29 @@ export class PointReadinessService {
     // §20 mastery alignment: every mastery-gate skill must have an EVIDENCE activity mapped to it, and that
     // evidence must be able to produce a required evidence kind at the required independence. Recognition-only
     // content cannot satisfy a production requirement (Scenario C) — this is a HARD blocker, not a score.
-    const evidenceSkillIds = new Set(evidenceActivities.flatMap((b) => b.activity?.skills.map((s) => s.skillId) ?? []));
-    const producibleKinds = new Set<string>(OBJECTIVE_EVIDENCE_KINDS); // pilot: objective activities produce these
+    // Per-skill producible evidence is derived from the FORMAT of that skill's EVIDENCE activities (choice →
+    // recognition@1; structured → controlled-production@2). So a gate demanding controlled production is satisfiable
+    // only if its evidence activities are structured — recognition-only choice content can no longer disguise it.
+    const producibleBySkill = new Map<string, { kinds: Set<string>; maxIndependence: number }>();
+    for (const b of evidenceActivities) {
+      if (!b.activity) continue;
+      const ev = evidenceForActivity(interactionKindOf(b.activity.payload) ?? 'CHOICE');
+      for (const s of b.activity.skills) {
+        const agg = producibleBySkill.get(s.skillId) ?? producibleBySkill.set(s.skillId, { kinds: new Set(), maxIndependence: 0 }).get(s.skillId)!;
+        agg.kinds.add(ev.evidenceKind);
+        agg.maxIndependence = Math.max(agg.maxIndependence, ev.independenceLevel);
+      }
+    }
     for (const g of gates) {
       const sid = g.expectationRevision.expectation.skillId;
-      if (!evidenceSkillIds.has(sid)) {
+      const producible = producibleBySkill.get(sid);
+      if (!producible) {
         publishBlockers.push({ code: 'MASTERY_SKILL_NO_EVIDENCE', scope: 'mastery', targetId: sid });
         continue;
       }
       const required = (g.requiredEvidenceKinds as string[]) ?? [];
-      const kindOk = required.length === 0 || required.some((k) => producibleKinds.has(k));
-      const independenceOk = OBJECTIVE_EVIDENCE_INDEPENDENCE >= (g.minIndependence ?? 0);
+      const kindOk = required.length === 0 || required.some((k) => producible.kinds.has(k));
+      const independenceOk = producible.maxIndependence >= (g.minIndependence ?? 0);
       if (!kindOk || !independenceOk) publishBlockers.push({ code: 'MASTERY_EVIDENCE_KIND_UNSATISFIABLE', scope: 'mastery', targetId: sid });
     }
 

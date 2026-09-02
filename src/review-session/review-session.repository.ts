@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ActivityAttemptStatus, Prisma, ReviewSessionStatus, SignalStatus, SkillMeasurementSource } from '@prisma/client';
+import { ActivityAttemptStatus, MediaModerationStatus, MediaProcessingStatus, Prisma, ReviewSessionStatus, SignalStatus, SkillMeasurementSource } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { REVIEW_MASTERY_DERIVATION_VERSION } from './mastery/review-mastery.engine';
 import { OBJECTIVE_ACTIVITY_TYPES } from '../content/activity/activity-registry';
@@ -95,7 +95,22 @@ export class ReviewSessionRepository {
     return this.prisma.learnerReviewSessionActivity.findMany({
       where: { reviewSessionId: sessionId },
       orderBy: { position: 'asc' },
-      select: { position: true, activity: { select: { id: true, type: true, payload: true } } },
+      select: {
+        position: true,
+        activity: {
+          select: {
+            id: true,
+            type: true,
+            payload: true,
+            // Ordered READY, non-blocked media (id = MediaAsset id) — the audio stimulus for listening activities.
+            media: {
+              where: { media: { processingStatus: MediaProcessingStatus.READY, moderationStatus: { not: MediaModerationStatus.BLOCKED } } },
+              orderBy: { position: 'asc' },
+              select: { mediaAssetId: true, altText: true, media: { select: { mimeType: true } } },
+            },
+          },
+        },
+      },
     });
   }
 

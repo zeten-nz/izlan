@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import type { ActivityAnswer, ActivityAttemptView, ReviewCandidateResult, ReviewSessionView } from './types';
+import type { ActivityAnswer, ActivityAttemptView, ReviewCandidateResult, ReviewSessionView, StructuredAnswer } from './types';
 
 /**
  * Review API (Phase 04). Backend decides candidacy, scoring, mastery and completion. The learner UI only presents the
@@ -28,7 +28,7 @@ export function getReviewSession(sessionId: string): Promise<ReviewSessionView> 
 }
 
 /** POST /api/review-sessions/:sessionId/activities/:activityId/attempts — submit an answer; server scores (isCorrect). */
-export function submitReviewActivity(sessionId: string, activityId: string, answer: ActivityAnswer): Promise<ActivityAttemptView> {
+export function submitReviewActivity(sessionId: string, activityId: string, answer: ActivityAnswer | StructuredAnswer): Promise<ActivityAttemptView> {
   return apiRequest<ActivityAttemptView>(`/api/review-sessions/${sessionId}/activities/${activityId}/attempts`, {
     method: 'POST',
     body: { clientRequestId: crypto.randomUUID(), answer },

@@ -3,6 +3,7 @@ import { ContainerStatus, LessonStatus, MediaModerationStatus, MediaProcessingSt
 import { PrismaService } from '../../database/prisma.service';
 import { getActivityDefinition } from '../../content/activity/activity-registry';
 import { validateActivityPayloadForAuthoring } from '../../content/activity/authoring-payload';
+import { isListeningSchema } from '../../content/activity/listening-activity-payload';
 
 export interface ReadinessItem {
   code: string;
@@ -130,6 +131,18 @@ export class PublicationReadinessService {
         else if (m.media.moderationStatus === MediaModerationStatus.UNREVIEWED) warnings.push({ code: 'MEDIA_UNREVIEWED', scope: 'activity', targetId: a.id });
       }
     }
+    // listening (lesson-activity-listening/v1) requires a READY audio stimulus — the session pins that exact media.
+    for (const a of acts) {
+      if (!isListeningSchema(a.payload)) continue;
+      const audio = a.media.filter((m) => m.media.mimeType.startsWith('audio/'));
+      if (audio.length === 0) { publishBlockers.push({ code: 'MEDIA_MISSING', scope: 'activity', targetId: a.id }); continue; }
+      for (const m of audio) {
+        if (m.media.processingStatus !== MediaProcessingStatus.READY) publishBlockers.push({ code: 'MEDIA_NOT_READY', scope: 'activity', targetId: a.id });
+        else if (m.media.moderationStatus === MediaModerationStatus.BLOCKED) publishBlockers.push({ code: 'MEDIA_BLOCKED', scope: 'activity', targetId: a.id });
+        else if (m.media.moderationStatus === MediaModerationStatus.UNREVIEWED) warnings.push({ code: 'MEDIA_UNREVIEWED', scope: 'activity', targetId: a.id });
+      }
+    }
+
     // duration cache completeness (§29) — non-blocking
     if (acts.length > 0 && acts.some((a) => a.estimatedDurationMin === null)) warnings.push({ code: 'DURATION_INCOMPLETE', scope: 'revision' });
 

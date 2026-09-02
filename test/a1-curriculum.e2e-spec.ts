@@ -196,13 +196,20 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
     expect(branchOffVerbBe).toBeGreaterThanOrEqual(2); // multiple points unlock at once
   });
 
-  it('CUR-E2E-03 honest mastery: gates require recognition + controlled-production only (never free-production)', async () => {
+  it('CUR-E2E-03 honest mastery: every gate is recognition/controlled-production only (never free-production); the structured point requires controlled-production@2', async () => {
     for (const spec of CURRICULUM_POINT_PLAN) {
       const point = await prisma.roadmapPoint.findUniqueOrThrow({ where: { pointKey: spec.pointKey }, include: { masteryRequirement: true } });
       const gate = await prisma.masteryRequirementSkillExpectation.findFirstOrThrow({ where: { requirementRevisionId: point.masteryRequirement!.currentRevisionId! } });
       const kinds = gate.requiredEvidenceKinds as string[];
-      expect(kinds).toContain('recognition');
       expect(kinds).not.toContain('free-production'); // objective items never claim free/independent production
+      expect(kinds.every((k) => k === 'recognition' || k === 'controlled-production')).toBe(true);
+      if (spec.pointKey === 'ENG-A1-PREP-PLACE') {
+        // The structured-production dogfood: recognition can no longer satisfy it — controlled-production @ independence 2.
+        expect(kinds).toEqual(['controlled-production']);
+        expect(gate.minIndependence).toBe(2);
+      } else {
+        expect(kinds).toContain('recognition');
+      }
     }
   });
 
@@ -232,7 +239,14 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
   /** The correct answer for an objective activity (read from the server-side answerKey — never exposed to the client). */
   async function correctAnswer(activityId: string): Promise<Record<string, unknown>> {
     const a = await prisma.activity.findUniqueOrThrow({ where: { id: activityId }, select: { payload: true } });
-    const payload = a.payload as { format?: string; answerKey?: { correctOptionIds?: string[] } };
+    const payload = a.payload as { format?: string; answerKey?: { correctOptionIds?: string[]; correctOrder?: string[] }; blanks?: Record<string, { accepted: string[] }> };
+    // Structured production formats carry their own answer shapes (the PREP-PLACE dogfood is taught this way).
+    if (payload.format === 'sentence_order') return { orderedTokenIds: payload.answerKey!.correctOrder };
+    if (payload.format === 'fill_blank') {
+      const blanks: Record<string, string> = {};
+      for (const id of Object.keys(payload.blanks!)) blanks[id] = payload.blanks![id].accepted[0];
+      return { blanks };
+    }
     const ids = payload.answerKey?.correctOptionIds ?? [];
     return payload.format === 'multiple_choice' ? { selectedOptionIds: ids } : { selectedOptionId: ids[0] };
   }

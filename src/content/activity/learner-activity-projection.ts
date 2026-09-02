@@ -2,6 +2,8 @@ import { ActivityType } from '@prisma/client';
 import { getActivityDefinition } from './activity-registry';
 import { parseObjectiveActivityPayload, projectActivityForLearner } from '../../lesson-execution/activity/objective-activity-payload';
 import { parseMarkdownActivityPayload } from './markdown-activity-payload';
+import { isStructuredSchema, parseStructuredActivityPayload, projectStructuredForLearner, type LearnerStructuredActivity } from './structured-activity-payload';
+import { isListeningSchema, parseListeningActivityPayload, projectListeningForLearner, type LearnerListeningActivity } from './listening-activity-payload';
 import { mediaKindForMime } from '../../media/media.constants';
 
 /**
@@ -32,7 +34,9 @@ export interface LearnerActivityInput {
 type LearnerProjectedBase =
   | { id: string; type: string; position: number }
   | { id: string; type: string; position: number; format: string; prompt: string; options: { id: string; text: string }[] }
-  | { id: string; type: string; position: number; schemaVersion: string; markdown: string };
+  | { id: string; type: string; position: number; schemaVersion: string; markdown: string }
+  | LearnerStructuredActivity
+  | LearnerListeningActivity;
 export type LearnerProjectedActivity = LearnerProjectedBase & { media?: LearnerActivityMedia[] };
 
 function projectMedia(media: LearnerActivityInput['media']): LearnerActivityMedia[] | undefined {
@@ -47,8 +51,15 @@ export function projectActivityForLearnerRuntime(a: LearnerActivityInput): Learn
   const projection = getActivityDefinition(a.type).learnerProjection;
   if (projection === 'OBJECTIVE_SAFE') {
     try {
-      const payload = parseObjectiveActivityPayload(a.payload);
-      return withMedia(projectActivityForLearner(a.id, a.type, a.position, payload)); // no answerKey
+      // The objective/deterministic family: choice OR structured production, dispatched by schemaVersion. Both
+      // project answer-key-free (accepted sets / correct order / remediation are never exposed).
+      if (isStructuredSchema(a.payload)) {
+        return withMedia(projectStructuredForLearner(a.id, a.type, a.position, parseStructuredActivityPayload(a.payload)));
+      }
+      if (isListeningSchema(a.payload)) {
+        return withMedia(projectListeningForLearner(a.id, a.type, a.position, parseListeningActivityPayload(a.payload))); // audio comes via `media`
+      }
+      return withMedia(projectActivityForLearner(a.id, a.type, a.position, parseObjectiveActivityPayload(a.payload))); // no answerKey
     } catch {
       return withMedia(meta);
     }

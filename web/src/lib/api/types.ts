@@ -398,21 +398,51 @@ export interface LearnerMedia {
   altText: string | null;
 }
 
-/** A projected learner Activity. Discriminate by field: objective has `format`, prose has `markdown`, media/deferred has neither. */
+/** Structured production formats (lesson-activity-structured/v1) — beyond multiple-choice. */
+export type StructuredFormat = 'sentence_order' | 'fill_blank' | 'controlled_text';
+export type FillBlankSegment = { text: string } | { blankId: string };
+
+/** A projected learner Activity. Discriminate by field: choice/structured have `format`, prose has `markdown`, media/deferred has neither. */
 export type LearnerActivity =
   | { id: string; type: string; position: number; media?: LearnerMedia[]; format: PlacementItemFormat; prompt: string; options: { id: string; text: string }[] }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'sentence_order'; prompt: string; tokens: { id: string; text: string }[] }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'fill_blank'; prompt: string; segments: FillBlankSegment[]; blankIds: string[] }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'controlled_text'; prompt: string }
+  | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; format: 'listening_comprehension'; prompt: string; options: { id: string; text: string }[] }
   | { id: string; type: string; position: number; media?: LearnerMedia[]; schemaVersion: string; markdown: string }
   | { id: string; type: string; position: number; media?: LearnerMedia[] };
 
+const CHOICE_FORMATS: readonly string[] = ['single_choice', 'multiple_choice', 'true_false'];
+const STRUCTURED_FORMATS: readonly string[] = ['sentence_order', 'fill_blank', 'controlled_text'];
+
 export function isObjectiveActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: PlacementItemFormat }> {
-  return 'format' in a;
+  return 'format' in a && CHOICE_FORMATS.includes(a.format);
+}
+export function isStructuredActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: StructuredFormat }> {
+  return 'format' in a && STRUCTURED_FORMATS.includes(a.format);
+}
+/** A listening comprehension activity: a canonical audio stimulus (in `media`) + a single-choice comprehension question. */
+export function isListeningActivity(a: LearnerActivity): a is Extract<LearnerActivity, { format: 'listening_comprehension' }> {
+  return 'format' in a && a.format === 'listening_comprehension';
+}
+/** The audio stimulus attached to a listening activity, if any (id → GET /api/media/:id/content). */
+export function audioMediaOf(a: LearnerActivity): LearnerMedia | undefined {
+  return a.media?.find((m) => m.kind === 'audio');
 }
 export function isMarkdownActivity(a: LearnerActivity): a is Extract<LearnerActivity, { markdown: string }> {
   return 'markdown' in a;
 }
 
-/** Answer body for a lesson/review objective activity — same camelCase shape as placement. */
+/** Answer body for a choice objective activity — same camelCase shape as placement. */
 export type ActivityAnswer = PlacementAnswer;
+/** Answer bodies for structured production activities — the exact server-validated camelCase shapes. */
+export type StructuredAnswer = { orderedTokenIds: string[] } | { blanks: Record<string, string> } | { text: string };
+/** Learner-safe structured feedback returned by the server on a structured attempt (never the answer key). */
+export interface StructuredFeedback {
+  hint: string; // 'sentence_order' | 'fill_blank' | 'controlled_text'
+  remediation?: string;
+  incorrectBlankIds?: string[];
+}
 
 export interface LessonExecutionView {
   lessonId: string;
@@ -458,17 +488,12 @@ export interface ReviewCandidateResult {
   uncoveredSkillIds: string[];
 }
 
-export interface ReviewSessionActivity {
-  id: string;
-  type: string;
-  position: number;
-  format: PlacementItemFormat;
-  prompt: string;
-  options: { id: string; text: string }[];
+/** A review activity is a projected learner activity (choice / structured / listening) plus this session's attempt state. */
+export type ReviewSessionActivity = LearnerActivity & {
   attempted: boolean;
   attemptCount: number;
   bestDeterministicScore: number;
-}
+};
 export interface ReviewSessionView {
   id: string;
   status: string; // ACTIVE | COMPLETED

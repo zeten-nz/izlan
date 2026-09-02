@@ -6,7 +6,10 @@ import {
   CURRICULUM_CONTENT_KEYS,
   CURRICULUM_SKILL_CODES,
   CURRICULUM_EVIDENCE_KINDS,
+  PREP_PLACE_MASTERY_EVIDENCE_KINDS,
 } from './english-a1-curriculum';
+
+const STRUCTURED_V = 'lesson-activity-structured/v1';
 
 /**
  * A1 curriculum-expansion STRUCTURAL validation (no DB). Proves the authored content + point plan are internally
@@ -52,6 +55,24 @@ describe('English A1 curriculum expansion (structural)', () => {
   it('CUR-04 mastery evidence is HONEST — objective grammar claims recognition + controlled-production only (never free-production)', () => {
     expect([...CURRICULUM_EVIDENCE_KINDS]).toEqual(['recognition', 'controlled-production']);
     expect([...CURRICULUM_EVIDENCE_KINDS]).not.toContain('free-production');
+  });
+
+  it('CUR-06 a non-Present-Simple point (PREP-PLACE) is taught via STRUCTURED production and honestly requires controlled-production@2', () => {
+    // The gate override: recognition (choice) can no longer satisfy this point — only controlled production can.
+    const prep = CURRICULUM_POINT_PLAN.find((p) => p.pointKey === 'ENG-A1-PREP-PLACE')!;
+    expect(prep.pointKey).not.toContain('PRESENT-SIMPLE');
+    expect([...(prep.masteryEvidenceKinds ?? [])]).toEqual([...PREP_PLACE_MASTERY_EVIDENCE_KINDS]);
+    expect([...PREP_PLACE_MASTERY_EVIDENCE_KINDS]).toEqual(['controlled-production']);
+    expect(prep.masteryMinIndependence).toBe(2);
+
+    // Its lesson's MASTERY_TEST evidence is genuinely structured production (sentence_order / fill_blank), so the
+    // controlled-production@2 gate is satisfiable — no disguised multiple-choice standing in for production.
+    const packages = parseCurriculumPackages();
+    const lesson = packages.flatMap((p) => p.plan.lessons).find((l) => l.contentKey === prep.lessonContentKey)!;
+    const masteryPayloads = lesson.revision.activities.filter((a) => a.type === ActivityType.MASTERY_TEST).map((a) => a.payload as { schemaVersion?: string; format?: string });
+    expect(masteryPayloads.length).toBeGreaterThanOrEqual(1);
+    expect(masteryPayloads.every((p) => p.schemaVersion === STRUCTURED_V)).toBe(true);
+    expect(masteryPayloads.map((p) => p.format).sort()).toEqual(['fill_blank', 'sentence_order']);
   });
 
   it('CUR-05 every lesson teaches (rule + example + mistake) before it tests — not a quiz bank', () => {

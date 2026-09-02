@@ -173,10 +173,13 @@ async function authorAndPublishPoint(deps: CurriculumDeps, actor: string, levelI
     detail = await points.setPointPrerequisites(actor, detail.revision.id, { expectedUpdatedAt: detail.revision.updatedAt, prerequisitePointIds });
   }
   detail = await points.setBlueprintStages(actor, detail.blueprint!.revision!.id, { expectedUpdatedAt: detail.blueprint!.revision!.updatedAt, stages });
+  // A point may override the gate to genuinely require structured production (controlled-production @ independence 2).
+  const evidenceKinds = spec.masteryEvidenceKinds ?? CURRICULUM_EVIDENCE_KINDS;
+  const minIndependence = spec.masteryMinIndependence ?? CURRICULUM_MASTERY_MIN_INDEPENDENCE;
   detail = await points.setMastery(actor, detail.mastery!.revision!.id, {
     expectedUpdatedAt: detail.mastery!.revision!.updatedAt,
-    gates: { thresholdBp: CURRICULUM_MASTERY_THRESHOLD_BP, minIndependence: CURRICULUM_MASTERY_MIN_INDEPENDENCE, requireAllRequiredSkills: true },
-    skillGates: [{ skillId: skill.id, role: SkillContributionRole.REQUIRED, requiredEvidenceKinds: [...CURRICULUM_EVIDENCE_KINDS], minIndependence: CURRICULUM_MASTERY_MIN_INDEPENDENCE }],
+    gates: { thresholdBp: CURRICULUM_MASTERY_THRESHOLD_BP, minIndependence, requireAllRequiredSkills: true },
+    skillGates: [{ skillId: skill.id, role: SkillContributionRole.REQUIRED, requiredEvidenceKinds: [...evidenceKinds], minIndependence }],
   });
   // submit → review(APPROVED) → publish. requireFourEyes=false → the same principal may self-review.
   detail = await points.submitReview(actor, detail.revision.id, { expectedUpdatedAt: detail.revision.updatedAt });

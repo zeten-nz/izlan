@@ -4,6 +4,8 @@ import {
   ActivityType,
   ContainerStatus,
   MasteryEvaluationOutcome,
+  MediaModerationStatus,
+  MediaProcessingStatus,
   PointAcquisitionType,
   Prisma,
   RevisionStatus,
@@ -52,8 +54,21 @@ export interface BoundActivity {
   type: ActivityType;
   position: number;
   payload: Prisma.JsonValue;
+  /** Ordered READY media attached to the activity (id = MediaAsset id) — the audio stimulus for listening activities. */
+  media: { id: string; mimeType: string; altText: string | null }[];
   stageId: string;
   stageType?: string;
+}
+
+/** Only READY, non-blocked attachments reach the learner — the session serves the exact pinned media. */
+const ACTIVITY_MEDIA_SELECT = {
+  where: { media: { processingStatus: MediaProcessingStatus.READY, moderationStatus: { not: MediaModerationStatus.BLOCKED } } },
+  orderBy: { position: 'asc' },
+  select: { mediaAssetId: true, altText: true, media: { select: { mimeType: true } } },
+} satisfies Prisma.ActivityMediaFindManyArgs;
+
+function mapActivityMedia(media: { mediaAssetId: string; altText: string | null; media: { mimeType: string } }[]): { id: string; mimeType: string; altText: string | null }[] {
+  return media.map((m) => ({ id: m.mediaAssetId, mimeType: m.media.mimeType, altText: m.altText }));
 }
 
 @Injectable()
@@ -401,7 +416,7 @@ export class LearningCoreRepository {
           select: {
             role: true,
             position: true,
-            activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true } },
+            activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true, media: ACTIVITY_MEDIA_SELECT } },
           },
         },
       },
@@ -419,6 +434,7 @@ export class LearningCoreRepository {
           type: b.activity.type,
           position: b.activity.position,
           payload: b.activity.payload,
+          media: mapActivityMedia(b.activity.media),
         });
       }
     }
@@ -429,7 +445,7 @@ export class LearningCoreRepository {
   async findBoundActivity(blueprintRevisionId: string, activityId: string): Promise<BoundActivity | null> {
     const binding = await this.prisma.teachingBlueprintContentBinding.findFirst({
       where: { activityId, stage: { blueprintRevisionId } },
-      select: { blueprintStageId: true, stage: { select: { stageType: true } }, activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true } } },
+      select: { blueprintStageId: true, stage: { select: { stageType: true } }, activity: { select: { id: true, lessonRevisionId: true, type: true, position: true, payload: true, media: ACTIVITY_MEDIA_SELECT } } },
     });
     if (!binding?.activity) return null;
     return {
@@ -440,6 +456,7 @@ export class LearningCoreRepository {
       type: binding.activity.type,
       position: binding.activity.position,
       payload: binding.activity.payload,
+      media: mapActivityMedia(binding.activity.media),
     };
   }
 
@@ -518,10 +535,10 @@ export class LearningCoreRepository {
     teachingSessionId: string;
     source: SkillMeasurementSource;
     derivationVersion: string;
-    evidenceKind: string;
-    independenceLevel: number;
     observedAt: Date;
-    perSkill: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; expectationRevisionId: string | null; attemptIds: string[] }[];
+    // evidenceKind + independenceLevel are PER SKILL — honestly derived from the mastery activities' formats
+    // (recognition@1 for choice, controlled-production@2 for structured, listening-comprehension@1).
+    perSkill: { skillId: string; scoreBp: number; confidenceBp: number; evidenceCount: number; evidenceKind: string; independenceLevel: number; expectationRevisionId: string | null; attemptIds: string[] }[];
   }): Promise<{ skillId: string; measurementId: string }[]> {
     return this.prisma.$transaction(async (tx) => {
       const result: { skillId: string; measurementId: string }[] = [];
@@ -538,8 +555,8 @@ export class LearningCoreRepository {
             evidenceCount: s.evidenceCount,
             observedAt: input.observedAt,
             derivationVersion: input.derivationVersion,
-            evidenceKind: input.evidenceKind,
-            independenceLevel: input.independenceLevel,
+            evidenceKind: s.evidenceKind,
+            independenceLevel: s.independenceLevel,
             expectationRevisionId: s.expectationRevisionId,
           }],
           skipDuplicates: true,

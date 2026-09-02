@@ -11,14 +11,13 @@
  */
 export const TEACHING_MASTERY_DERIVATION_VERSION = 'teaching-mastery-v1';
 export const TEACHING_MASTERY_EVALUATION_POLICY = 'teaching-mastery-eval-v1';
-/** MASTERY_TEST activities are attempted independently → level 2 on the guided(0)/scaffolded(1)/independent(2) ordinal. */
-export const TEACHING_MASTERY_INDEPENDENCE_LEVEL = 2;
-export const TEACHING_MASTERY_EVIDENCE_KIND = 'free-production';
 
-/** One MASTERY_TEST activity's best score in the session + the skills it is attributed to (subject-scoped). */
+/** One MASTERY_TEST activity's best score + its HONEST evidence descriptor (from its format) + attributed skills. */
 export interface MasteryActivityInput {
   activityId: string;
   bestScoreBp: number; // 0..10000
+  evidenceKind: string; // recognition | controlled-production | listening-comprehension
+  independenceLevel: number; // 1 recognition/listening · 2 controlled-production
   skillIds: string[];
 }
 
@@ -27,22 +26,29 @@ export interface TeachingMasteryEntry {
   scoreBp: number; // 0..10000 (mean of best scores)
   confidenceBp: number; // 10000 (complete coverage)
   evidenceCount: number; // distinct mastery activities attributed to the skill
+  evidenceKind: string; // the kind of the highest-independence contributing activity (honest, not fabricated)
+  independenceLevel: number; // MAX independence among the skill's mastery activities — the gate lever
 }
 
-/** Derive one per-skill mastery entry from the session's mastery-activity best scores. Deterministic. */
+/**
+ * Derive one per-skill mastery entry. Score = mean of best scores; independenceLevel = MAX among the skill's mastery
+ * activities (so a skill proven with structured production reaches level 2; recognition-only stays level 1);
+ * evidenceKind = the kind of that highest-independence activity. Deterministic; no fabricated evidence.
+ */
 export function deriveTeachingMastery(inputs: MasteryActivityInput[]): TeachingMasteryEntry[] {
-  const bySkill = new Map<string, number[]>();
+  const bySkill = new Map<string, { scores: number[]; bestIndep: number; kindAtBest: string }>();
   for (const input of inputs) {
     for (const skillId of new Set(input.skillIds)) {
-      const arr = bySkill.get(skillId) ?? bySkill.set(skillId, []).get(skillId)!;
-      arr.push(input.bestScoreBp);
+      const agg = bySkill.get(skillId) ?? bySkill.set(skillId, { scores: [], bestIndep: -1, kindAtBest: input.evidenceKind }).get(skillId)!;
+      agg.scores.push(input.bestScoreBp);
+      if (input.independenceLevel > agg.bestIndep) { agg.bestIndep = input.independenceLevel; agg.kindAtBest = input.evidenceKind; }
     }
   }
   const out: TeachingMasteryEntry[] = [];
-  for (const [skillId, scores] of bySkill) {
-    if (scores.length === 0) continue;
-    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-    out.push({ skillId, scoreBp: clampBp(Math.round(mean)), confidenceBp: 10000, evidenceCount: scores.length });
+  for (const [skillId, agg] of bySkill) {
+    if (agg.scores.length === 0) continue;
+    const mean = agg.scores.reduce((a, b) => a + b, 0) / agg.scores.length;
+    out.push({ skillId, scoreBp: clampBp(Math.round(mean)), confidenceBp: 10000, evidenceCount: agg.scores.length, evidenceKind: agg.kindAtBest, independenceLevel: agg.bestIndep });
   }
   return out.sort((a, b) => (a.skillId < b.skillId ? -1 : 1));
 }
@@ -75,7 +81,6 @@ export interface MasteryEvaluationResult {
 export function evaluateTeachingMastery(
   requiredSkillIds: string[],
   entries: TeachingMasteryEntry[],
-  independenceLevel: number,
   gates: MasteryGates,
 ): MasteryEvaluationResult {
   const byId = new Map(entries.map((e) => [e.skillId, e]));
@@ -91,9 +96,11 @@ export function evaluateTeachingMastery(
       gateResults.push({ skillId, scoreBp: null, evidenceCount: 0, independenceLevel: null, passed: false, reason: 'no_evidence' });
       continue;
     }
+    // Independence is PER SKILL now — recognition-only evidence (level 1) cannot satisfy a controlled-production
+    // gate (minIndependence 2), so a point can honestly REQUIRE structured production.
     let passed = true;
     let reason: SkillGateResult['reason'] = 'passed';
-    if (independenceLevel < gates.minIndependence) {
+    if (e.independenceLevel < gates.minIndependence) {
       passed = false;
       reason = 'below_independence';
     } else if (e.scoreBp < gates.thresholdBp) {
@@ -101,7 +108,7 @@ export function evaluateTeachingMastery(
       reason = 'below_threshold';
     }
     if (!passed) allPassed = false;
-    gateResults.push({ skillId, scoreBp: e.scoreBp, evidenceCount: e.evidenceCount, independenceLevel, passed, reason });
+    gateResults.push({ skillId, scoreBp: e.scoreBp, evidenceCount: e.evidenceCount, independenceLevel: e.independenceLevel, passed, reason });
   }
 
   const outcome: MasteryOutcome = anyMissing ? 'INSUFFICIENT_EVIDENCE' : allPassed ? 'SATISFIED' : 'NOT_SATISFIED';
