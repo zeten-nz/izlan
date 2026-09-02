@@ -2,13 +2,13 @@
 
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FiCheckCircle, FiCircle, FiGift, FiTrendingUp } from 'react-icons/fi';
-import { useT } from '@/lib/i18n/i18n-context';
+import { FiAlertTriangle, FiCheckCircle, FiCircle, FiGift, FiRefreshCw, FiTrendingUp } from 'react-icons/fi';
+import { useT, type TFunc } from '@/lib/i18n/i18n-context';
 import { useResource } from '@/lib/hooks/use-resource';
 import { isAbortError } from '@/lib/api/errors';
 import { fetchLearningIntents } from '@/lib/api/onboarding';
 import { getCurrentSkillProfile } from '@/lib/api/skill-profile';
-import { fetchActiveRoadmap } from '@/lib/api/roadmap';
+import { fetchV2Roadmap, type V2RoadmapPoint } from '@/lib/api/v2-learning';
 import { getXpProgression } from '@/lib/api/xp';
 import { getIzlBalance } from '@/lib/api/izl';
 import { fetchTodayMissions } from '@/lib/api/rewards';
@@ -16,22 +16,44 @@ import type {
   DailyMissionStatus,
   IzlBalance,
   LearningIntent,
-  RoadmapProgress,
   SkillProfileView,
   SkillState,
   XpProgression,
 } from '@/lib/api/types';
-import { Card, LinearProgress, MasteryProgress, Select, Spinner } from '@/components/ui';
+import { ButtonLink, Card, LinearProgress, MasteryProgress, Select, Spinner } from '@/components/ui';
 import { ResourceView } from '@/components/ui/states';
+
+/** A learner-authoritative acquisition summary derived from the V2 roadmap (never recomputed/fabricated). */
+interface RoadmapSummary {
+  acquired: number; // LEARNED or VALIDATED points
+  total: number;
+  attention: AttentionEntry[]; // acquired points currently needing repair/review
+}
+interface AttentionEntry {
+  pointId: string;
+  title: string;
+  kind: 'REPAIR' | 'REVIEW';
+  reason: V2RoadmapPoint['attentionReason'];
+  skillName: string | null;
+}
 
 interface ProgressData {
   intents: LearningIntent[];
   selected: LearningIntent | null;
   skills: SkillProfileView | null; // subject-scoped; null when there is no subject to scope to
-  roadmap: RoadmapProgress | null; // null on ROADMAP_NOT_FOUND (placement not done yet)
+  roadmap: RoadmapSummary | null; // null when the subject has no generated roadmap yet
   xp: XpProgression; // global — always a 200 (zeros for a fresh learner)
   izl: IzlBalance; // global — always a 200 ({0,0,0} for a fresh learner)
   missions: DailyMissionStatus[]; // global — the fixed catalog, completed flags per today
+}
+
+/** Project the V2 roadmap into an honest acquisition summary: acquired counts LEARNED/VALIDATED; attention is derived. */
+function summarize(points: V2RoadmapPoint[]): RoadmapSummary {
+  const acquired = points.filter((p) => p.learned || p.validated).length;
+  const attention: AttentionEntry[] = points
+    .filter((p) => (p.learned || p.validated) && p.attention !== 'NONE')
+    .map((p) => ({ pointId: p.roadmapPointId, title: p.title, kind: p.attention === 'REPAIR_REQUIRED' ? 'REPAIR' : 'REVIEW', reason: p.attentionReason, skillName: p.attentionSkill?.name ?? null }));
+  return { acquired, total: points.length, attention };
 }
 
 async function loadProgress(subjectId: string | null): Promise<ProgressData> {
@@ -50,12 +72,14 @@ async function loadProgress(subjectId: string | null): Promise<ProgressData> {
   const selected = pool.find((i) => i.subject.id === subjectId) ?? pool[0] ?? null;
 
   let skills: SkillProfileView | null = null;
-  let roadmap: RoadmapProgress | null = null;
+  let roadmap: RoadmapSummary | null = null;
   if (selected) {
-    [skills, roadmap] = await Promise.all([
+    const [profile, v2] = await Promise.all([
       getCurrentSkillProfile(selected.subject.id, selected.subject.title), // 404 → empty skills (calm, not an error)
-      selected.track ? fetchActiveRoadmap(selected.subject.id) : Promise.resolve(null),
+      selected.track ? fetchV2Roadmap(selected.subject.id).catch(() => null) : Promise.resolve(null),
     ]);
+    skills = profile;
+    roadmap = v2 && v2.points.length > 0 ? summarize(v2.points) : null; // no generated roadmap yet → calm no-progress
   }
 
   return { intents: pool, selected, skills, roadmap, xp, izl, missions: missions.missions };
@@ -106,6 +130,7 @@ function ProgressInner() {
           </header>
 
           <OverallProgress roadmap={d.roadmap} hasSubject={d.selected !== null} />
+          {d.roadmap && d.roadmap.attention.length > 0 && <AttentionSection attention={d.roadmap.attention} />}
           <Skills profile={d.skills} hasSubject={d.selected !== null} />
 
           {/* XP and IZL are DISTINCT systems (§19): separate cards, labels and descriptions — never one combined score. */}
@@ -124,9 +149,10 @@ function ProgressInner() {
   );
 }
 
-/** "Men qanchalik oldinga yurdim?" — the real roadmap progress summary (never recomputed). */
-function OverallProgress({ roadmap, hasSubject }: { roadmap: RoadmapProgress | null; hasSubject: boolean }) {
+/** "How far have I come?" — real V2 roadmap acquisition (LEARNED/VALIDATED points), never recomputed/fabricated. */
+function OverallProgress({ roadmap, hasSubject }: { roadmap: RoadmapSummary | null; hasSubject: boolean }) {
   const t = useT();
+  const bp = roadmap && roadmap.total > 0 ? Math.round((roadmap.acquired / roadmap.total) * 10000) : 0;
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('learner.progress.overallTitle')}</h2>
@@ -138,16 +164,53 @@ function OverallProgress({ roadmap, hasSubject }: { roadmap: RoadmapProgress | n
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-muted">
-                {t('learner.progress.overallProgress', { completed: roadmap.progress.completed, total: roadmap.progress.total })}
-              </span>
+              <span className="text-sm text-muted">{t('learner.progress.overallProgress', { completed: roadmap.acquired, total: roadmap.total })}</span>
             </div>
-            <LinearProgress value={roadmap.progress.progressBp} max={10000} label={t('learner.progress.overallTitle')} showValue />
+            <LinearProgress value={bp} max={10000} label={t('learner.progress.overallTitle')} showValue />
           </div>
         )}
       </Card>
     </section>
   );
+}
+
+/** Areas needing attention — acquired points that now need repair/review. Honest (only real signals), routes to the roadmap. */
+function AttentionSection({ attention }: { attention: AttentionEntry[] }) {
+  const t = useT();
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('learner.progress.attentionTitle')}</h2>
+      <Card className="p-4">
+        <ul className="flex flex-col divide-y divide-border">
+          {attention.map((a) => {
+            const isRepair = a.kind === 'REPAIR';
+            const Icon = isRepair ? FiAlertTriangle : FiRefreshCw;
+            const cls = isRepair ? 'text-warning' : 'text-primary';
+            return (
+              <li key={a.pointId} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2"><Icon aria-hidden className={cls} size={15} /><span className={`text-xs font-semibold ${cls}`}>{isRepair ? t('learner.v2.attention.repairBadge') : t('learner.v2.attention.reviewBadge')}</span></div>
+                  <span className="mt-0.5 block min-w-0 font-medium text-text">{a.title}</span>
+                  {a.reason && a.skillName && <span className="text-xs text-muted">{attentionReasonCopy(t, a.reason, a.skillName)}</span>}
+                </div>
+                <ButtonLink href="/learn/roadmap" variant="secondary" size="sm" className="shrink-0">{isRepair ? t('learner.v2.attention.repairCta') : t('learner.v2.attention.reviewCta')}</ButtonLink>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </section>
+  );
+}
+
+function attentionReasonCopy(t: TFunc, reason: V2RoadmapPoint['attentionReason'], skillName: string): string {
+  const key =
+    reason === 'REPEATED_MISTAKE'
+      ? 'learner.v2.attention.reasonRepeatedMistake'
+      : reason === 'PERSISTENT_WEAKNESS'
+        ? 'learner.v2.attention.reasonWeakness'
+        : 'learner.v2.attention.reasonRetention';
+  return t(key, { skill: skillName });
 }
 
 /** "Qaysi ko'nikmalarim kuchli / ustida ishlashim kerak?" — mastery + confidence (distinct) + evidence, backend-derived. */

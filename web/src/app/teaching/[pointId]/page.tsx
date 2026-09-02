@@ -97,7 +97,7 @@ function Runner({ session }: { session: TeachingSessionView }) {
 
   const step = steps[index];
   const total = steps.length;
-  const exit = () => router.push('/learn/present-simple');
+  const exit = () => router.push('/learn/today'); // Today is the hub — completion/exit returns there (refreshed), never a dead end
   if (!step) return null;
   // Advisory assistant is offered where a learner may be stuck (a question or the mastery gate). WHY_WRONG is gated on
   // a real incorrect result — the just-submitted answer, or any earlier incorrect attempt in the session.
@@ -146,7 +146,7 @@ function Runner({ session }: { session: TeachingSessionView }) {
           <span className="grid h-16 w-16 place-items-center rounded-full bg-success/10 text-success"><FiAward className="text-3xl" aria-hidden /></span>
           <h1 className="text-2xl font-bold">{t('learner.teaching.learnedTitle')}</h1>
           <p className="text-muted">{t('learner.teaching.learnedBody', { title: session.title })}</p>
-          <Button onClick={exit} size="lg">{t('learner.teaching.backToRoadmap')}</Button>
+          <Button onClick={exit} size="lg">{t('learner.teaching.backToToday')}</Button>
         </Card>
       </FocusLearningShell>
     );

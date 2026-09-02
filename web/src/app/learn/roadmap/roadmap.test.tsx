@@ -1,30 +1,33 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@/lib/theme/theme-context';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
 import RoadmapPage from './page';
 
-const h = vi.hoisted(() => ({ subjectParam: null as string | null, intents: vi.fn(), roadmap: vi.fn() }));
-vi.mock('next/navigation', () => ({ useSearchParams: () => ({ get: (k: string) => (k === 'subject' ? h.subjectParam : null) }) }));
+const h = vi.hoisted(() => ({ intents: vi.fn(), roadmap: vi.fn(), focus: vi.fn(), startReview: vi.fn(), push: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: h.push, replace: vi.fn() }), useSearchParams: () => ({ get: () => null }) }));
 vi.mock('@/lib/api/onboarding', () => ({ fetchLearningIntents: h.intents }));
-vi.mock('@/lib/api/roadmap', () => ({ fetchActiveRoadmap: h.roadmap }));
+vi.mock('@/lib/api/v2-learning', () => ({ fetchV2Roadmap: h.roadmap, fetchV2Focus: h.focus, startPointReview: h.startReview }));
 
-const intent = { id: 'i1', subject: { id: 's1', slug: 'english', title: 'English' }, track: { id: 't1', slug: 'general', title: 'General English' } };
-const intent2 = { id: 'i2', subject: { id: 's2', slug: 'math', title: 'Math' }, track: { id: 't2', slug: 'algebra', title: 'Algebra' } };
+// A deliberately NON-pilot subject/point — proves the roadmap is data-driven, not Present-Simple-coupled.
+const INTENT = { id: 'li1', subject: { id: 's-math', slug: 'math', title: 'Matematika' }, track: { id: 't1', slug: 'g', title: 'Umumiy' } };
+const SKILL = { id: 'sk-fractions', name: 'Kasrlar' };
 
-// A roadmap covering ALL five states. nextItemId is deliberately ri3 (AVAILABLE) even though ri2 is IN_PROGRESS,
-// to prove the frontend renders the BACKEND nextItemId verbatim and never re-derives it.
-const roadmap = (over = {}) => ({
-  id: 'roadmap-uuid-aaaa', subjectId: 's1', trackId: 't1', status: 'ACTIVE', sourceAssessmentAttemptId: 'attempt-uuid-bbbb',
-  progress: { total: 5, completed: 1, inProgress: 1, available: 1, blocked: 1, unavailable: 1, progressBp: 6800 },
-  nextItemId: 'ri3',
-  items: [
-    { id: 'ri1', position: 1, state: 'COMPLETED', skillId: 'skill-uuid-1', lesson: { id: 'l1', title: 'Greetings' } },
-    { id: 'ri2', position: 2, state: 'IN_PROGRESS', skillId: 'skill-uuid-2', lesson: { id: 'l2', title: 'The verb to be' } },
-    { id: 'ri3', position: 3, state: 'AVAILABLE', skillId: 'skill-uuid-3', lesson: { id: 'l3', title: 'Pronouns' } },
-    { id: 'ri4', position: 4, state: 'BLOCKED', skillId: 'skill-uuid-4', lesson: { id: 'l4', title: 'Questions' } },
-    { id: 'ri5', position: 5, state: 'UNAVAILABLE', skillId: 'skill-uuid-5', lesson: { id: 'l5', title: 'Numbers' } },
-  ],
+const point = (over: Record<string, unknown> = {}) => ({
+  roadmapPointId: 'pt-frac',
+  pointKey: 'MATH-A1-FRACTIONS',
+  title: 'Oddiy kasrlar',
+  learningOutcome: { canDo: ['Kasrlarni solishtirish'] },
+  estimatedEffortMin: 15,
+  sortOrder: 100,
+  availability: 'AVAILABLE',
+  acquisition: null,
+  attention: 'NONE',
+  attentionReason: null,
+  attentionSkill: null,
+  learned: false,
+  validated: false,
+  activeSessionId: null,
   ...over,
 });
 
@@ -32,62 +35,68 @@ function renderPage() {
   return render(<ThemeProvider><I18nProvider><RoadmapPage /></I18nProvider></ThemeProvider>);
 }
 
-describe('Learner Roadmap (WEB-ROADMAP)', () => {
-  beforeEach(() => { h.subjectParam = null; h.intents.mockReset(); h.roadmap.mockReset(); });
-
-  it('WEB-ROADMAP-01 renders the active roadmap with backend progressBp and all five item states (distinct labels)', async () => {
-    h.intents.mockResolvedValue([intent]);
-    h.roadmap.mockResolvedValue(roadmap());
-    renderPage();
-    expect(await screen.findByText('Greetings')).toBeInTheDocument();
-    expect(screen.getByText('68%')).toBeInTheDocument(); // progressBp 6800 (backend authority, not client math)
-    expect(screen.getByText('Bajarildi: 1/5')).toBeInTheDocument();
-    // every state has a distinct text label (never color-only); BLOCKED ≠ UNAVAILABLE
-    expect(screen.getAllByText('Tugallangan').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Jarayonda').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Mavjud').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Bloklangan').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Mavjud emas').length).toBeGreaterThan(0);
+describe('Generic learner Roadmap (WEB-RM)', () => {
+  beforeEach(() => {
+    Object.values(h).forEach((f) => f.mockReset());
+    h.intents.mockResolvedValue([INTENT]);
+    h.focus.mockResolvedValue({ action: 'DONE', policyVersion: 'v1', point: null, skill: null, reason: null });
   });
 
-  it('WEB-ROADMAP-02 highlights the backend nextItemId (not a client-derived first-available)', async () => {
-    h.intents.mockResolvedValue([intent]);
-    h.roadmap.mockResolvedValue(roadmap());
+  it('WEB-RM-01 renders multiple data-driven points and enters any point via its stable id (non-pilot subject)', async () => {
+    const a = point({ roadmapPointId: 'pt-a', title: 'Oddiy kasrlar', sortOrder: 1 });
+    const b = point({ roadmapPointId: 'pt-b', title: 'Kasrlarni qo‘shish', sortOrder: 2, availability: 'AVAILABLE' });
+    h.roadmap.mockResolvedValue({ generation: { id: 'g1' }, points: [a, b] });
     renderPage();
-    const badge = await screen.findByText('Keyingi qadam');
-    const milestone = badge.closest('li')!;
-    expect(within(milestone).getByText('Pronouns')).toBeInTheDocument(); // ri3 (backend nextItemId)
-    expect(within(milestone).queryByText('The verb to be')).toBeNull(); // NOT ri2 (the IN_PROGRESS item)
+
+    expect(await screen.findByRole('heading', { name: 'Oddiy kasrlar' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Kasrlarni qo‘shish' })).toBeInTheDocument();
+    // Any point is enterable by its stable roadmapPointId — no title/key coupling.
+    const starts = screen.getAllByRole('link', { name: 'Boshlash' });
+    expect(starts.some((l) => l.getAttribute('href') === '/teaching/pt-a')).toBe(true);
+    expect(starts.some((l) => l.getAttribute('href') === '/teaching/pt-b')).toBe(true);
   });
 
-  it('WEB-ROADMAP-03 never renders raw internal UUIDs', async () => {
-    h.intents.mockResolvedValue([intent]);
-    h.roadmap.mockResolvedValue(roadmap());
+  it('WEB-RM-02 a REPAIR point shows a strengthen badge + plain-language reason and routes repair into teaching', async () => {
+    const p = point({ learned: true, acquisition: 'LEARNED', attention: 'REPAIR_REQUIRED', attentionReason: 'REPEATED_MISTAKE', attentionSkill: SKILL });
+    h.roadmap.mockResolvedValue({ generation: { id: 'g1' }, points: [p] });
+    h.focus.mockResolvedValue({ action: 'REPAIR', policyVersion: 'v1', point: { roadmapPointId: 'pt-frac', pointKey: 'MATH-A1-FRACTIONS', title: 'Oddiy kasrlar', activeSessionId: null }, skill: SKILL, reason: 'REPEATED_MISTAKE' });
     renderPage();
-    await screen.findByText('Greetings');
-    const text = document.body.textContent ?? '';
-    for (const leak of ['roadmap-uuid', 'attempt-uuid', 'skill-uuid', 'ri1', 'ri3']) {
-      expect(text).not.toContain(leak);
-    }
+
+    expect(await screen.findByText('Mustahkamlash kerak')).toBeInTheDocument();
+    expect(screen.getAllByText(/qiynaldingiz/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Kasrlar/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'Mustahkamlash' })[0]).toHaveAttribute('href', '/teaching/pt-frac');
+    // no engine codes / raw ids leak
+    expect(document.body.textContent).not.toContain('REPEATED_MISTAKE');
+    expect(document.body.textContent).not.toContain('REPAIR_REQUIRED');
+    expect(document.body.textContent).not.toContain('sk-fractions');
   });
 
-  it('WEB-ROADMAP-04 a ROADMAP_NOT_FOUND (null) is a product placement state, not an error', async () => {
-    h.intents.mockResolvedValue([intent]);
-    h.roadmap.mockResolvedValue(null);
+  it('WEB-RM-03 a REVIEW_DUE point starts a point review and routes into the review runner', async () => {
+    const p = point({ learned: true, acquisition: 'LEARNED', attention: 'REVIEW_DUE', attentionReason: 'RETENTION_DUE', attentionSkill: SKILL });
+    h.roadmap.mockResolvedValue({ generation: { id: 'g1' }, points: [p] });
+    h.focus.mockResolvedValue({ action: 'REVIEW', policyVersion: 'v1', point: { roadmapPointId: 'pt-frac', pointKey: 'MATH-A1-FRACTIONS', title: 'Oddiy kasrlar', activeSessionId: null }, skill: SKILL, reason: 'RETENTION_DUE' });
+    h.startReview.mockResolvedValue({ id: 'rs1' });
     renderPage();
-    const cta = await screen.findByRole('link', { name: 'Darajani aniqlash' });
-    expect(cta).toHaveAttribute('href', '/placement?learningIntentId=i1');
+
+    expect(await screen.findByText('Takrorlash vaqti')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button', { name: 'Takrorlash' });
+    fireEvent.click(buttons[buttons.length - 1]!);
+    await waitFor(() => expect(h.startReview).toHaveBeenCalledWith('pt-frac', 'sk-fractions'));
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/review-session/rs1'));
   });
 
-  it('WEB-ROADMAP-05 switching subject re-reads that subject only (UI context, not persisted)', async () => {
-    h.intents.mockResolvedValue([intent, intent2]);
-    h.roadmap.mockResolvedValue(roadmap());
+  it('WEB-RM-04 DONE focus shows an all-caught-up message (no fabricated next task)', async () => {
+    h.roadmap.mockResolvedValue({ generation: { id: 'g1' }, points: [point({ learned: true, acquisition: 'LEARNED' })] });
     renderPage();
-    await screen.findByText('Greetings');
-    expect(h.roadmap).toHaveBeenCalledWith('s1'); // default first intent
-    fireEvent.change(screen.getByRole('combobox', { name: 'Fan' }), { target: { value: 's2' } });
-    await waitFor(() => expect(h.roadmap).toHaveBeenCalledWith('s2'));
-    // no persistence API is invoked — selection is read context only
-    expect(h.intents).toHaveBeenCalled();
+    expect(await screen.findByText('Ajoyib ish!')).toBeInTheDocument();
+  });
+
+  it('WEB-RM-05 offers a link back to Today (the hub) and renders no answer-key material', async () => {
+    h.roadmap.mockResolvedValue({ generation: { id: 'g1' }, points: [point()] });
+    renderPage();
+    await screen.findByRole('heading', { name: 'Oddiy kasrlar' });
+    expect(screen.getByRole('link', { name: 'Bugungi reja' })).toHaveAttribute('href', '/learn/today');
+    expect(document.body.textContent).not.toContain('answerKey');
   });
 });

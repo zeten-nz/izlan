@@ -23,7 +23,7 @@ export default function ReviewSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const res = useResource(useCallback(() => getReviewSession(sessionId), [sessionId]), [sessionId]);
-  const exit = () => router.push('/learn/review');
+  const exit = () => router.push('/learn/today'); // Today is the hub — review completion/exit returns there (refreshed)
 
   if (res.data) return <Runner initial={res.data} onExit={exit} />;
   return (
@@ -33,7 +33,7 @@ export default function ReviewSessionPage() {
       ) : isApiError(res.error) && res.error.code === 'REVIEW_SESSION_NOT_FOUND' ? (
         <div className="rounded-panel border border-border bg-surface p-6 text-center">
           <p className="font-medium text-text">{t('learner.review.notFoundTitle')}</p>
-          <div className="mt-4 flex justify-center"><ButtonLink href="/learn/review">{t('learner.review.backToReview')}</ButtonLink></div>
+          <div className="mt-4 flex justify-center"><ButtonLink href="/learn/today">{t('learner.review.backToToday')}</ButtonLink></div>
         </div>
       ) : (
         <ErrorState error={res.error} onRetry={res.reload} />
@@ -99,7 +99,7 @@ function Runner({ initial, onExit }: { initial: ReviewSessionView; onExit: () =>
           <FiCheckCircle className="mx-auto text-3xl text-success" aria-hidden />
           <h1 className="mt-3 text-xl font-bold text-text">{t('learner.review.completedTitle')}</h1>
           <p className="mt-1 text-muted">{t('learner.review.completedBody')}</p>
-          <div className="mt-5 flex justify-center"><ButtonLink href="/learn/review">{t('learner.review.backToReview')}</ButtonLink></div>
+          <div className="mt-5 flex justify-center"><ButtonLink href="/learn/today">{t('learner.review.backToToday')}</ButtonLink></div>
         </div>
       ) : !current ? (
         <div className="rounded-panel border border-border bg-surface p-6 text-center">

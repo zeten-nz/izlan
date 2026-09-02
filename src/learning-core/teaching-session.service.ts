@@ -28,14 +28,18 @@ import { evidenceForActivity } from '../content/activity/activity-evidence';
 
 const TERMINAL: TeachingSessionStatus[] = [TeachingSessionStatus.COMPLETED, TeachingSessionStatus.ABANDONED];
 
-/** Honest, answer-key-free remediation: a canonical Present Simple rule reminder by stage type. */
+/**
+ * Honest, answer-key-free, SUBJECT-AGNOSTIC remediation by stage type. Deliberately generic — it nudges the learner
+ * to reconsider the relevant material without revealing the answer, and applies to any roadmap point/subject (no
+ * pilot grammar hardcoded). A point-authored hint would supersede this; until then this is the safe default.
+ */
 const REMEDIATION: Record<string, string> = {
-  concept: 'Present Simple odat, kundalik ish va umumiy faktlar uchun ishlatiladi: “I work every day.”',
-  recognition: 'He/She/It bilan fe’lga -s qo‘shiladi: “She works.” I/You/We/They — qo‘shimchasiz.',
-  production: 'Tasdiq: She works. Inkor: He doesn’t work. Savol: Do you work? / Does she work?',
-  mastery: 'Eslang: he/she/it → -s; inkor don’t/doesn’t; savol do/does + asosiy fe’l.',
+  concept: 'Yuqoridagi tushuntirishni yana bir bor ko‘rib chiqing va qayta urinib ko‘ring.',
+  recognition: 'Misollarga diqqat bilan qarang — har bir holat qanday farq qilishini solishtiring.',
+  production: 'Javobingizni bosqichma-bosqich, o‘rgangan qoidaga solishtirib tekshiring.',
+  mastery: 'Bu mavzuning asosiy qoidalarini eslang va yana bir bor urinib ko‘ring.',
 };
-const REMEDIATION_DEFAULT = 'Present Simple: he/she/it bilan -s; inkor don’t/doesn’t; savol do/does.';
+const REMEDIATION_DEFAULT = 'Yuqoridagi materialni qayta ko‘rib chiqing va yana urinib ko‘ring.';
 
 export type TeachingActivityView = LearnerProjectedActivity & {
   role: string;

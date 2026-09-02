@@ -52,7 +52,7 @@ function ChoosePath({ intent }: { intent: LearningIntent }) {
     setError(null);
     try {
       await startFromZero(intent.subject.id, crypto.randomUUID()); // immutable FRESH_START — full available roadmap
-      router.replace('/learn/present-simple');
+      router.replace('/learn/today'); // placement done → continue to Today (the hub)
     } catch (e) {
       setError(describeError(e, t));
       setBusy(null);
