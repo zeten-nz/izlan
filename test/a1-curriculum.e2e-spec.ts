@@ -152,9 +152,9 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
 
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('CUR-E2E-01 authored 10 new points, each PUBLISHED via the real workflow (published blueprint + mastery + APPROVED review)', async () => {
-    expect(provisionResult.pointsPublished).toBe(10);
-    expect(provisionResult.lessonsPublished).toBe(10);
+  it('CUR-E2E-01 authored 16 new points, each PUBLISHED via the real workflow (published blueprint + mastery + APPROVED review)', async () => {
+    expect(provisionResult.pointsPublished).toBe(16);
+    expect(provisionResult.lessonsPublished).toBe(16);
 
     for (const spec of CURRICULUM_POINT_PLAN) {
       const point = await prisma.roadmapPoint.findUniqueOrThrow({
@@ -196,14 +196,19 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
     expect(branchOffVerbBe).toBeGreaterThanOrEqual(2); // multiple points unlock at once
   });
 
-  it('CUR-E2E-03 honest mastery: every gate is recognition/controlled-production only (never free-production); structured points require controlled-production@2', async () => {
+  it('CUR-E2E-03 honest mastery: gates are recognition/controlled-production/reading-comprehension only (never free-production)', async () => {
+    const ALLOWED = new Set(['recognition', 'controlled-production', 'reading-comprehension']);
     for (const spec of CURRICULUM_POINT_PLAN) {
       const point = await prisma.roadmapPoint.findUniqueOrThrow({ where: { pointKey: spec.pointKey }, include: { masteryRequirement: true } });
       const gate = await prisma.masteryRequirementSkillExpectation.findFirstOrThrow({ where: { requirementRevisionId: point.masteryRequirement!.currentRevisionId! } });
       const kinds = gate.requiredEvidenceKinds as string[];
       expect(kinds).not.toContain('free-production'); // objective items never claim free/independent production
-      expect(kinds.every((k) => k === 'recognition' || k === 'controlled-production')).toBe(true);
-      if (spec.masteryMinIndependence === 2) {
+      expect(kinds.every((k) => ALLOWED.has(k))).toBe(true);
+      if ((spec.masteryEvidenceKinds ?? []).includes('reading-comprehension')) {
+        // A READING point: reading-comprehension ONLY (a grammar-recognition activity cannot satisfy it), independence 1.
+        expect(kinds).toEqual(['reading-comprehension']);
+        expect(gate.minIndependence).toBe(1);
+      } else if (spec.masteryMinIndependence === 2) {
         // A structured-production point: recognition can no longer satisfy it — controlled-production @ independence 2.
         expect(kinds).toEqual(['controlled-production']);
         expect(gate.minIndependence).toBe(2);
@@ -350,6 +355,50 @@ describe('A1 foundation curriculum (e2e, izlan_test)', () => {
     const measurement = await prisma.skillMeasurement.findFirstOrThrow({ where: { userId, skillId: skill.id, source: 'TEACHING_MASTERY' }, orderBy: { createdAt: 'desc' } });
     expect(measurement.evidenceKind).toBe('controlled-production');
     expect(measurement.independenceLevel).toBe(2);
+  });
+
+  it('CUR-E2E-09 a wave-3 READING point (Jobs) is learned via reading activities → honest reading-comprehension@1 evidence (distinct from grammar recognition)', async () => {
+    const { token, userId } = await makeLearner();
+    await learnPoint(token, 'ENG-A1-GREETINGS-INTRO');
+    await learnPoint(token, 'ENG-A1-VERB-BE');
+    await learnPoint(token, 'ENG-A1-JOBS'); // reading-comprehension@1; a grammar-recognition activity could NOT satisfy this gate
+
+    const jobs = await pointId('ENG-A1-JOBS');
+    const learned = await prisma.pointAcquisitionEvent.findMany({ where: { userId, roadmapPointId: jobs, acquisitionType: 'LEARNED' } });
+    expect(learned.length).toBe(1);
+
+    const sid = await subjectId();
+    const skill = await prisma.skill.findUniqueOrThrow({ where: { subjectId_code: { subjectId: sid, code: 'ENG-A1-JOBS-VOCAB' } } });
+    // Full lineage: reading ActivityAttempt → SkillMeasurementEvidenceRef → SkillMeasurement (reading-comprehension) → MasteryEvaluation.
+    const measurement = await prisma.skillMeasurement.findFirstOrThrow({ where: { userId, skillId: skill.id, source: 'TEACHING_MASTERY' }, orderBy: { createdAt: 'desc' } });
+    expect(measurement.evidenceKind).toBe('reading-comprehension'); // NOT 'recognition' — reading is semantically distinct
+    expect(measurement.independenceLevel).toBe(1);
+    const refs = await prisma.skillMeasurementEvidenceRef.count({ where: { skillMeasurementId: measurement.id } });
+    expect(refs).toBeGreaterThanOrEqual(1);
+  });
+
+  it('CUR-E2E-10 INTEGRITY: no A1 point (pilot OR expansion) claims free-production in its mastery gate or level-expectation; every gate is satisfiable-non-empty', async () => {
+    const sid = await subjectId();
+    const PILOT_KEYS = ['ENG-A1-GREETINGS-INTRO', 'ENG-A1-VERB-BE', 'ENG-A1-PERSONAL-INFO', 'ENG-A1-FAMILY-POSSESSION', 'ENG-A1-PRESENT-SIMPLE'];
+    const allKeys = [...PILOT_KEYS, ...CURRICULUM_POINT_PLAN.map((p) => p.pointKey)];
+    expect(allKeys.length).toBe(21); // 5 pilot + 16 expansion
+    for (const key of allKeys) {
+      const point = await prisma.roadmapPoint.findUniqueOrThrow({ where: { pointKey: key }, include: { masteryRequirement: true } });
+      const gates = await prisma.masteryRequirementSkillExpectation.findMany({ where: { requirementRevisionId: point.masteryRequirement!.currentRevisionId! } });
+      expect(gates.length).toBeGreaterThanOrEqual(1);
+      for (const g of gates) {
+        const kinds = (g.requiredEvidenceKinds ?? []) as string[];
+        expect(kinds).not.toContain('free-production'); // integrity: nothing the runtime cannot produce
+        expect(kinds.length).toBeGreaterThanOrEqual(1); // satisfiable (non-empty kind set)
+      }
+    }
+    // The level-expectation STANDARD axis is also honest (the axis the old ensureExpectation over-claimed).
+    const slers = await prisma.skillLevelExpectationRevision.findMany({
+      where: { expectation: { skill: { subjectId: sid } } },
+      select: { requiredEvidenceKinds: true },
+    });
+    expect(slers.length).toBeGreaterThanOrEqual(1);
+    for (const s of slers) expect(((s.requiredEvidenceKinds ?? []) as string[])).not.toContain('free-production');
   });
 
   it('CUR-E2E-07 review/repair adaptation is generic: a REPEATED_MISTAKE signal on Articles drives REPAIR (repair > new learning)', async () => {

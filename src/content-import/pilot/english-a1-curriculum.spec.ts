@@ -7,9 +7,11 @@ import {
   CURRICULUM_SKILL_CODES,
   CURRICULUM_EVIDENCE_KINDS,
   PREP_PLACE_MASTERY_EVIDENCE_KINDS,
+  READING_MASTERY_EVIDENCE_KINDS,
 } from './english-a1-curriculum';
 
 const STRUCTURED_V = 'lesson-activity-structured/v1';
+const READING_V = 'lesson-activity-reading/v1';
 
 /**
  * A1 curriculum-expansion STRUCTURAL validation (no DB). Proves the authored content + point plan are internally
@@ -24,11 +26,11 @@ describe('English A1 curriculum expansion (structural)', () => {
     expect(validation.ok).toBe(true);
   });
 
-  it('CUR-02 has the expected shape: 5 topics, 10 lessons, 10 skills, 10 points', () => {
-    expect(validation.summary).toMatchObject({ topics: 5, lessons: 10, skills: 10, points: 10 });
-    expect(CURRICULUM_CONTENT_KEYS).toHaveLength(10);
-    expect(CURRICULUM_SKILL_CODES).toHaveLength(10);
-    expect(validation.summary.objectiveActivities).toBeGreaterThanOrEqual(40); // ≥4 objective/lesson
+  it('CUR-02 has the expected shape: 8 topics, 16 lessons, 16 skills, 16 points', () => {
+    expect(validation.summary).toMatchObject({ topics: 8, lessons: 16, skills: 16, points: 16 });
+    expect(CURRICULUM_CONTENT_KEYS).toHaveLength(16);
+    expect(CURRICULUM_SKILL_CODES).toHaveLength(16);
+    expect(validation.summary.objectiveActivities).toBeGreaterThanOrEqual(64); // ≥4 objective/lesson
   });
 
   it('CUR-03 the point prerequisite graph is a valid DAG that BRANCHES (≥2 points share a prerequisite)', () => {
@@ -79,10 +81,12 @@ describe('English A1 curriculum expansion (structural)', () => {
     const packages = parseCurriculumPackages();
     const lessonByKey = new Map(packages.flatMap((p) => p.plan.lessons).map((l) => [l.contentKey, l] as const));
     const structuredPoints = CURRICULUM_POINT_PLAN.filter((p) => p.masteryMinIndependence === 2);
-    // Wave 1 (PREP-PLACE) + wave 2 (DEMONSTRATIVES, PRESENT-CONTINUOUS, QUESTION-WORDS, FOOD-DRINKS).
+    // Wave 1 (PREP-PLACE) + wave 2 (DEMONSTRATIVES, PRESENT-CONTINUOUS, QUESTION-WORDS, FOOD-DRINKS) + wave 3
+    // (OBJECT-PRONOUNS, POSSESSIVE-S, COMPARATIVES, WAS-WERE).
     expect(structuredPoints.map((p) => p.pointKey).sort()).toEqual([
-      'ENG-A1-DEMONSTRATIVES', 'ENG-A1-FOOD-DRINKS', 'ENG-A1-PREP-PLACE', 'ENG-A1-PRESENT-CONTINUOUS', 'ENG-A1-QUESTION-WORDS',
-    ]);
+      'ENG-A1-COMPARATIVES', 'ENG-A1-DEMONSTRATIVES', 'ENG-A1-FOOD-DRINKS', 'ENG-A1-OBJECT-PRONOUNS', 'ENG-A1-PREP-PLACE',
+      'ENG-A1-PRESENT-CONTINUOUS', 'ENG-A1-POSSESSIVE-S', 'ENG-A1-QUESTION-WORDS', 'ENG-A1-WAS-WERE',
+    ].sort());
     for (const spec of structuredPoints) {
       expect([...(spec.masteryEvidenceKinds ?? [])]).toEqual(['controlled-production']); // recognition cannot satisfy it
       const lesson = lessonByKey.get(spec.lessonContentKey)!;
@@ -91,6 +95,34 @@ describe('English A1 curriculum expansion (structural)', () => {
       // The controlled-production@2 gate is satisfiable ONLY if every mastery-evidence item is genuinely structured.
       expect(masteryPayloads.every((p) => p.schemaVersion === STRUCTURED_V)).toBe(true);
     }
+  });
+
+  it('CUR-08 the READING points (HOME, JOBS) require reading-comprehension@1 with ONLY reading-schema mastery evidence', () => {
+    const packages = parseCurriculumPackages();
+    const lessonByKey = new Map(packages.flatMap((p) => p.plan.lessons).map((l) => [l.contentKey, l] as const));
+    const readingPoints = CURRICULUM_POINT_PLAN.filter((p) => (p.masteryEvidenceKinds ?? []).includes('reading-comprehension'));
+    expect(readingPoints.map((p) => p.pointKey).sort()).toEqual(['ENG-A1-HOME', 'ENG-A1-JOBS']);
+    for (const spec of readingPoints) {
+      // Honest reading gate: reading-comprehension ONLY (a grammar-recognition activity cannot satisfy it), independence 1.
+      expect([...(spec.masteryEvidenceKinds ?? [])]).toEqual([...READING_MASTERY_EVIDENCE_KINDS]);
+      expect(spec.masteryMinIndependence).toBe(1);
+      expect(spec.masteryEvidenceKinds).not.toContain('controlled-production');
+      expect(spec.masteryEvidenceKinds).not.toContain('recognition');
+      const lesson = lessonByKey.get(spec.lessonContentKey)!;
+      const mastery = lesson.revision.activities.filter((a) => a.type === ActivityType.MASTERY_TEST).map((a) => a.payload as { schemaVersion?: string; passage?: string });
+      expect(mastery.length).toBeGreaterThanOrEqual(1);
+      // Every mastery-evidence item is a reading activity (visible passage), so the reading gate is satisfiable.
+      expect(mastery.every((p) => p.schemaVersion === READING_V)).toBe(true);
+      expect(mastery.every((p) => typeof p.passage === 'string' && p.passage.length > 0)).toBe(true);
+    }
+  });
+
+  it('CUR-09 no A1 curriculum point (plan or content) claims free-production', () => {
+    for (const spec of CURRICULUM_POINT_PLAN) {
+      expect([...(spec.masteryEvidenceKinds ?? [])]).not.toContain('free-production');
+    }
+    // And the default evidence set the recognition points inherit is free-production-free.
+    expect([...CURRICULUM_EVIDENCE_KINDS]).not.toContain('free-production');
   });
 
   it('CUR-05 every lesson teaches (rule + example + mistake) before it tests — not a quiz bank', () => {

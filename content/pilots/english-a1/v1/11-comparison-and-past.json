@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-COMPARATIVES", "name": "Qiyosiy daraja: -er + than", "sortOrder": 220 },
+    { "code": "ENG-A1-WAS-WERE", "name": "was / were (to be, o'tgan zamon)", "sortOrder": 230 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-025-COMPARATIVES",
+      "slug": "eng-a1-025-comparatives",
+      "sortOrder": 250,
+      "skillCodes": ["ENG-A1-COMPARATIVES"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Qiyosiy daraja: taller than, bigger than",
+        "description": "Ikki narsa/odamny taqqoslash: qisqa sifat + -er + than.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nIkki narsa yoki odamni **taqqoslash** uchun sifatga **-er** qo'shamiz va **than** ishlatamiz: *My brother is **taller than** me.* — Akam mendan balandroq." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n**qisqa sifat + -er + than**\n\n| Sifat | Qiyosiy |\n| --- | --- |\n| tall | **taller** |\n| old | **older** |\n| small | **smaller** |\n| big | **bigger** (oxirgi harf takrorlanadi) |\n| nice | **nicer** (faqat -r) |\n| happy | **happier** (y → i) |\n\nMisol: *A car is **faster than** a bike.*" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- My brother is **taller than** me.\n- This box is **bigger than** that box.\n- Today is **hotter than** yesterday.\n- A train is **faster than** a car.\n- My sister is **older than** me." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My brother is ___ than me. (tall)", "options": [ { "id": "a", "text": "taller" }, { "id": "b", "text": "more tall" }, { "id": "c", "text": "tallest" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Qisqa sifat bilan **more** ishlatilmaydi; **than** ni unutmang.\n>\n> Noto'g'ri: *more tall* → To'g'ri: **taller**\n> Noto'g'ri: *taller then me* → To'g'ri: **taller than me**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (qiyosiy shakl, 'old'): opam mendan kattaroq.", "segments": [ { "text": "My sister is " }, { "blankId": "b1" }, { "text": " than me." } ], "blanks": { "b1": { "accepted": ["older"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "old + er = older." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: poyezd mashinadan tezroq.", "tokens": [ { "id": "t1", "text": "A" }, { "id": "t2", "text": "train" }, { "id": "t3", "text": "is" }, { "id": "t4", "text": "faster" }, { "id": "t5", "text": "than" }, { "id": "t6", "text": "a" }, { "id": "t7", "text": "car" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5", "t6", "t7"] }, "remediation": "... is + faster + than + ..." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (qiyosiy shakl, 'big'): bu quti u qutidan kattaroq.", "segments": [ { "text": "This box is " }, { "blankId": "b1" }, { "text": " than that box." } ], "blanks": { "b1": { "accepted": ["bigger"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "big → bigger (g takrorlanadi)." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (qiyosiy shakl, 'tall'): akam mendan balandroq.", "segments": [ { "text": "My brother is " }, { "blankId": "b1" }, { "text": " than me." } ], "blanks": { "b1": { "accepted": ["taller"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "tall + er = taller." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-COMPARATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: bugun kechagidan issiqroq.", "tokens": [ { "id": "t1", "text": "Today" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "hotter" }, { "id": "t4", "text": "than" }, { "id": "t5", "text": "yesterday" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5"] }, "remediation": "Today + is + hotter + than + yesterday." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Qisqa sifat + **-er** + **than**: taller, older, bigger, faster.\n- *X is [sifat]er than Y.*" }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-026-WAS-WERE",
+      "slug": "eng-a1-026-was-were",
+      "sortOrder": 260,
+      "skillCodes": ["ENG-A1-WAS-WERE"],
+      "prerequisiteContentKeys": ["ENG-A1-005-BE-QUESTIONS"],
+      "revision": {
+        "title": "was / were — o'tgan zamonda 'bo'lmoq'",
+        "description": "am/is → was; are → were. Kecha qayerda/qanday bo'lganini aytish.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\n*am/is/are* (hozir) o'tgan zamonda **was / were** bo'ladi: *I **am** at home* → *I **was** at home yesterday.* Kecha qayerda yoki qanday bo'lganingizni ayta olasiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Ega | Hozir | O'tgan |\n| --- | --- | --- |\n| I | am | **was** |\n| he / she / it | is | **was** |\n| you / we / they | are | **were** |\n\n**Vaqt so'zlari:** yesterday, last week, in 2010.\n\nInkor: *I **wasn't** tired. They **weren't** here.*" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **was** at school yesterday.\n- She **was** happy.\n- We **were** at home last night.\n- They **were** in Tashkent.\n- It **was** cold yesterday." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "We ___ at home yesterday.", "options": [ { "id": "a", "text": "was" }, { "id": "b", "text": "were" }, { "id": "c", "text": "are" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> I/he/she/it bilan **was**; you/we/they bilan **were**.\n>\n> Noto'g'ri: *We was at home.* → To'g'ri: **We were at home.**\n> Noto'g'ri: *She were happy.* → To'g'ri: **She was happy.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (was/were): biz kecha uyda edik.", "segments": [ { "text": "We " }, { "blankId": "b1" }, { "text": " at home yesterday." } ], "blanks": { "b1": { "accepted": ["were"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "we → were." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: u kecha xursand edi.", "tokens": [ { "id": "t1", "text": "She" }, { "id": "t2", "text": "was" }, { "id": "t3", "text": "happy" }, { "id": "t4", "text": "yesterday" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "She + was + happy + yesterday." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (was/were): men kecha maktabda edim.", "segments": [ { "text": "I " }, { "blankId": "b1" }, { "text": " at school yesterday." } ], "blanks": { "b1": { "accepted": ["was"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "I → was." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: ular kecha Toshkentda edilar.", "tokens": [ { "id": "t1", "text": "They" }, { "id": "t2", "text": "were" }, { "id": "t3", "text": "in" }, { "id": "t4", "text": "Tashkent" }, { "id": "t5", "text": "yesterday" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5"] }, "remediation": "They + were + in Tashkent + yesterday." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-WAS-WERE"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (was/were): kecha havo sovuq edi.", "segments": [ { "text": "It " }, { "blankId": "b1" }, { "text": " cold yesterday." } ], "blanks": { "b1": { "accepted": ["was"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "it → was." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- I/he/she/it → **was**; you/we/they → **were**.\n- Vaqt: yesterday, last week.\n- Inkor: wasn't / weren't." }
+          }
+        ]
+      }
+    }
+  ]
+}

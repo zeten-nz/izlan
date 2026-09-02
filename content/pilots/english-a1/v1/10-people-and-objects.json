@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-OBJECT-PRONOUNS", "name": "Ob'ekt olmoshlari: me/you/him/her/it/us/them", "sortOrder": 200 },
+    { "code": "ENG-A1-POSSESSIVE-S", "name": "Egalik 's: Ali's bag", "sortOrder": 210 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-023-OBJECT-PRONOUNS",
+      "slug": "eng-a1-023-object-pronouns",
+      "sortOrder": 230,
+      "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Ob'ekt olmoshlari: me, him, her, us, them",
+        "description": "Fe'l yoki predlogdan keyin keladigan olmoshlar: I → me, he → him, ...",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nGap boshida **ega** olmoshi turadi (I, he, she...). Lekin fe'l yoki predlogdan **keyin** boshqa shakl kerak: *I see **him**.* (Men uni ko'raman.) Bu **ob'ekt olmoshlari**." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Ega (subject) | Ob'ekt (object) |\n| --- | --- |\n| I | **me** |\n| you | **you** |\n| he | **him** |\n| she | **her** |\n| it | **it** |\n| we | **us** |\n| they | **them** |\n\nOb'ekt olmoshi **fe'ldan** keyin (*She helps **me**.*) yoki **predlogdan** keyin (*Look at **them**.*) keladi." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I like **him**. (Men uni yoqtiraman.)\n- She helps **me**. (U menga yordam beradi.)\n- We can see **them**. (Biz ularni ko'ramiz.)\n- Please call **us**. (Iltimos, bizga qo'ng'iroq qiling.)\n- I know **her**." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I like ___ . (u — erkak)", "options": [ { "id": "a", "text": "he" }, { "id": "b", "text": "him" }, { "id": "c", "text": "his" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Fe'ldan keyin **ega** olmoshini ishlatmang.\n>\n> Noto'g'ri: *I see he.* → To'g'ri: **I see him.**\n> Noto'g'ri: *She helps I.* → To'g'ri: **She helps me.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (ob'ekt olmoshi, 'biz'): u bizga yordam beradi.", "segments": [ { "text": "She helps " }, { "blankId": "b1" }, { "text": "." } ], "blanks": { "b1": { "accepted": ["us"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "we → us." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: men ularni ko'raman.", "tokens": [ { "id": "t1", "text": "I" }, { "id": "t2", "text": "can" }, { "id": "t3", "text": "see" }, { "id": "t4", "text": "them" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Ega + fe'l + ob'ekt olmoshi (they → them)." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (ob'ekt olmoshi, 'u — ayol'): men uni bilaman.", "segments": [ { "text": "I know " }, { "blankId": "b1" }, { "text": "." } ], "blanks": { "b1": { "accepted": ["her"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "she → her." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: iltimos, bizga qo'ng'iroq qiling.", "tokens": [ { "id": "t1", "text": "Please" }, { "id": "t2", "text": "call" }, { "id": "t3", "text": "us" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3"] }, "remediation": "Please + fe'l + us." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-OBJECT-PRONOUNS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (ob'ekt olmoshi, 'u — erkak'): men uni yoqtiraman.", "segments": [ { "text": "I like " }, { "blankId": "b1" }, { "text": "." } ], "blanks": { "b1": { "accepted": ["him"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "he → him." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Fe'l/predlogdan keyin ob'ekt olmoshi: I→me, he→him, she→her, we→us, they→them.\n- *I see **him**. She helps **us**. Look at **them**.*" }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-024-POSSESSIVE-S",
+      "slug": "eng-a1-024-possessive-s",
+      "sortOrder": 240,
+      "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+      "prerequisiteContentKeys": ["ENG-A1-007-POSSESSIVE-ADJECTIVES"],
+      "revision": {
+        "title": "Egalik 's: Ali's bag",
+        "description": "Biror narsa kimga tegishli ekanini aytish: ot + 's.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBiror narsa **kimga tegishli**ligini aytish uchun odam ismiga **'s** qo'shiladi: *Ali**'s** bag* — Alining sumkasi. Bu **my/your** kabi egalik sifatlaridan farq qiladi." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n**Egasi (odam) + 's + narsa**\n\n| O'zbekcha | Inglizcha |\n| --- | --- |\n| Alining sumkasi | **Ali's** bag |\n| singlimning kitobi | my **sister's** book |\n| o'qituvchining mashinasi | the **teacher's** car |\n\n**Savol:** *Whose bag is this?* (Bu kimning sumkasi?) → *It's **Ali's**.*\n\n**Diqqat:** egalik **'s** (Ali's = Alining) va qisqartma **is** (*He's* = He is) yozilishi o'xshash, lekin ma'nosi boshqa." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- This is **Ali's** bag.\n- It is my **sister's** book.\n- Where is the **teacher's** car?\n- **Dilnoza's** phone is new.\n- Whose pen is this? — It's **Aziz's**." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Alining sumkasi = ?", "options": [ { "id": "a", "text": "Ali bag" }, { "id": "b", "text": "Ali's bag" }, { "id": "c", "text": "bag's Ali" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Egasi (odam) **oldin**, keyin **'s**, keyin narsa keladi.\n>\n> Noto'g'ri: *the bag of Ali* (A1 uchun) / *bag's Ali* → To'g'ri: **Ali's bag**\n> Noto'g'ri: *my sister book* → To'g'ri: **my sister's book**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (egalik shakli, 'Ali'): bu Alining sumkasi.", "segments": [ { "text": "This is " }, { "blankId": "b1" }, { "text": " bag." } ], "blanks": { "b1": { "accepted": ["Ali's"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Ali + 's = Ali's." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: bu mening singlimning kitobi.", "tokens": [ { "id": "t1", "text": "It" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "my" }, { "id": "t4", "text": "sister's" }, { "id": "t5", "text": "book" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5"] }, "remediation": "my + sister's + book." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (egalik shakli, 'teacher'): bu o'qituvchining mashinasi.", "segments": [ { "text": "This is the " }, { "blankId": "b1" }, { "text": " car." } ], "blanks": { "b1": { "accepted": ["teacher's"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "teacher + 's = teacher's." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (egalik shakli, 'Aziz'): bu Azizning telefoni.", "segments": [ { "text": "This is " }, { "blankId": "b1" }, { "text": " phone." } ], "blanks": { "b1": { "accepted": ["Aziz's"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Aziz + 's = Aziz's." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-POSSESSIVE-S"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: bu Dilnozaning ruchkasi.", "tokens": [ { "id": "t1", "text": "It" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "Dilnoza's" }, { "id": "t4", "text": "pen" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Dilnoza's + pen." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Egasi (odam) + **'s** + narsa: **Ali's bag**, my **sister's** book.\n- Savol: **Whose ...?** — kimning?" }
+          }
+        ]
+      }
+    }
+  ]
+}

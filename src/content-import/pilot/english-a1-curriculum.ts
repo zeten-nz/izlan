@@ -23,6 +23,9 @@ export const CURRICULUM_IMPORT_FILES = [
   '07-ability-and-frequency.json',
   '08-everyday-grammar.json',
   '09-food-and-context.json',
+  '10-people-and-objects.json',
+  '11-comparison-and-past.json',
+  '12-home-and-jobs.json',
 ] as const;
 
 /** New Topics created under the A1 module (idempotent by title). */
@@ -38,9 +41,12 @@ export const CURRICULUM_TOPICS: CurriculumTopic[] = [
   { title: 'Imkoniyat va chastota', description: 'can/can’t va takror ravishlari.', order: 70, importFile: '07-ability-and-frequency.json' },
   { title: 'Kundalik grammatika', description: 'this/that/these/those, Present Continuous va savol so‘zlari.', order: 80, importFile: '08-everyday-grammar.json' },
   { title: 'Ovqat va muloqot', description: 'ovqat/ichimlik so‘zlari, menyu o‘qish va muloyim so‘rov.', order: 90, importFile: '09-food-and-context.json' },
+  { title: 'Odamlar va narsalar', description: 'ob‘ekt olmoshlari va egalik s.', order: 100, importFile: '10-people-and-objects.json' },
+  { title: 'Taqqoslash va o‘tmish', description: 'qiyosiy daraja va was/were.', order: 110, importFile: '11-comparison-and-past.json' },
+  { title: 'Uy va kasblar', description: 'uy/kasb matnlarini o‘qib tushunish (reading).', order: 120, importFile: '12-home-and-jobs.json' },
 ];
 
-/** The new lesson contentKeys (013 → 022), one lesson per new point. */
+/** The new lesson contentKeys (013 → 028), one lesson per new point. */
 export const CURRICULUM_CONTENT_KEYS = [
   'ENG-A1-013-ARTICLES',
   'ENG-A1-014-PLURALS',
@@ -52,9 +58,15 @@ export const CURRICULUM_CONTENT_KEYS = [
   'ENG-A1-020-PRESENT-CONTINUOUS',
   'ENG-A1-021-QUESTION-WORDS',
   'ENG-A1-022-FOOD-DRINKS',
+  'ENG-A1-023-OBJECT-PRONOUNS',
+  'ENG-A1-024-POSSESSIVE-S',
+  'ENG-A1-025-COMPARATIVES',
+  'ENG-A1-026-WAS-WERE',
+  'ENG-A1-027-HOME',
+  'ENG-A1-028-JOBS',
 ] as const;
 
-/** The new skills. All GRAMMAR domain except FOOD-VOCAB (VOCABULARY) — the two A1 domains with defensible objective evidence. */
+/** The new skills. GRAMMAR by default; FOOD-VOCAB=VOCABULARY; HOME/JOBS=READING (reading-comprehension evidence). */
 export const CURRICULUM_SKILL_CODES = [
   'ENG-A1-ARTICLES',
   'ENG-A1-PLURALS',
@@ -66,6 +78,12 @@ export const CURRICULUM_SKILL_CODES = [
   'ENG-A1-PRESENT-CONTINUOUS',
   'ENG-A1-QUESTION-WORDS',
   'ENG-A1-FOOD-VOCAB',
+  'ENG-A1-OBJECT-PRONOUNS',
+  'ENG-A1-POSSESSIVE-S',
+  'ENG-A1-COMPARATIVES',
+  'ENG-A1-WAS-WERE',
+  'ENG-A1-HOME-VOCAB',
+  'ENG-A1-JOBS-VOCAB',
 ] as const;
 
 /** Default primary domain for a curriculum skill; a point spec may override via `skillDomainCode`. */
@@ -84,6 +102,13 @@ export const CURRICULUM_EVIDENCE_KINDS = ['recognition', 'controlled-production'
 export const STRUCTURED_MASTERY_EVIDENCE_KINDS = ['controlled-production'] as const;
 /** Back-compat alias (the original PREP-PLACE dogfood). Identical to STRUCTURED_MASTERY_EVIDENCE_KINDS. */
 export const PREP_PLACE_MASTERY_EVIDENCE_KINDS = STRUCTURED_MASTERY_EVIDENCE_KINDS;
+/**
+ * A READING point proves comprehension of a visible text — its mastery evidence is reading-comprehension ONLY
+ * (independence 1, receptive). A plain grammar-recognition activity cannot satisfy it (readiness checks the kind), so
+ * reading competence is never fabricated from unrelated grammar questions.
+ */
+export const READING_MASTERY_EVIDENCE_KINDS = ['reading-comprehension'] as const;
+export const READING_MASTERY_MIN_INDEPENDENCE = 1;
 export const CURRICULUM_MASTERY_THRESHOLD_BP = 8000; // 80%
 export const CURRICULUM_MASTERY_MIN_INDEPENDENCE = 1;
 export const CURRICULUM_MASTERY_POLICY_VERSION = 'v2-a1-curriculum-mastery-v1';
@@ -178,6 +203,46 @@ export const CURRICULUM_POINT_PLAN: CurriculumPointSpec[] = [
     canDo: ['keng tarqalgan ovqat/ichimlik so‘zlarini bilish', 'stolda nima borligini aytish va muloyim so‘rov qilish (I would like ...)'],
     masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
     skillDomainCode: 'VOCABULARY',
+  },
+
+  // ── Wave 3: object pronouns / possessive 's / comparatives / was-were (structured) + HOME/JOBS (reading) ──
+  {
+    pointKey: 'ENG-A1-OBJECT-PRONOUNS', title: 'Ob‘ekt olmoshlari', sortOrder: 45, estimatedEffortMin: 16,
+    skillCode: 'ENG-A1-OBJECT-PRONOUNS', lessonContentKey: 'ENG-A1-023-OBJECT-PRONOUNS', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
+    canDo: ['fe‘l/predlogdan keyin to‘g‘ri olmoshni ishlatish (me/him/her/us/them)', 'ob‘ekt olmoshli gap tuzish'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-POSSESSIVE-S', title: 'Egalik ’s (Ali’s bag)', sortOrder: 46, estimatedEffortMin: 16,
+    skillCode: 'ENG-A1-POSSESSIVE-S', lessonContentKey: 'ENG-A1-024-POSSESSIVE-S', prerequisitePointKeys: ['ENG-A1-FAMILY-POSSESSION'],
+    canDo: ['narsa kimga tegishli ekanini aytish (ot + ’s)', 'egalik shaklli gap tuzish'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-COMPARATIVES', title: 'Qiyosiy daraja (-er than)', sortOrder: 130, estimatedEffortMin: 18,
+    skillCode: 'ENG-A1-COMPARATIVES', lessonContentKey: 'ENG-A1-025-COMPARATIVES', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
+    canDo: ['ikki narsa/odamni taqqoslash (taller/bigger than)', 'qiyosiy shaklli gap tuzish'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-WAS-WERE', title: 'was / were (o‘tgan zamon)', sortOrder: 135, estimatedEffortMin: 18,
+    skillCode: 'ENG-A1-WAS-WERE', lessonContentKey: 'ENG-A1-026-WAS-WERE', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
+    canDo: ['kecha qayerda/qanday bo‘lganini aytish (was/were)', 'was/were bilan gap tuzish'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-HOME', title: 'Uy va xonalar (o‘qib tushunish)', sortOrder: 95, estimatedEffortMin: 14,
+    skillCode: 'ENG-A1-HOME-VOCAB', lessonContentKey: 'ENG-A1-027-HOME', prerequisitePointKeys: ['ENG-A1-THERE-IS-ARE'],
+    canDo: ['uy/xona tavsifini o‘qib tushunish', 'matndan aniq ma‘lumotni topish'],
+    masteryEvidenceKinds: READING_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: READING_MASTERY_MIN_INDEPENDENCE,
+    skillDomainCode: 'READING',
+  },
+  {
+    pointKey: 'ENG-A1-JOBS', title: 'Kasblar (o‘qib tushunish)', sortOrder: 96, estimatedEffortMin: 14,
+    skillCode: 'ENG-A1-JOBS-VOCAB', lessonContentKey: 'ENG-A1-028-JOBS', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
+    canDo: ['qisqa shaxsiy profilni o‘qib tushunish', 'kasb va ish joyini matndan aniqlash'],
+    masteryEvidenceKinds: READING_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: READING_MASTERY_MIN_INDEPENDENCE,
+    skillDomainCode: 'READING',
   },
 ];
 

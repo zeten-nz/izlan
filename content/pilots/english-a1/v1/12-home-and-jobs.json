@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-HOME-VOCAB", "name": "Uy va xonalar (o'qib tushunish)", "sortOrder": 240 },
+    { "code": "ENG-A1-JOBS-VOCAB", "name": "Kasblar (o'qib tushunish)", "sortOrder": 250 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-027-HOME",
+      "slug": "eng-a1-027-home",
+      "sortOrder": 270,
+      "skillCodes": ["ENG-A1-HOME-VOCAB"],
+      "prerequisiteContentKeys": ["ENG-A1-015-THERE-IS-ARE"],
+      "revision": {
+        "title": "Uy va xonalar — qisqa matnni o'qib tushunish",
+        "description": "Uy/xona so'zlari va qisqa tavsifni o'qib, savolga javob berish (reading).",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nUy va xonalar haqidagi so'zlarni o'rganamiz va qisqa **matnni o'qib**, savollarga javob beramiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## So'z boyligi\n\n| Inglizcha | O'zbekcha |\n| --- | --- |\n| house | uy |\n| room | xona |\n| kitchen | oshxona |\n| bedroom | yotoqxona |\n| living room | mehmonxona |\n| bathroom | hammom |\n| table / chair / bed | stol / stul / karavot |\n| desk | yozuv stoli |" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qanday o'qiymiz?\n\nMatnni diqqat bilan o'qing, keyin savolga **matndagi ma'lumot**ga qarab javob bering. Javob doim matnda bor." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HOME-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "This is my house. It has three rooms: a kitchen, a bedroom and a living room. There is a big table in the kitchen.", "prompt": "How many rooms does the house have?", "options": [ { "id": "a", "text": "Two" }, { "id": "b", "text": "Three" }, { "id": "c", "text": "Four" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HOME-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "My bedroom is small. There is a bed, a desk and a chair. My books are on the desk.", "prompt": "Where are the books?", "options": [ { "id": "a", "text": "On the bed" }, { "id": "b", "text": "On the desk" }, { "id": "c", "text": "Under the chair" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HOME-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "There is a big table in the kitchen. There are four chairs around the table. The fridge is next to the window.", "prompt": "How many chairs are in the kitchen?", "options": [ { "id": "a", "text": "Two" }, { "id": "b", "text": "Three" }, { "id": "c", "text": "Four" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HOME-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "Our living room is big. There is a sofa and a television. A small table is in front of the sofa.", "prompt": "What is in front of the sofa?", "options": [ { "id": "a", "text": "A television" }, { "id": "b", "text": "A small table" }, { "id": "c", "text": "A bed" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-HOME-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "My house has a kitchen, two bedrooms and a bathroom. The bathroom is next to the kitchen.", "prompt": "How many bedrooms are in the house?", "options": [ { "id": "a", "text": "One" }, { "id": "b", "text": "Two" }, { "id": "c", "text": "Three" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Uy so'zlari: house, room, kitchen, bedroom, living room, bathroom.\n- Qisqa matnni o'qib, savolga matndagi ma'lumotga qarab javob bering." }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-028-JOBS",
+      "slug": "eng-a1-028-jobs",
+      "sortOrder": 280,
+      "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Kasblar — qisqa profilni o'qib tushunish",
+        "description": "Kasb so'zlari va qisqa shaxsiy profilni o'qib, kasb/ish joyini aniqlash (reading).",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nKasb so'zlarini o'rganamiz va qisqa **shaxsiy profil**ni o'qib, odamning kasbi va ish joyini aniqlaymiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 3,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## So'z boyligi\n\n| Inglizcha | O'zbekcha |\n| --- | --- |\n| teacher | o'qituvchi |\n| doctor | shifokor |\n| driver | haydovchi |\n| student | talaba |\n| engineer | muhandis |\n| nurse | hamshira |\n| shop / hospital / school | do'kon / kasalxona / maktab |\n\nNamuna: *I am a **teacher**. I work in a **school**.*" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qanday o'qiymiz?\n\nProfilni o'qing va savolga **matndagi ma'lumot**ga qarab javob bering: kasbi nima, qayerda ishlaydi." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "My name is Laylo. I am a teacher. I work in a school in Samarkand.", "prompt": "What is Laylo's job?", "options": [ { "id": "a", "text": "A doctor" }, { "id": "b", "text": "A teacher" }, { "id": "c", "text": "A driver" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "This is Aziz. He is a doctor. He works in a hospital. He starts work at eight o'clock.", "prompt": "Where does Aziz work?", "options": [ { "id": "a", "text": "In a school" }, { "id": "b", "text": "In a shop" }, { "id": "c", "text": "In a hospital" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "Dilnoza is a nurse. She works in a hospital with Aziz. She is very kind.", "prompt": "What is Dilnoza's job?", "options": [ { "id": "a", "text": "A nurse" }, { "id": "b", "text": "A teacher" }, { "id": "c", "text": "A student" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "My father is a driver. He drives a bus in Tashkent. He likes his job.", "prompt": "What does the father drive?", "options": [ { "id": "a", "text": "A taxi" }, { "id": "b", "text": "A bus" }, { "id": "c", "text": "A train" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-JOBS-VOCAB"],
+            "payload": { "schemaVersion": "lesson-activity-reading/v1", "format": "reading_comprehension", "passage": "Sardor is a student. He studies at a university in Tashkent. In the evening he works in a shop.", "prompt": "Where does Sardor work in the evening?", "options": [ { "id": "a", "text": "In a shop" }, { "id": "b", "text": "In a hospital" }, { "id": "c", "text": "At a university" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Kasblar: teacher, doctor, driver, student, engineer, nurse.\n- Profilni o'qib, kasb va ish joyini matndan toping." }
+          }
+        ]
+      }
+    }
+  ]
+}
