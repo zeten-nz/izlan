@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-DEMONSTRATIVES", "name": "Ko'rsatish olmoshlari: this / that / these / those", "sortOrder": 160 },
+    { "code": "ENG-A1-PRESENT-CONTINUOUS", "name": "Present Continuous (hozirgi davomiy zamon)", "sortOrder": 170 },
+    { "code": "ENG-A1-QUESTION-WORDS", "name": "Savol so'zlari: what / where / who / when / how", "sortOrder": 180 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-019-DEMONSTRATIVES",
+      "slug": "eng-a1-019-demonstratives",
+      "sortOrder": 190,
+      "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "this / that / these / those",
+        "description": "Narsani ko'rsatish: yaqin/uzoq va birlik/ko'plik.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBiror narsani ko'rsatib \"**bu**\" yoki \"**ana u**\" deyish uchun inglizchada to'rtta so'z bor: **this, that, these, those**. Tanlov ikki narsaga bog'liq: narsa **yaqin**mi yoki **uzoq**mi, va **bitta**mi yoki **ko'p**mi." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| | Yaqin (bu / bular) | Uzoq (ana u / anavilar) |\n| --- | --- | --- |\n| **Birlik** (bitta) | **this** | **that** |\n| **Ko'plik** (ko'p) | **these** | **those** |\n\n- **this** + birlik ot: *this book* (bu kitob)\n- **these** + ko'plik ot: *these books* (bu kitoblar)\n- Fe'l ham mos keladi: **this is** / **that is** — **these are** / **those are**." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- **This is** my phone. (yaqin, bitta)\n- **That is** her car. (uzoq, bitta)\n- **These are** my books. (yaqin, ko'p)\n- **Those are** his shoes. (uzoq, ko'p)\n- Is **this** your bag?" }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ is my pen. (yaqin, bitta)", "options": [ { "id": "a", "text": "This" }, { "id": "b", "text": "These" }, { "id": "c", "text": "Those" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Ko'plik ot bilan **this/that** emas, **these/those** ishlating; fe'lni ham moslang.\n>\n> Noto'g'ri: *This are my books.* → To'g'ri: **These are my books.**\n> Noto'g'ri: *Those is a car.* → To'g'ri: **That is a car.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: (yaqin, ko'plik) ___ mening poyabzallarim.", "segments": [ { "blankId": "b1" }, { "text": " are my shoes." } ], "blanks": { "b1": { "accepted": ["These"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Yaqin + ko'plik = these." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: (uzoq, bitta) ana u mening uyim.", "tokens": [ { "id": "t1", "text": "That" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "my" }, { "id": "t4", "text": "house" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Uzoq + bitta = That; That + is." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: (uzoq, ko'plik) osmondagi anavi qushlarga qarang.", "segments": [ { "text": "Look at " }, { "blankId": "b1" }, { "text": " birds in the sky." } ], "blanks": { "b1": { "accepted": ["those"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Uzoq + ko'plik = those." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: (yaqin, ko'plik) bular mening kitoblarim.", "tokens": [ { "id": "t1", "text": "These" }, { "id": "t2", "text": "are" }, { "id": "t3", "text": "my" }, { "id": "t4", "text": "books" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Yaqin + ko'plik = These; These + are." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-DEMONSTRATIVES"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring: (yaqin, bitta) bu olma.", "segments": [ { "blankId": "b1" }, { "text": " is an apple." } ], "blanks": { "b1": { "accepted": ["This"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Yaqin + bitta = This." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **this** (yaqin, bitta) · **these** (yaqin, ko'p)\n- **that** (uzoq, bitta) · **those** (uzoq, ko'p)\n- this/that + **is** · these/those + **are**." }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-020-PRESENT-CONTINUOUS",
+      "slug": "eng-a1-020-present-continuous",
+      "sortOrder": 200,
+      "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+      "prerequisiteContentKeys": ["ENG-A1-010-PRESENT-SIMPLE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Present Continuous — hozir sodir bo'layotgan ish",
+        "description": "am/is/are + fe'l-ing: ayni hozir bajarilayotgan harakat.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\n**Ayni hozir** sodir bo'layotgan ishni aytish uchun **Present Continuous** ishlatiladi: *I am working now* — men hozir ishlayapman. Bu Present Simple (*I work* — umuman ishlayman)dan farq qiladi." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n**Ega + am/is/are + fe'l-ing**\n\n| Ega | am/is/are | Misol |\n| --- | --- | --- |\n| I | **am** | I **am** eat**ing**. |\n| he / she / it | **is** | She **is** read**ing**. |\n| you / we / they | **are** | They **are** play**ing**. |\n\n**Vaqt so'zlari:** now, right now, at the moment.\n\n**Imlo:** ko'p fe'lga shunchaki **-ing** qo'shiladi (work → working); oxiri **-e** bo'lsa, e tushadi (write → writing)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I **am working** now.\n- She **is reading** a book.\n- We **are eating** breakfast.\n- The children **are playing** in the garden.\n- What **are** you **doing**?" }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "She ___ a book now.", "options": [ { "id": "a", "text": "is reading" }, { "id": "b", "text": "are reading" }, { "id": "c", "text": "am reading" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> **am/is/are** ni tushirib qoldirmang va egaga to'g'ri moslang.\n>\n> Noto'g'ri: *I working now.* → To'g'ri: **I am working now.**\n> Noto'g'ri: *He are eating.* → To'g'ri: **He is eating.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: men hozir ishlayapman.", "tokens": [ { "id": "t1", "text": "I" }, { "id": "t2", "text": "am" }, { "id": "t3", "text": "working" }, { "id": "t4", "text": "now" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Ega + am + fe'l-ing + now." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (am/is/are): ular futbol o'ynashyapti.", "segments": [ { "text": "They " }, { "blankId": "b1" }, { "text": " playing football." } ], "blanks": { "b1": { "accepted": ["are"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "they + are." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (fe'l-ing shakli, 'eat'): u nonushta qilyapti.", "segments": [ { "text": "He is " }, { "blankId": "b1" }, { "text": " breakfast." } ], "blanks": { "b1": { "accepted": ["eating"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "eat + ing = eating." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan gap tuzing: u hozir kitob o'qiyapti.", "tokens": [ { "id": "t1", "text": "She" }, { "id": "t2", "text": "is" }, { "id": "t3", "text": "reading" }, { "id": "t4", "text": "a" }, { "id": "t5", "text": "book" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5"] }, "remediation": "She + is + reading + a book." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PRESENT-CONTINUOUS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (am/is/are): biz nonushta qilyapmiz.", "segments": [ { "text": "We " }, { "blankId": "b1" }, { "text": " eating breakfast." } ], "blanks": { "b1": { "accepted": ["are"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "we + are." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **am/is/are + fe'l-ing** = ayni hozir bo'layotgan ish.\n- I → am · he/she/it → is · you/we/they → are.\n- Vaqt so'zi: **now**." }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-021-QUESTION-WORDS",
+      "slug": "eng-a1-021-question-words",
+      "sortOrder": 210,
+      "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+      "prerequisiteContentKeys": ["ENG-A1-012-PRESENT-SIMPLE-QUESTIONS"],
+      "revision": {
+        "title": "Savol so'zlari: what / where / who / when / how",
+        "description": "Savol so'zi + do/does bilan ma'lumot so'rovchi savol tuzish.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nHa/yo'q emas, **ma'lumot** so'rash uchun savol so'zi kerak: **what** (nima), **where** (qayer), **who** (kim), **when** (qachon), **how** (qanday). Ular gap **boshida** turadi." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n**Savol so'zi + do/does + ega + fe'l ...?**\n\n| So'z | Ma'no | Misol |\n| --- | --- | --- |\n| **what** | nima | **What** do you want? |\n| **where** | qayer | **Where** does she live? |\n| **who** | kim | **Who** is your teacher? |\n| **when** | qachon | **When** do they start? |\n| **how** | qanday | **How** do you go to work? |\n\n**Esda tuting:** he/she/it bilan **does** (fe'l -s siz): *Where **does** he work?*" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- **Where** do you live?\n- **What** does she do?\n- **When** do you get up?\n- **How** does he travel to school?\n- **Who** do they visit on Sunday?" }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "___ do you live? (qayer)", "options": [ { "id": "a", "text": "What" }, { "id": "b", "text": "Where" }, { "id": "c", "text": "When" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> he/she/it bilan **does** ishlating va asosiy fe'lga **-s** qo'shmang.\n>\n> Noto'g'ri: *Where does your brother works?* → To'g'ri: **Where does your brother work?**\n> Noto'g'ri: *What she does do?* → To'g'ri: **What does she do?**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan savol tuzing: akangiz qayerda ishlaydi?", "tokens": [ { "id": "t1", "text": "where" }, { "id": "t2", "text": "does" }, { "id": "t3", "text": "your" }, { "id": "t4", "text": "brother" }, { "id": "t5", "text": "work" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4", "t5"] }, "remediation": "Savol so'zi + does + ega + fe'l (-s siz)." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (savol so'zi): siz qachon turasiz?", "segments": [ { "blankId": "b1" }, { "text": " do you get up?" } ], "blanks": { "b1": { "accepted": ["When"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Qachon = When." }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (do/does): u qayerda yashaydi?", "segments": [ { "text": "Where " }, { "blankId": "b1" }, { "text": " she live?" } ], "blanks": { "b1": { "accepted": ["does"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "she → does." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "sentence_order", "prompt": "So'zlardan savol tuzing: siz qayerda yashaysiz?", "tokens": [ { "id": "t1", "text": "where" }, { "id": "t2", "text": "do" }, { "id": "t3", "text": "you" }, { "id": "t4", "text": "live" } ], "answerKey": { "correctOrder": ["t1", "t2", "t3", "t4"] }, "remediation": "Where + do + you + live." }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-QUESTION-WORDS"],
+            "payload": { "schemaVersion": "lesson-activity-structured/v1", "format": "fill_blank", "prompt": "Bo'sh joyni to'ldiring (savol so'zi): u nima ish qiladi?", "segments": [ { "blankId": "b1" }, { "text": " does she do?" } ], "blanks": { "b1": { "accepted": ["What"] } }, "normalization": { "caseFold": true, "collapseWhitespace": true }, "remediation": "Nima = What." }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Savol so'zi gap boshida: what / where / who / when / how.\n- Tuzilma: **savol so'zi + do/does + ega + fe'l**.\n- he/she/it → **does**, asosiy fe'l -s siz." }
+          }
+        ]
+      }
+    }
+  ]
+}

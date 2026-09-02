@@ -21,6 +21,8 @@ export const CURRICULUM_IMPORT_FILES = [
   '05-articles-and-plurals.json',
   '06-there-is-and-place.json',
   '07-ability-and-frequency.json',
+  '08-everyday-grammar.json',
+  '09-food-and-context.json',
 ] as const;
 
 /** New Topics created under the A1 module (idempotent by title). */
@@ -34,9 +36,11 @@ export const CURRICULUM_TOPICS: CurriculumTopic[] = [
   { title: 'Otlar: artikl va ko‘plik', description: 'a/an/the va otlarning ko‘plik shakli.', order: 50, importFile: '05-articles-and-plurals.json' },
   { title: 'Bu yerda nima bor?', description: 'there is/there are va o‘rin predloglari.', order: 60, importFile: '06-there-is-and-place.json' },
   { title: 'Imkoniyat va chastota', description: 'can/can’t va takror ravishlari.', order: 70, importFile: '07-ability-and-frequency.json' },
+  { title: 'Kundalik grammatika', description: 'this/that/these/those, Present Continuous va savol so‘zlari.', order: 80, importFile: '08-everyday-grammar.json' },
+  { title: 'Ovqat va muloqot', description: 'ovqat/ichimlik so‘zlari, menyu o‘qish va muloyim so‘rov.', order: 90, importFile: '09-food-and-context.json' },
 ];
 
-/** The 6 new lesson contentKeys (013 → 018), one lesson per new point. */
+/** The new lesson contentKeys (013 → 022), one lesson per new point. */
 export const CURRICULUM_CONTENT_KEYS = [
   'ENG-A1-013-ARTICLES',
   'ENG-A1-014-PLURALS',
@@ -44,9 +48,13 @@ export const CURRICULUM_CONTENT_KEYS = [
   'ENG-A1-016-PREP-PLACE',
   'ENG-A1-017-CAN-ABILITY',
   'ENG-A1-018-FREQUENCY-ADVERBS',
+  'ENG-A1-019-DEMONSTRATIVES',
+  'ENG-A1-020-PRESENT-CONTINUOUS',
+  'ENG-A1-021-QUESTION-WORDS',
+  'ENG-A1-022-FOOD-DRINKS',
 ] as const;
 
-/** The 6 new skills (all GRAMMAR domain — the only A1 domain with defensible objective evidence besides VOCABULARY). */
+/** The new skills. All GRAMMAR domain except FOOD-VOCAB (VOCABULARY) — the two A1 domains with defensible objective evidence. */
 export const CURRICULUM_SKILL_CODES = [
   'ENG-A1-ARTICLES',
   'ENG-A1-PLURALS',
@@ -54,8 +62,13 @@ export const CURRICULUM_SKILL_CODES = [
   'ENG-A1-PREP-PLACE',
   'ENG-A1-CAN-ABILITY',
   'ENG-A1-FREQUENCY-ADVERBS',
+  'ENG-A1-DEMONSTRATIVES',
+  'ENG-A1-PRESENT-CONTINUOUS',
+  'ENG-A1-QUESTION-WORDS',
+  'ENG-A1-FOOD-VOCAB',
 ] as const;
 
+/** Default primary domain for a curriculum skill; a point spec may override via `skillDomainCode`. */
 export const CURRICULUM_DOMAIN_CODE = 'GRAMMAR';
 
 /**
@@ -64,8 +77,13 @@ export const CURRICULUM_DOMAIN_CODE = 'GRAMMAR';
  * production (typed output, speaking), so we deliberately do NOT claim 'free-production' (the pilot over-claimed it).
  */
 export const CURRICULUM_EVIDENCE_KINDS = ['recognition', 'controlled-production'] as const;
-/** The structured-production dogfood point (PREP-PLACE) requires controlled-production ONLY — recognition can't satisfy it. */
-export const PREP_PLACE_MASTERY_EVIDENCE_KINDS = ['controlled-production'] as const;
+/**
+ * A point whose MASTERY_TEST evidence is STRUCTURED production requires controlled-production ONLY at independence 2 —
+ * recognition (choice) can never satisfy it. Used by every structured-production point (PREP-PLACE + the wave-2 points).
+ */
+export const STRUCTURED_MASTERY_EVIDENCE_KINDS = ['controlled-production'] as const;
+/** Back-compat alias (the original PREP-PLACE dogfood). Identical to STRUCTURED_MASTERY_EVIDENCE_KINDS. */
+export const PREP_PLACE_MASTERY_EVIDENCE_KINDS = STRUCTURED_MASTERY_EVIDENCE_KINDS;
 export const CURRICULUM_MASTERY_THRESHOLD_BP = 8000; // 80%
 export const CURRICULUM_MASTERY_MIN_INDEPENDENCE = 1;
 export const CURRICULUM_MASTERY_POLICY_VERSION = 'v2-a1-curriculum-mastery-v1';
@@ -87,6 +105,8 @@ export interface CurriculumPointSpec {
    */
   masteryEvidenceKinds?: readonly string[];
   masteryMinIndependence?: number;
+  /** Primary SubjectDomain for this point's skill (default GRAMMAR). VOCABULARY for word-in-context points. */
+  skillDomainCode?: string;
 }
 
 /** Existing roadmap point keys this expansion builds upon (from provision-v2-english-a1-roadmap.ts). */
@@ -120,7 +140,7 @@ export const CURRICULUM_POINT_PLAN: CurriculumPointSpec[] = [
     canDo: ['in/on/under/next to bilan narsa qayerdaligini aytish', 'o‘rin predlogli gapni so‘zlardan tuzish (tuzilma ishlab chiqarish)'],
     // Dogfood: the FIRST non-Present-Simple A1 point taught via STRUCTURED production. Its mastery evidence is
     // sentence_order + fill_blank, so it honestly requires controlled-production @ independence 2 (Scenario C).
-    masteryEvidenceKinds: PREP_PLACE_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
   },
   {
     pointKey: 'ENG-A1-CAN-ABILITY', title: 'can / can’t — qobiliyat', sortOrder: 80, estimatedEffortMin: 18,
@@ -131,6 +151,33 @@ export const CURRICULUM_POINT_PLAN: CurriculumPointSpec[] = [
     pointKey: 'ENG-A1-FREQUENCY-ADVERBS', title: 'Takror ravishlari', sortOrder: 110, estimatedEffortMin: 20,
     skillCode: 'ENG-A1-FREQUENCY-ADVERBS', lessonContentKey: 'ENG-A1-018-FREQUENCY-ADVERBS', prerequisitePointKeys: [EXISTING_POINT_PRESENT_SIMPLE],
     canDo: ['always/usually/sometimes/never bilan qanchalik tez-tez ekanini aytish', 'ravishni gapda to‘g‘ri joylashtirish'],
+  },
+
+  // ── Wave 2: structured-production-first everyday grammar + vocabulary-in-context ──
+  {
+    pointKey: 'ENG-A1-DEMONSTRATIVES', title: 'this / that / these / those', sortOrder: 60, estimatedEffortMin: 16,
+    skillCode: 'ENG-A1-DEMONSTRATIVES', lessonContentKey: 'ENG-A1-019-DEMONSTRATIVES', prerequisitePointKeys: [EXISTING_POINT_VERB_BE],
+    canDo: ['yaqin/uzoq va birlik/ko‘plikka qarab narsani ko‘rsatish', 'this/that/these/those ni gapda to‘g‘ri qo‘llash'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-PRESENT-CONTINUOUS', title: 'Present Continuous (hozir)', sortOrder: 120, estimatedEffortMin: 20,
+    skillCode: 'ENG-A1-PRESENT-CONTINUOUS', lessonContentKey: 'ENG-A1-020-PRESENT-CONTINUOUS', prerequisitePointKeys: [EXISTING_POINT_PRESENT_SIMPLE],
+    canDo: ['am/is/are + fe‘l-ing bilan hozir bo‘layotgan ishni aytish', 'egaga mos am/is/are tanlash'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-QUESTION-WORDS', title: 'Savol so‘zlari', sortOrder: 115, estimatedEffortMin: 18,
+    skillCode: 'ENG-A1-QUESTION-WORDS', lessonContentKey: 'ENG-A1-021-QUESTION-WORDS', prerequisitePointKeys: [EXISTING_POINT_PRESENT_SIMPLE],
+    canDo: ['what/where/who/when/how bilan ma‘lumot so‘rash', 'savol so‘zi + do/does bilan savol tuzish'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+  },
+  {
+    pointKey: 'ENG-A1-FOOD-DRINKS', title: 'Ovqat va ichimliklar', sortOrder: 90, estimatedEffortMin: 18,
+    skillCode: 'ENG-A1-FOOD-VOCAB', lessonContentKey: 'ENG-A1-022-FOOD-DRINKS', prerequisitePointKeys: ['ENG-A1-THERE-IS-ARE'],
+    canDo: ['keng tarqalgan ovqat/ichimlik so‘zlarini bilish', 'stolda nima borligini aytish va muloyim so‘rov qilish (I would like ...)'],
+    masteryEvidenceKinds: STRUCTURED_MASTERY_EVIDENCE_KINDS, masteryMinIndependence: 2,
+    skillDomainCode: 'VOCABULARY',
   },
 ];
 

@@ -15,7 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { BlueprintBindingRole, ContentReviewOutcome, SkillContributionRole, SkillStatus } from '@prisma/client';
+import { BlueprintBindingRole, ContentReviewOutcome, SkillContributionRole } from '@prisma/client';
 import type { PrismaService } from '../database/prisma.service';
 import type { ImportService } from '../content-import/import.service';
 import type { SubjectService } from '../content-authoring/subject.service';
@@ -27,7 +27,7 @@ import { RUNTIME_SUBJECT, RUNTIME_TRACK } from './seed-runtime';
 import { DEMO_ADMIN } from './seed-demo';
 import { PILOT_DIR } from '../content-import/pilot/english-a1-pilot';
 import {
-  CURRICULUM_IMPORT_FILES, CURRICULUM_TOPICS, CURRICULUM_POINT_PLAN, CURRICULUM_DOMAIN_CODE, CURRICULUM_SKILL_CODES,
+  CURRICULUM_IMPORT_FILES, CURRICULUM_TOPICS, CURRICULUM_POINT_PLAN, CURRICULUM_DOMAIN_CODE,
   CURRICULUM_EVIDENCE_KINDS, CURRICULUM_MASTERY_THRESHOLD_BP, CURRICULUM_MASTERY_MIN_INDEPENDENCE,
   type CurriculumPointSpec,
 } from '../content-import/pilot/english-a1-curriculum';
@@ -127,16 +127,23 @@ export async function provisionA1Curriculum(deps: CurriculumDeps, env: Curriculu
     lessonsPublished++;
   }
 
-  // 6) Map the new skills to the GRAMMAR domain (honest primary-domain evidence; NOT_ASSESSED domains stay empty).
-  const grammarDomain = await prisma.subjectDomain.findUnique({ where: { subjectId_code: { subjectId: subject.id, code: CURRICULUM_DOMAIN_CODE } } });
+  // 6) Map each new skill to its point's primary SubjectDomain (default GRAMMAR; VOCABULARY for word-in-context
+  // points). Honest primary-domain evidence; domains with no tagged skills stay NOT_ASSESSED.
   let skillsMappedToDomain = 0;
-  if (grammarDomain) {
-    for (const code of CURRICULUM_SKILL_CODES) {
-      const skill = await prisma.skill.findUnique({ where: { subjectId_code: { subjectId: subject.id, code } }, select: { id: true, primaryDomainId: true } });
-      if (skill && skill.primaryDomainId !== grammarDomain.id) {
-        await prisma.skill.update({ where: { id: skill.id }, data: { primaryDomainId: grammarDomain.id } });
-        skillsMappedToDomain++;
-      }
+  const domainIdByCode = new Map<string, string>();
+  const resolveDomainId = async (code: string): Promise<string | undefined> => {
+    if (domainIdByCode.has(code)) return domainIdByCode.get(code);
+    const d = await prisma.subjectDomain.findUnique({ where: { subjectId_code: { subjectId: subject.id, code } }, select: { id: true } });
+    if (d) domainIdByCode.set(code, d.id);
+    return d?.id;
+  };
+  for (const spec of CURRICULUM_POINT_PLAN) {
+    const domainId = await resolveDomainId(spec.skillDomainCode ?? CURRICULUM_DOMAIN_CODE);
+    if (!domainId) continue;
+    const skill = await prisma.skill.findUnique({ where: { subjectId_code: { subjectId: subject.id, code: spec.skillCode } }, select: { id: true, primaryDomainId: true } });
+    if (skill && skill.primaryDomainId !== domainId) {
+      await prisma.skill.update({ where: { id: skill.id }, data: { primaryDomainId: domainId } });
+      skillsMappedToDomain++;
     }
   }
 
