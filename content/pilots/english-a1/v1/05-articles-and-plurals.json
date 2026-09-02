@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "izlan-topic-content/v1",
+  "provenance": { "source": "AI_ASSISTED" },
+  "skills": [
+    { "code": "ENG-A1-ARTICLES", "name": "Artikllar: a / an / the", "sortOrder": 140 },
+    { "code": "ENG-A1-PLURALS", "name": "Otlarning ko'plik shakli", "sortOrder": 150 }
+  ],
+  "lessons": [
+    {
+      "contentKey": "ENG-A1-013-ARTICLES",
+      "slug": "eng-a1-013-articles",
+      "sortOrder": 130,
+      "skillCodes": ["ENG-A1-ARTICLES"],
+      "prerequisiteContentKeys": ["ENG-A1-003-BE-AFFIRMATIVE"],
+      "revision": {
+        "title": "Artikllar: a, an, the",
+        "description": "a/an — noaniq; the — aniq (ma'lum) ot oldida.",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nInglizchada sanaladigan ot oldida ko'pincha **artikl** turadi: **a**, **an** yoki **the**. O'zbekchada bunday so'z yo'q, shuning uchun uni alohida o'rganamiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Artikl | Qachon | Misol |\n| --- | --- | --- |\n| **a** | undosh **tovush** bilan boshlanadigan ot | a **b**ook, a **c**ar, a **u**niversity (yu-) |\n| **an** | unli **tovush** bilan boshlanadigan ot | an **a**pple, an **e**gg, an **h**our (soat — h o'qilmaydi) |\n| **the** | tinglovchiga **ma'lum**, aniq narsa | **the** sun, Open **the** door. |\n\n**Muhim:** tanlov harfga emas, **tovush**ga qarab bo'ladi: *an hour* (h jim), *a university* (yu- undosh kabi)." }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- I have **a** book and **an** apple.\n- She is **a** teacher.\n- Please close **the** window.\n- **The** moon is beautiful tonight.\n- He is **an** engineer." }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I eat ___ apple every morning.", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "the" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Unli tovush oldida **a** emas, **an** ishlating; artiklni butunlay tushirib qoldirmang.\n>\n> Noto'g'ri: *I have a egg.* → To'g'ri: **I have an egg.**\n> Noto'g'ri: *She is teacher.* → To'g'ri: **She is a teacher.**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "He is ___ engineer.", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "the" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Please open ___ door. (biz bilgan, aniq eshik)", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "the" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I have ___ car. It is old.", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "—" } ], "answerKey": { "correctOptionIds": ["a"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "There is ___ umbrella near the door.", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "the" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-ARTICLES"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Look at ___ sky! It is very blue. (osmon — yagona, ma'lum)", "options": [ { "id": "a", "text": "a" }, { "id": "b", "text": "an" }, { "id": "c", "text": "the" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- **a** — undosh tovush, **an** — unli tovush oldida (noaniq).\n- **the** — tinglovchiga ma'lum, aniq narsa oldida." }
+          }
+        ]
+      }
+    },
+    {
+      "contentKey": "ENG-A1-014-PLURALS",
+      "slug": "eng-a1-014-plurals",
+      "sortOrder": 140,
+      "skillCodes": ["ENG-A1-PLURALS"],
+      "prerequisiteContentKeys": ["ENG-A1-013-ARTICLES"],
+      "revision": {
+        "title": "Otlarning ko'plik shakli",
+        "description": "-s / -es; y → -ies; qoidasiz ko'pliklar (children, men, women).",
+        "activities": [
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Bugun nimani o'rganamiz?\n\nBir dona narsa — **birlik** (one book). Bir nechta narsa — **ko'plik** (three books). Bu darsda otni ko'plikka aylantirishni o'rganamiz." }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 4,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Qoida\n\n| Holat | Qoida | Misol |\n| --- | --- | --- |\n| Oddiy ot | + **s** | book → book**s**, car → car**s** |\n| -s, -x, -ch, -sh, -o | + **es** | box → box**es**, watch → watch**es** |\n| undosh + **y** | y → **ies** | city → cit**ies**, baby → bab**ies** |\n\n## Qoidasiz (yod olinadi)\n- man → **men**, woman → **women**\n- child → **children**, person → **people**\n- foot → **feet**, tooth → **teeth**" }
+          },
+          {
+            "type": "EXAMPLE",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "- one book → two **books**\n- one box → three **boxes**\n- one city → many **cities**\n- one child → four **children**\n- one man → two **men**" }
+          },
+          {
+            "type": "MINI_QUESTION",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Ko'plik shakli: 'box'", "options": [ { "id": "a", "text": "boxs" }, { "id": "b", "text": "boxes" }, { "id": "c", "text": "boxies" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "EXPLANATION",
+            "estimatedDurationMin": 2,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Ko'p uchraydigan xato\n\n> Qoidasiz otlarga **-s** qo'shmang; -ch/-sh/-x dan keyin **-es** ni unutmang.\n>\n> Noto'g'ri: *three childs* → To'g'ri: **three children**\n> Noto'g'ri: *two watchs* → To'g'ri: **two watches**" }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 1,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Ko'plik shakli: 'city'", "options": [ { "id": "a", "text": "citys" }, { "id": "b", "text": "cityes" }, { "id": "c", "text": "cities" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "I have three ___. (child)", "options": [ { "id": "a", "text": "childs" }, { "id": "b", "text": "children" }, { "id": "c", "text": "childrens" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "PRACTICE",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "There are five ___ on the table. (book)", "options": [ { "id": "a", "text": "book" }, { "id": "b", "text": "books" }, { "id": "c", "text": "bookes" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "Two ___ are in the office. (woman)", "options": [ { "id": "a", "text": "womans" }, { "id": "b", "text": "womens" }, { "id": "c", "text": "women" } ], "answerKey": { "correctOptionIds": ["c"] } }
+          },
+          {
+            "type": "MASTERY_TEST",
+            "estimatedDurationMin": 2,
+            "skillCodes": ["ENG-A1-PLURALS"],
+            "payload": { "schemaVersion": "lesson-activity-objective/v1", "format": "single_choice", "prompt": "My city has many ___. (bus)", "options": [ { "id": "a", "text": "buss" }, { "id": "b", "text": "buses" }, { "id": "c", "text": "busies" } ], "answerKey": { "correctOptionIds": ["b"] } }
+          },
+          {
+            "type": "TEXT",
+            "estimatedDurationMin": 1,
+            "payload": { "schemaVersion": "lesson-activity-markdown/v1", "markdown": "## Xulosa\n\n- Oddiy ot → **-s**; -s/-x/-ch/-sh/-o → **-es**; undosh + y → **-ies**.\n- Qoidasiz: man→men, woman→women, child→children." }
+          }
+        ]
+      }
+    }
+  ]
+}
