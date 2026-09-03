@@ -226,6 +226,13 @@ const en: Messages = {
     description: 'Description',
     created: 'Subject created',
     published: 'Subject published',
+    deleteAction: 'Delete',
+    deleteTitle: 'Delete subject?',
+    deleteBody: 'Delete the subject “{title}”?',
+    deleteHint: 'If the subject has no learner history and is not published, it will be permanently deleted — this cannot be undone. Otherwise it is safely archived (not deleted).',
+    deleted: '“{title}” deleted',
+    archived: '“{title}” archived (not deleted)',
+    blockedHistory: '“{title}” was not deleted: it has learner history.',
   },
   assessmentBuilder: {
     title: 'Assessment Builder',

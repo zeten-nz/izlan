@@ -9,6 +9,7 @@ import type {
   ArchiveView,
   Assignment,
   AssignmentRemoveResult,
+  SubjectDeletionResult,
   HierarchyPublishResult,
   Lesson,
   LessonTokenResult,
@@ -42,6 +43,8 @@ export const updateSubject = (
   id: string,
   body: { expectedUpdatedAt: string; slug?: string; title?: string; description?: string | null; sortOrder?: number },
 ) => apiRequest<Subject>(`${B}/subjects/${id}`, { method: 'PATCH', body });
+/** Safe removal — backend authoritatively returns DELETED / ARCHIVED / BLOCKED (never a raw FK/table detail). */
+export const deleteSubject = (id: string) => apiRequest<SubjectDeletionResult>(`${B}/subjects/${id}`, { method: 'DELETE' });
 export const listAssignments = (subjectId: string) => apiRequest<Assignment[]>(`${B}/subjects/${subjectId}/assignments`);
 export const assignUser = (subjectId: string, userId: string) =>
   apiRequest<Assignment>(`${B}/subjects/${subjectId}/assignments`, { method: 'POST', body: { userId } });

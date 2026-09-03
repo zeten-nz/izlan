@@ -10,6 +10,18 @@ import { presentAssignment, presentSubject } from './presenters';
 import { isUniqueViolation } from './hierarchy.repository';
 import { CreateSubjectDto, UpdateSubjectDto } from './dto/subject.dto';
 
+/** Postgres FK / required-relation violation (a RESTRICT child still references the row). No raw detail is surfaced. */
+const isForeignKeyViolation = (e: unknown): boolean =>
+  e instanceof Prisma.PrismaClientKnownRequestError && (e.code === 'P2003' || e.code === 'P2014');
+
+/** Authoritative outcome of a subject-removal request. `reason` is a stable code the client localizes (never FK detail). */
+export interface SubjectDeletionResult {
+  outcome: 'DELETED' | 'ARCHIVED' | 'BLOCKED';
+  subjectId: string;
+  title: string;
+  reason: 'LEARNER_HISTORY' | 'PUBLISHED_CONTENT' | 'RESIDUAL_CONTENT' | null;
+}
+
 /**
  * Subject + SubjectAssignment authoring (Phase 2.2A-1). Final permission semantics:
  *  - Subject discovery/detail (GET/list) → `content.author` + SubjectAssignment scope;
@@ -82,6 +94,52 @@ export class SubjectService {
       });
     } catch (e) {
       if (isUniqueViolation(e)) throw new ContentUniqueConflictError('conflict');
+      throw e;
+    }
+  }
+
+  /**
+   * SAFE subject removal (content.subject.manage + assignment scope). Backend is authoritative about what happens:
+   *  - BLOCKED  — the subject has learner history; nothing is touched (history must never disappear on a Delete click).
+   *  - ARCHIVED — the subject has published content but no history; status → ARCHIVED (hidden from active + learner
+   *               surfaces, all rows preserved). Also the safe fallback if a disposable subject still has authored
+   *               content the owned-cascade does not cover (the physical delete rolls back atomically).
+   *  - DELETED  — a disposable subject (DRAFT, no history, no published content): its owned authoring content is
+   *               permanently removed, then the subject.
+   * Unknown/out-of-scope → ContentNotFoundError (404, IDOR-safe). Idempotent: a second delete of a removed subject 404s;
+   * a second delete of an archived subject re-archives (no-op). Never exposes raw FK/table detail.
+   */
+  async deleteSubject(actorUserId: string, id: string): Promise<SubjectDeletionResult> {
+    const subject = await this.subjects.findSubject(id);
+    if (!subject) throw new ContentNotFoundError('not found');
+    await this.scope.requireScope(actorUserId, subject.id); // destructive action requires an assignment; no role-name bypass
+
+    if (await this.subjects.hasLearnerHistory(id)) {
+      return { outcome: 'BLOCKED', subjectId: id, title: subject.title, reason: 'LEARNER_HISTORY' };
+    }
+
+    const archive = async (reason: SubjectDeletionResult['reason']): Promise<SubjectDeletionResult> =>
+      this.prisma.$transaction(async (tx) => {
+        const archived = await this.subjects.archiveSubject(tx, id);
+        await this.audit.write(tx, { actorUserId, actionCode: CONTENT_AUDIT.SUBJECT_ARCHIVE, targetType: CONTENT_TARGET.SUBJECT, targetId: id, metadata: { slug: archived.slug, reason } });
+        return { outcome: 'ARCHIVED', subjectId: id, title: archived.title, reason };
+      });
+
+    if (await this.subjects.hasPublishedContent(id, subject.status)) {
+      return archive('PUBLISHED_CONTENT');
+    }
+
+    // Disposable: permanently delete the owned authoring content + the subject, atomically + audited.
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.audit.write(tx, { actorUserId, actionCode: CONTENT_AUDIT.SUBJECT_DELETE, targetType: CONTENT_TARGET.SUBJECT, targetId: id, metadata: { slug: subject.slug, title: subject.title } });
+        await this.subjects.hardDeleteOwnedContent(tx, id);
+        return { outcome: 'DELETED', subjectId: id, title: subject.title, reason: null };
+      });
+    } catch (e) {
+      // Residual owned content the cascade does not cover (e.g. an authored roadmap-point graph) → the delete rolled
+      // back atomically; retire the subject instead so it still leaves the active list without any data loss.
+      if (isForeignKeyViolation(e)) return archive('RESIDUAL_CONTENT');
       throw e;
     }
   }

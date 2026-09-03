@@ -20,6 +20,8 @@ registerPermissions(CONTENT_AUTHORING_PERMISSIONS);
 export const CONTENT_AUDIT = {
   SUBJECT_CREATE: 'content.subject.create',
   SUBJECT_UPDATE: 'content.subject.update',
+  SUBJECT_DELETE: 'content.subject.delete', // permanent removal of a disposable (draft, no-history) Subject
+  SUBJECT_ARCHIVE: 'content.subject.archive', // safe retirement (status → ARCHIVED) when permanent delete is unsafe
   ASSIGNMENT_ADD: 'content.subject_assignment.add',
   ASSIGNMENT_REMOVE: 'content.subject_assignment.remove',
   TRACK_CREATE: 'content.track.create',

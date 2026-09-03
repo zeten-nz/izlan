@@ -40,6 +40,17 @@ export class SubjectsController {
     return this.subjects.updateSubject(principal.userId, id, dto);
   }
 
+  /**
+   * Safe subject removal — content.subject.manage AND an assignment for THIS subject (a destructive action, so unlike
+   * metadata PATCH it is scope-checked: an out-of-scope actor gets a 404-safe not-found). The backend authoritatively
+   * decides DELETED (disposable) / ARCHIVED (has published content) / BLOCKED (has learner history).
+   */
+  @Delete('subjects/:id')
+  @RequirePermissions(CONTENT_SUBJECT_MANAGE)
+  delete(@CurrentPrincipal() principal: AuthPrincipal, @Param('id') id: string) {
+    return this.subjects.deleteSubject(principal.userId, id);
+  }
+
   @Get('subjects/:subjectId/assignments')
   @RequirePermissions(CONTENT_SUBJECT_MANAGE)
   listAssignments(@Param('subjectId') subjectId: string) {

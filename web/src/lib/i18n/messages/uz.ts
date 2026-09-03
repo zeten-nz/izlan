@@ -225,6 +225,13 @@ const uz = {
     description: 'Tavsif',
     created: 'Fan yaratildi',
     published: 'Fan nashr qilindi',
+    deleteAction: 'O‘chirish',
+    deleteTitle: 'Fan o‘chirilsinmi?',
+    deleteBody: '«{title}» fanini o‘chirmoqchimisiz?',
+    deleteHint: 'Agar fanda o‘quvchi tarixi bo‘lmasa va u nashr qilinmagan bo‘lsa, butunlay o‘chiriladi — bu amalni ortga qaytarib bo‘lmaydi. Aks holda u xavfsiz tarzda arxivlanadi (o‘chirilmaydi).',
+    deleted: '«{title}» o‘chirildi',
+    archived: '«{title}» arxivlandi (o‘chirilmadi)',
+    blockedHistory: '«{title}» o‘chirilmadi: fanda o‘quvchi tarixi bor.',
   },
   assessmentBuilder: {
     title: 'Baholash quruvchisi',

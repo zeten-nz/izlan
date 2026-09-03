@@ -64,6 +64,13 @@ export interface Subject {
   createdAt: string;
   updatedAt: string;
 }
+/** Authoritative outcome of a safe subject removal. `reason` is a stable code the UI localizes (never raw FK detail). */
+export interface SubjectDeletionResult {
+  outcome: 'DELETED' | 'ARCHIVED' | 'BLOCKED';
+  subjectId: string;
+  title: string;
+  reason: 'LEARNER_HISTORY' | 'PUBLISHED_CONTENT' | 'RESIDUAL_CONTENT' | null;
+}
 export interface Track {
   id: string;
   subjectId: string;
