@@ -59,7 +59,7 @@ export interface Subject {
   title: string;
   description: string | null;
   status: ContainerStatus;
-  sortOrder: number;
+  // No sortOrder: canonical ordering is conveyed by the list's array order, never a raw value shown to staff.
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;

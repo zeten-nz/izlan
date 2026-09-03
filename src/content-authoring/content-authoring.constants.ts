@@ -20,6 +20,7 @@ registerPermissions(CONTENT_AUTHORING_PERMISSIONS);
 export const CONTENT_AUDIT = {
   SUBJECT_CREATE: 'content.subject.create',
   SUBJECT_UPDATE: 'content.subject.update',
+  SUBJECT_REORDER: 'content.subject.reorder', // canonical drag-and-drop reordering of the subject list
   ASSIGNMENT_ADD: 'content.subject_assignment.add',
   ASSIGNMENT_REMOVE: 'content.subject_assignment.remove',
   TRACK_CREATE: 'content.track.create',

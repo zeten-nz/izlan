@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ContainerStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { ContentAssignmentInvalidError, ContentEditConflictError, ContentNotDraftError, ContentNotFoundError, ContentUniqueConflictError } from '../common/errors';
+import { ContentAssignmentInvalidError, ContentEditConflictError, ContentNotDraftError, ContentNotFoundError, ContentReorderInvalidError, ContentUniqueConflictError } from '../common/errors';
 import { SubjectRepository } from './subject.repository';
 import { SubjectScopeService } from './subject-scope.service';
 import { ContentAuditRepository } from './content-audit.repository';
 import { CONTENT_AUDIT, CONTENT_TARGET } from './content-authoring.constants';
 import { presentAssignment, presentSubject } from './presenters';
 import { isUniqueViolation } from './hierarchy.repository';
-import { CreateSubjectDto, UpdateSubjectDto } from './dto/subject.dto';
+import { CreateSubjectDto, ReorderSubjectsDto, UpdateSubjectDto } from './dto/subject.dto';
+
+/** Spacing between canonical subject positions — leaves room to insert between without an immediate global rewrite. */
+const SUBJECT_ORDER_STEP = 100;
 
 /**
  * Subject + SubjectAssignment authoring (Phase 2.2A-1). Final permission semantics:
@@ -40,12 +43,18 @@ export class SubjectService {
     return presentSubject(s);
   }
 
-  /** Create a DRAFT Subject + self-assignment + audit in ONE transaction (§7). content.subject.manage. */
+  /**
+   * Create a DRAFT Subject + self-assignment + audit in ONE transaction (§7). content.subject.manage. Ordering is
+   * server-assigned: a transaction advisory lock serializes concurrent creates, then the new subject takes
+   * MAX(sortOrder)+STEP so the list stays 100,200,300,… without the client ever sending a position.
+   */
   async createSubject(actorUserId: string, dto: CreateSubjectDto) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        await this.subjects.lockSubjectOrdering(tx); // serialize sortOrder assignment across concurrent creates
+        const nextSortOrder = (await this.subjects.maxSortOrder(tx) ?? 0) + SUBJECT_ORDER_STEP;
         const subject = await this.subjects.createSubject(tx, {
-          slug: dto.slug, title: dto.title, description: dto.description ?? null, sortOrder: dto.sortOrder ?? 0, createdBy: actorUserId,
+          slug: dto.slug, title: dto.title, description: dto.description ?? null, sortOrder: nextSortOrder, createdBy: actorUserId,
         });
         await this.subjects.createAssignment(tx, { userId: actorUserId, subjectId: subject.id, assignedBy: actorUserId });
         await this.audit.write(tx, { actorUserId, actionCode: CONTENT_AUDIT.SUBJECT_CREATE, targetType: CONTENT_TARGET.SUBJECT, targetId: subject.id, metadata: { slug: subject.slug } });
@@ -58,6 +67,26 @@ export class SubjectService {
   }
 
   /**
+   * Canonically reorder the actor's manageable subjects (content.subject.manage). The payload must be the EXACT set
+   * of the actor's assigned subjects (unique, complete, no foreign ids) — mirroring the activity-reorder contract.
+   * Positions are rewritten to STEP·index in one transaction; a single audit event is written. Backend-authoritative:
+   * the client never computes the stored values.
+   */
+  async reorderSubjects(actorUserId: string, dto: ReorderSubjectsDto) {
+    const ordered = dto.orderedSubjectIds;
+    if (new Set(ordered).size !== ordered.length) throw new ContentReorderInvalidError('duplicate id');
+    return await this.prisma.$transaction(async (tx) => {
+      await this.subjects.lockSubjectOrdering(tx);
+      const currentSet = new Set(await this.subjects.assignedSubjectIds(actorUserId, tx));
+      if (ordered.length !== currentSet.size) throw new ContentReorderInvalidError('set mismatch'); // complete set only
+      for (const id of ordered) if (!currentSet.has(id)) throw new ContentReorderInvalidError('unknown id'); // no foreign/out-of-scope id
+      for (let i = 0; i < ordered.length; i++) await this.subjects.setSortOrder(tx, ordered[i], (i + 1) * SUBJECT_ORDER_STEP);
+      await this.audit.write(tx, { actorUserId, actionCode: CONTENT_AUDIT.SUBJECT_REORDER, targetType: CONTENT_TARGET.SUBJECT, targetId: null, metadata: { count: ordered.length } });
+      return { orderedSubjectIds: ordered };
+    });
+  }
+
+  /**
    * Update Subject metadata — **content.subject.manage** (global top-level capability; NO per-subject assignment
    * required, unlike child content). DRAFT-only, optimistic concurrency, audited (§12/13/16). Existence + status +
    * concurrency are all resolved inside the mutation transaction.
@@ -67,7 +96,6 @@ export class SubjectService {
     if (dto.slug !== undefined) data.slug = dto.slug;
     if (dto.title !== undefined) data.title = dto.title;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     const expected = new Date(dto.expectedUpdatedAt);
     try {
       return await this.prisma.$transaction(async (tx) => {

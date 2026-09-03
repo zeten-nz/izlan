@@ -36,12 +36,16 @@ export { fetchCmsSession } from './auth';
 // ── Subjects + assignments ──
 export const listSubjects = () => apiRequest<Subject[]>(`${B}/subjects`);
 export const getSubject = (id: string) => apiRequest<Subject>(`${B}/subjects/${id}`);
-export const createSubject = (body: { slug: string; title: string; description?: string; sortOrder?: number }) =>
+// Ordering is server-assigned; the client never sends a position (create) and cannot patch it (update).
+export const createSubject = (body: { slug: string; title: string; description?: string }) =>
   apiRequest<Subject>(`${B}/subjects`, { method: 'POST', body });
 export const updateSubject = (
   id: string,
-  body: { expectedUpdatedAt: string; slug?: string; title?: string; description?: string | null; sortOrder?: number },
+  body: { expectedUpdatedAt: string; slug?: string; title?: string; description?: string | null },
 ) => apiRequest<Subject>(`${B}/subjects/${id}`, { method: 'PATCH', body });
+/** Canonical reorder — the full ordered set of the actor's subjects. Backend rewrites positions transactionally. */
+export const reorderSubjects = (orderedSubjectIds: string[]) =>
+  apiRequest<{ orderedSubjectIds: string[] }>(`${B}/subjects/order`, { method: 'PUT', body: { orderedSubjectIds } });
 export const listAssignments = (subjectId: string) => apiRequest<Assignment[]>(`${B}/subjects/${subjectId}/assignments`);
 export const assignUser = (subjectId: string, userId: string) =>
   apiRequest<Assignment>(`${B}/subjects/${subjectId}/assignments`, { method: 'POST', body: { userId } });

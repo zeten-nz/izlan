@@ -19,6 +19,30 @@ export class SubjectRepository {
   createSubject(tx: Prisma.TransactionClient, data: { slug: string; title: string; description?: string | null; sortOrder: number; createdBy: string }) {
     return tx.subject.create({ data, select: SUBJECT_SELECT });
   }
+
+  /**
+   * Serialize concurrent sortOrder assignment with a transaction-scoped Postgres advisory lock (auto-released at
+   * COMMIT/ROLLBACK). Two simultaneous creates then compute distinct next positions instead of racing on the same MAX.
+   */
+  async lockSubjectOrdering(tx: Prisma.TransactionClient): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SUBJECT_ORDER_LOCK_KEY})`;
+  }
+
+  /** The current maximum canonical sortOrder across ALL subjects (ordering is a global sequence), or null if none. */
+  async maxSortOrder(tx: Prisma.TransactionClient): Promise<number | null> {
+    const agg = await tx.subject.aggregate({ _max: { sortOrder: true } });
+    return agg._max.sortOrder ?? null;
+  }
+
+  /** Ids of the subjects the actor may manage (their assigned set) — the exact set a reorder must cover. */
+  async assignedSubjectIds(userId: string, tx?: Prisma.TransactionClient): Promise<string[]> {
+    const rows = await this.db(tx).subject.findMany({ where: { assignments: { some: { userId } } }, select: { id: true } });
+    return rows.map((r) => r.id);
+  }
+
+  setSortOrder(tx: Prisma.TransactionClient, id: string, sortOrder: number) {
+    return tx.subject.update({ where: { id }, data: { sortOrder }, select: { id: true } });
+  }
   findSubject(id: string, tx?: Prisma.TransactionClient) {
     return this.db(tx).subject.findUnique({ where: { id }, select: SUBJECT_SELECT });
   }
@@ -58,6 +82,9 @@ export class SubjectRepository {
     return this.db(tx).user.findUnique({ where: { id }, select: { id: true } });
   }
 }
+
+/** Stable advisory-lock key for serializing global Subject sortOrder assignment (arbitrary constant, never collides). */
+const SUBJECT_ORDER_LOCK_KEY = 728041007;
 
 const SUBJECT_SELECT = { id: true, slug: true, title: true, description: true, status: true, sortOrder: true, createdBy: true, createdAt: true, updatedAt: true } satisfies Prisma.SubjectSelect;
 const ASSIGNMENT_SELECT = { id: true, userId: true, subjectId: true, assignedAt: true, assignedBy: true } satisfies Prisma.SubjectAssignmentSelect;

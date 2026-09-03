@@ -102,16 +102,14 @@ export default function SubjectWorkspace() {
           { name: 'slug', label: t('subjects.slug'), type: 'text', required: true },
           { name: 'title', label: t('subjects.fieldTitle'), type: 'text', required: true },
           { name: 'description', label: t('subjects.description'), type: 'textarea' },
-          { name: 'sortOrder', label: t('common.order'), type: 'number' },
         ]}
-        initial={{ slug: subject.slug, title: subject.title, description: subject.description ?? '', sortOrder: String(subject.sortOrder) }}
+        initial={{ slug: subject.slug, title: subject.title, description: subject.description ?? '' }}
         onSubmit={async (v: FormValues) => {
           await updateSubject(subject.id, {
             expectedUpdatedAt: subject.updatedAt,
             slug: s(v.slug),
             title: s(v.title),
             description: s(v.description) ? s(v.description) : null,
-            sortOrder: v.sortOrder ? Number(v.sortOrder) : undefined,
           });
           toast(t('common.saved'), 'success');
           res.reload();

@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { CurrentPrincipal, RequirePermissions } from '../../auth/http/decorators';
 import type { AuthPrincipal } from '../../auth/http/principal';
 import { SubjectService } from '../subject.service';
 import { CONTENT_AUTHOR, CONTENT_SUBJECT_MANAGE } from '../content-authoring.constants';
-import { CreateSubjectDto, UpdateSubjectDto } from '../dto/subject.dto';
+import { CreateSubjectDto, ReorderSubjectsDto, UpdateSubjectDto } from '../dto/subject.dto';
 import { AssignUserDto } from '../dto/assignment.dto';
 
 /**
@@ -26,6 +26,17 @@ export class SubjectsController {
   @RequirePermissions(CONTENT_SUBJECT_MANAGE)
   create(@CurrentPrincipal() principal: AuthPrincipal, @Body() dto: CreateSubjectDto) {
     return this.subjects.createSubject(principal.userId, dto);
+  }
+
+  /**
+   * Canonical drag-and-drop reorder of the actor's manageable subjects. content.subject.manage (global capability,
+   * mirrors create/update). Declared before `:id` routes — a distinct literal segment, and a distinct verb, so it is
+   * never shadowed by the parameterized routes.
+   */
+  @Put('subjects/order')
+  @RequirePermissions(CONTENT_SUBJECT_MANAGE)
+  reorder(@CurrentPrincipal() principal: AuthPrincipal, @Body() dto: ReorderSubjectsDto) {
+    return this.subjects.reorderSubjects(principal.userId, dto);
   }
 
   @Get('subjects/:id')

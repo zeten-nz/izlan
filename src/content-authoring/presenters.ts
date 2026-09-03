@@ -6,9 +6,11 @@ import { ActivityType, ContainerStatus, ContentSource, LessonStatus, Prisma, Rev
  */
 const iso = (d: Date): string => d.toISOString();
 
+// Canonical ordering is conveyed by the ARRAY ORDER of the list endpoint (rows come back sorted by sortOrder), never
+// by exposing the internal numeric `sortOrder` to staff — the value is an implementation detail (§ordering-ux).
 export const presentSubject = (s: {
   id: string; slug: string; title: string; description: string | null; status: ContainerStatus; sortOrder: number; createdBy: string; createdAt: Date; updatedAt: Date;
-}) => ({ id: s.id, slug: s.slug, title: s.title, description: s.description, status: s.status, sortOrder: s.sortOrder, createdBy: s.createdBy, createdAt: iso(s.createdAt), updatedAt: iso(s.updatedAt) });
+}) => ({ id: s.id, slug: s.slug, title: s.title, description: s.description, status: s.status, createdBy: s.createdBy, createdAt: iso(s.createdAt), updatedAt: iso(s.updatedAt) });
 
 export const presentAssignment = (a: {
   id: string; userId: string; subjectId: string; assignedAt: Date; assignedBy: string | null;
